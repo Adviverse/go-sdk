@@ -34,6 +34,15 @@ type CreateCreativeDto struct {
 	Height *float32 `json:"height,omitempty"`
 	Weight *float32 `json:"weight,omitempty"`
 	CarouselItems []CarouselItemDto `json:"carouselItems,omitempty"`
+	Duration *float32 `json:"duration,omitempty"`
+	// >0 makes the linear ad skippable after N seconds (VAST skipoffset).
+	SkipOffsetSec *float32 `json:"skipOffsetSec,omitempty"`
+	// Interactive VPAID (application/javascript) creative file, https.
+	VpaidUrl *string `json:"vpaidUrl,omitempty"`
+	// Companion banners (VAST CompanionAds), max 5.
+	Companions []CompanionDto `json:"companions,omitempty"`
+	// Third-party VAST tag (the advertiser's own ad server), https. Only valid for type video/audio. Makes assetUrl optional: with no assetUrl the engine serves a VAST <Wrapper> pointing at this tag; when both are set the inline asset wins.
+	VastTagUrl *string `json:"vastTagUrl,omitempty"`
 }
 
 // NewCreateCreativeDto instantiates a new CreateCreativeDto object
@@ -533,6 +542,166 @@ func (o *CreateCreativeDto) SetCarouselItems(v []CarouselItemDto) {
 	o.CarouselItems = v
 }
 
+// GetDuration returns the Duration field value if set, zero value otherwise.
+func (o *CreateCreativeDto) GetDuration() float32 {
+	if o == nil || IsNil(o.Duration) {
+		var ret float32
+		return ret
+	}
+	return *o.Duration
+}
+
+// GetDurationOk returns a tuple with the Duration field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *CreateCreativeDto) GetDurationOk() (*float32, bool) {
+	if o == nil || IsNil(o.Duration) {
+		return nil, false
+	}
+	return o.Duration, true
+}
+
+// HasDuration returns a boolean if a field has been set.
+func (o *CreateCreativeDto) HasDuration() bool {
+	if o != nil && !IsNil(o.Duration) {
+		return true
+	}
+
+	return false
+}
+
+// SetDuration gets a reference to the given float32 and assigns it to the Duration field.
+func (o *CreateCreativeDto) SetDuration(v float32) {
+	o.Duration = &v
+}
+
+// GetSkipOffsetSec returns the SkipOffsetSec field value if set, zero value otherwise.
+func (o *CreateCreativeDto) GetSkipOffsetSec() float32 {
+	if o == nil || IsNil(o.SkipOffsetSec) {
+		var ret float32
+		return ret
+	}
+	return *o.SkipOffsetSec
+}
+
+// GetSkipOffsetSecOk returns a tuple with the SkipOffsetSec field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *CreateCreativeDto) GetSkipOffsetSecOk() (*float32, bool) {
+	if o == nil || IsNil(o.SkipOffsetSec) {
+		return nil, false
+	}
+	return o.SkipOffsetSec, true
+}
+
+// HasSkipOffsetSec returns a boolean if a field has been set.
+func (o *CreateCreativeDto) HasSkipOffsetSec() bool {
+	if o != nil && !IsNil(o.SkipOffsetSec) {
+		return true
+	}
+
+	return false
+}
+
+// SetSkipOffsetSec gets a reference to the given float32 and assigns it to the SkipOffsetSec field.
+func (o *CreateCreativeDto) SetSkipOffsetSec(v float32) {
+	o.SkipOffsetSec = &v
+}
+
+// GetVpaidUrl returns the VpaidUrl field value if set, zero value otherwise.
+func (o *CreateCreativeDto) GetVpaidUrl() string {
+	if o == nil || IsNil(o.VpaidUrl) {
+		var ret string
+		return ret
+	}
+	return *o.VpaidUrl
+}
+
+// GetVpaidUrlOk returns a tuple with the VpaidUrl field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *CreateCreativeDto) GetVpaidUrlOk() (*string, bool) {
+	if o == nil || IsNil(o.VpaidUrl) {
+		return nil, false
+	}
+	return o.VpaidUrl, true
+}
+
+// HasVpaidUrl returns a boolean if a field has been set.
+func (o *CreateCreativeDto) HasVpaidUrl() bool {
+	if o != nil && !IsNil(o.VpaidUrl) {
+		return true
+	}
+
+	return false
+}
+
+// SetVpaidUrl gets a reference to the given string and assigns it to the VpaidUrl field.
+func (o *CreateCreativeDto) SetVpaidUrl(v string) {
+	o.VpaidUrl = &v
+}
+
+// GetCompanions returns the Companions field value if set, zero value otherwise.
+func (o *CreateCreativeDto) GetCompanions() []CompanionDto {
+	if o == nil || IsNil(o.Companions) {
+		var ret []CompanionDto
+		return ret
+	}
+	return o.Companions
+}
+
+// GetCompanionsOk returns a tuple with the Companions field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *CreateCreativeDto) GetCompanionsOk() ([]CompanionDto, bool) {
+	if o == nil || IsNil(o.Companions) {
+		return nil, false
+	}
+	return o.Companions, true
+}
+
+// HasCompanions returns a boolean if a field has been set.
+func (o *CreateCreativeDto) HasCompanions() bool {
+	if o != nil && !IsNil(o.Companions) {
+		return true
+	}
+
+	return false
+}
+
+// SetCompanions gets a reference to the given []CompanionDto and assigns it to the Companions field.
+func (o *CreateCreativeDto) SetCompanions(v []CompanionDto) {
+	o.Companions = v
+}
+
+// GetVastTagUrl returns the VastTagUrl field value if set, zero value otherwise.
+func (o *CreateCreativeDto) GetVastTagUrl() string {
+	if o == nil || IsNil(o.VastTagUrl) {
+		var ret string
+		return ret
+	}
+	return *o.VastTagUrl
+}
+
+// GetVastTagUrlOk returns a tuple with the VastTagUrl field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *CreateCreativeDto) GetVastTagUrlOk() (*string, bool) {
+	if o == nil || IsNil(o.VastTagUrl) {
+		return nil, false
+	}
+	return o.VastTagUrl, true
+}
+
+// HasVastTagUrl returns a boolean if a field has been set.
+func (o *CreateCreativeDto) HasVastTagUrl() bool {
+	if o != nil && !IsNil(o.VastTagUrl) {
+		return true
+	}
+
+	return false
+}
+
+// SetVastTagUrl gets a reference to the given string and assigns it to the VastTagUrl field.
+func (o *CreateCreativeDto) SetVastTagUrl(v string) {
+	o.VastTagUrl = &v
+}
+
 func (o CreateCreativeDto) MarshalJSON() ([]byte, error) {
 	toSerialize,err := o.ToMap()
 	if err != nil {
@@ -587,6 +756,21 @@ func (o CreateCreativeDto) ToMap() (map[string]interface{}, error) {
 	}
 	if !IsNil(o.CarouselItems) {
 		toSerialize["carouselItems"] = o.CarouselItems
+	}
+	if !IsNil(o.Duration) {
+		toSerialize["duration"] = o.Duration
+	}
+	if !IsNil(o.SkipOffsetSec) {
+		toSerialize["skipOffsetSec"] = o.SkipOffsetSec
+	}
+	if !IsNil(o.VpaidUrl) {
+		toSerialize["vpaidUrl"] = o.VpaidUrl
+	}
+	if !IsNil(o.Companions) {
+		toSerialize["companions"] = o.Companions
+	}
+	if !IsNil(o.VastTagUrl) {
+		toSerialize["vastTagUrl"] = o.VastTagUrl
 	}
 	return toSerialize, nil
 }

@@ -59,6 +59,7 @@ model_claim_screen_dto.go
 model_claim_surface_dto.go
 model_client_ping_dto.go
 model_combo_unit_dto.go
+model_companion_dto.go
 model_consent_config_dto.go
 model_consent_dto.go
 model_create_app_dto.go
@@ -72,6 +73,7 @@ model_create_destination_dto.go
 model_create_feed_dto.go
 model_create_guide_dto.go
 model_create_key_dto.go
+model_create_onchain_pool_dto.go
 model_create_placement_dto.go
 model_create_portal_config_dto.go
 model_create_post_dto.go
