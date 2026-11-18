@@ -29,12 +29,16 @@ type ApiMfaControllerOwnRequest struct {
 	id string
 }
 
-func (r ApiMfaControllerOwnRequest) Execute() (*http.Response, error) {
+func (r ApiMfaControllerOwnRequest) Execute() (*MfaControllerOwn200Response, *http.Response, error) {
 	return r.ApiService.MfaControllerOwnExecute(r)
 }
 
 /*
-MfaControllerOwn Method for MfaControllerOwn
+MfaControllerOwn Get my property's MFA score
+
+Returns the latest MFA score for one of the caller's properties, whether it crosses the flag threshold, the reasons, raw signals and improvement tips. If no score has been stored yet it is computed on the fly (not persisted) and `computedAt` is null. Returns 404 for an unknown property and 403 if it belongs to another publisher.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -49,16 +53,18 @@ func (a *MfaAPIService) MfaControllerOwn(ctx context.Context, id string) ApiMfaC
 }
 
 // Execute executes the request
-func (a *MfaAPIService) MfaControllerOwnExecute(r ApiMfaControllerOwnRequest) (*http.Response, error) {
+//  @return MfaControllerOwn200Response
+func (a *MfaAPIService) MfaControllerOwnExecute(r ApiMfaControllerOwnRequest) (*MfaControllerOwn200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *MfaControllerOwn200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MfaAPIService.MfaControllerOwn")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/properties/{id}/mfa"
@@ -78,28 +84,42 @@ func (a *MfaAPIService) MfaControllerOwnExecute(r ApiMfaControllerOwnRequest) (*
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -107,10 +127,19 @@ func (a *MfaAPIService) MfaControllerOwnExecute(r ApiMfaControllerOwnRequest) (*
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiMfaControllerRankedRequest struct {
@@ -124,12 +153,16 @@ func (r ApiMfaControllerRankedRequest) Limit(limit string) ApiMfaControllerRanke
 	return r
 }
 
-func (r ApiMfaControllerRankedRequest) Execute() (*http.Response, error) {
+func (r ApiMfaControllerRankedRequest) Execute() ([]MfaControllerRanked200ResponseInner, *http.Response, error) {
 	return r.ApiService.MfaControllerRankedExecute(r)
 }
 
 /*
-MfaControllerRanked Method for MfaControllerRanked
+MfaControllerRanked Rank properties by MFA score (admin)
+
+Lists properties with their latest made-for-advertising (MFA) score, highest first, including the stored signal breakdown and manual `mfa_flag`. `limit` defaults to 200 (max 1000). Properties never scored are omitted.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiMfaControllerRankedRequest
@@ -142,16 +175,18 @@ func (a *MfaAPIService) MfaControllerRanked(ctx context.Context) ApiMfaControlle
 }
 
 // Execute executes the request
-func (a *MfaAPIService) MfaControllerRankedExecute(r ApiMfaControllerRankedRequest) (*http.Response, error) {
+//  @return []MfaControllerRanked200ResponseInner
+func (a *MfaAPIService) MfaControllerRankedExecute(r ApiMfaControllerRankedRequest) ([]MfaControllerRanked200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []MfaControllerRanked200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MfaAPIService.MfaControllerRanked")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/mfa"
@@ -160,7 +195,7 @@ func (a *MfaAPIService) MfaControllerRankedExecute(r ApiMfaControllerRankedReque
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.limit == nil {
-		return nil, reportError("limit is required and must be specified")
+		return localVarReturnValue, nil, reportError("limit is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "limit", r.limit, "form", "")
@@ -174,28 +209,42 @@ func (a *MfaAPIService) MfaControllerRankedExecute(r ApiMfaControllerRankedReque
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -203,8 +252,17 @@ func (a *MfaAPIService) MfaControllerRankedExecute(r ApiMfaControllerRankedReque
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

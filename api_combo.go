@@ -35,12 +35,16 @@ func (r ApiComboControllerCreateComboRequest) CreateComboDto(createComboDto Crea
 	return r
 }
 
-func (r ApiComboControllerCreateComboRequest) Execute() (*http.Response, error) {
+func (r ApiComboControllerCreateComboRequest) Execute() (*ComboControllerCreateCombo201Response, *http.Response, error) {
 	return r.ApiService.ComboControllerCreateComboExecute(r)
 }
 
 /*
-ComboControllerCreateCombo Method for ComboControllerCreateCombo
+ComboControllerCreateCombo Provision a combo of placements on a property
+
+Creates several placements at once under one generated `comboId` and returns a single combined embed snippet to paste before `</body>`. Send either `presetKey` or a custom `units` array (formats banner, native, popunder, social_bar, interstitial, in_page_push, direct_link), plus optional `namePrefix` and shared floor/rev-share/auction/house settings applied to every unit. Adds a warning if the property already has a popunder. 400 for an unknown preset or a non-combinable format; 404/403 if the property is missing or not yours.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param propertyId
@@ -55,16 +59,18 @@ func (a *ComboAPIService) ComboControllerCreateCombo(ctx context.Context, proper
 }
 
 // Execute executes the request
-func (a *ComboAPIService) ComboControllerCreateComboExecute(r ApiComboControllerCreateComboRequest) (*http.Response, error) {
+//  @return ComboControllerCreateCombo201Response
+func (a *ComboAPIService) ComboControllerCreateComboExecute(r ApiComboControllerCreateComboRequest) (*ComboControllerCreateCombo201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ComboControllerCreateCombo201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ComboAPIService.ComboControllerCreateCombo")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/properties/{propertyId}/combos"
@@ -74,7 +80,7 @@ func (a *ComboAPIService) ComboControllerCreateComboExecute(r ApiComboController
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.createComboDto == nil {
-		return nil, reportError("createComboDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("createComboDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -87,7 +93,7 @@ func (a *ComboAPIService) ComboControllerCreateComboExecute(r ApiComboController
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -96,21 +102,35 @@ func (a *ComboAPIService) ComboControllerCreateComboExecute(r ApiComboController
 	}
 	// body params
 	localVarPostBody = r.createComboDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -118,10 +138,19 @@ func (a *ComboAPIService) ComboControllerCreateComboExecute(r ApiComboController
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiComboControllerListCombosRequest struct {
@@ -130,12 +159,16 @@ type ApiComboControllerListCombosRequest struct {
 	propertyId string
 }
 
-func (r ApiComboControllerListCombosRequest) Execute() (*http.Response, error) {
+func (r ApiComboControllerListCombosRequest) Execute() (*ComboControllerListCombos200Response, *http.Response, error) {
 	return r.ApiService.ComboControllerListCombosExecute(r)
 }
 
 /*
-ComboControllerListCombos Method for ComboControllerListCombos
+ComboControllerListCombos List combos on a property
+
+Groups the property's live placements by `combo_id` (ungrouped placements are omitted) and rebuilds each group's combined snippet. 404/403 if the property is missing or not yours.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param propertyId
@@ -150,16 +183,18 @@ func (a *ComboAPIService) ComboControllerListCombos(ctx context.Context, propert
 }
 
 // Execute executes the request
-func (a *ComboAPIService) ComboControllerListCombosExecute(r ApiComboControllerListCombosRequest) (*http.Response, error) {
+//  @return ComboControllerListCombos200Response
+func (a *ComboAPIService) ComboControllerListCombosExecute(r ApiComboControllerListCombosRequest) (*ComboControllerListCombos200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ComboControllerListCombos200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ComboAPIService.ComboControllerListCombos")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/properties/{propertyId}/combos"
@@ -179,28 +214,42 @@ func (a *ComboAPIService) ComboControllerListCombosExecute(r ApiComboControllerL
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -208,10 +257,19 @@ func (a *ComboAPIService) ComboControllerListCombosExecute(r ApiComboControllerL
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiComboControllerListPresetsRequest struct {
@@ -219,12 +277,16 @@ type ApiComboControllerListPresetsRequest struct {
 	ApiService *ComboAPIService
 }
 
-func (r ApiComboControllerListPresetsRequest) Execute() (*http.Response, error) {
+func (r ApiComboControllerListPresetsRequest) Execute() (*ComboControllerListPresets200Response, *http.Response, error) {
 	return r.ApiService.ComboControllerListPresetsExecute(r)
 }
 
 /*
-ComboControllerListPresets Method for ComboControllerListPresets
+ComboControllerListPresets List combo layout presets
+
+Returns the static catalog of combo presets (`standard_combo`, `leaderboard_pop`, `social_push`, `sticky_interstitial`, `full_monetization`), each with the placement units it provisions. Preset keys are stable.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiComboControllerListPresetsRequest
@@ -237,16 +299,18 @@ func (a *ComboAPIService) ComboControllerListPresets(ctx context.Context) ApiCom
 }
 
 // Execute executes the request
-func (a *ComboAPIService) ComboControllerListPresetsExecute(r ApiComboControllerListPresetsRequest) (*http.Response, error) {
+//  @return ComboControllerListPresets200Response
+func (a *ComboAPIService) ComboControllerListPresetsExecute(r ApiComboControllerListPresetsRequest) (*ComboControllerListPresets200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ComboControllerListPresets200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ComboAPIService.ComboControllerListPresets")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/combo-presets"
@@ -265,28 +329,42 @@ func (a *ComboAPIService) ComboControllerListPresetsExecute(r ApiComboController
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -294,8 +372,17 @@ func (a *ComboAPIService) ComboControllerListPresetsExecute(r ApiComboController
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

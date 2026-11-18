@@ -40,12 +40,16 @@ func (r ApiSettingsControllerBidRecRequest) Geo(geo string) ApiSettingsControlle
 	return r
 }
 
-func (r ApiSettingsControllerBidRecRequest) Execute() (*http.Response, error) {
+func (r ApiSettingsControllerBidRecRequest) Execute() (*SettingsControllerBidRec200Response, *http.Response, error) {
 	return r.ApiService.SettingsControllerBidRecExecute(r)
 }
 
 /*
-SettingsControllerBidRec Method for SettingsControllerBidRec
+SettingsControllerBidRec Get a bid recommendation
+
+Recommends a CPM bid for `format` (and optional `geo`) from the last 7 days of valid winning impressions in ClickHouse. `recommendedCpm` is the 60th percentile of clearing CPM, `floorObserved` the median and `competitiveCpm` the 90th percentile, as 4-decimal strings. If the query fails it returns zeros with `note: "insufficient data"`.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiSettingsControllerBidRecRequest
@@ -58,16 +62,18 @@ func (a *SettingsAPIService) SettingsControllerBidRec(ctx context.Context) ApiSe
 }
 
 // Execute executes the request
-func (a *SettingsAPIService) SettingsControllerBidRecExecute(r ApiSettingsControllerBidRecRequest) (*http.Response, error) {
+//  @return SettingsControllerBidRec200Response
+func (a *SettingsAPIService) SettingsControllerBidRecExecute(r ApiSettingsControllerBidRecRequest) (*SettingsControllerBidRec200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SettingsControllerBidRec200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SettingsAPIService.SettingsControllerBidRec")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/insights/bid-recommendation"
@@ -76,10 +82,10 @@ func (a *SettingsAPIService) SettingsControllerBidRecExecute(r ApiSettingsContro
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.format == nil {
-		return nil, reportError("format is required and must be specified")
+		return localVarReturnValue, nil, reportError("format is required and must be specified")
 	}
 	if r.geo == nil {
-		return nil, reportError("geo is required and must be specified")
+		return localVarReturnValue, nil, reportError("geo is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "format", r.format, "form", "")
@@ -94,28 +100,42 @@ func (a *SettingsAPIService) SettingsControllerBidRecExecute(r ApiSettingsContro
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -123,10 +143,19 @@ func (a *SettingsAPIService) SettingsControllerBidRecExecute(r ApiSettingsContro
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiSettingsControllerBrandSafetyRequest struct {
@@ -141,12 +170,16 @@ func (r ApiSettingsControllerBrandSafetyRequest) BrandSafetyDto(brandSafetyDto B
 	return r
 }
 
-func (r ApiSettingsControllerBrandSafetyRequest) Execute() (*http.Response, error) {
+func (r ApiSettingsControllerBrandSafetyRequest) Execute() (*AdminControllerSetStatus201Response, *http.Response, error) {
 	return r.ApiService.SettingsControllerBrandSafetyExecute(r)
 }
 
 /*
-SettingsControllerBrandSafety Method for SettingsControllerBrandSafety
+SettingsControllerBrandSafety Set campaign brand-safety controls
+
+Stores brand-safety settings (`categories`, `keywords`, `domains`, `sensitivity`, free-form `options`) as JSON on the campaign, replacing any previous value. Only campaigns owned by the caller are updated; a foreign or unknown id is silently ignored.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -161,16 +194,18 @@ func (a *SettingsAPIService) SettingsControllerBrandSafety(ctx context.Context, 
 }
 
 // Execute executes the request
-func (a *SettingsAPIService) SettingsControllerBrandSafetyExecute(r ApiSettingsControllerBrandSafetyRequest) (*http.Response, error) {
+//  @return AdminControllerSetStatus201Response
+func (a *SettingsAPIService) SettingsControllerBrandSafetyExecute(r ApiSettingsControllerBrandSafetyRequest) (*AdminControllerSetStatus201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdminControllerSetStatus201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SettingsAPIService.SettingsControllerBrandSafety")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/campaigns/{id}/brand-safety"
@@ -180,7 +215,7 @@ func (a *SettingsAPIService) SettingsControllerBrandSafetyExecute(r ApiSettingsC
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.brandSafetyDto == nil {
-		return nil, reportError("brandSafetyDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("brandSafetyDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -193,7 +228,7 @@ func (a *SettingsAPIService) SettingsControllerBrandSafetyExecute(r ApiSettingsC
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -202,21 +237,35 @@ func (a *SettingsAPIService) SettingsControllerBrandSafetyExecute(r ApiSettingsC
 	}
 	// body params
 	localVarPostBody = r.brandSafetyDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -224,10 +273,19 @@ func (a *SettingsAPIService) SettingsControllerBrandSafetyExecute(r ApiSettingsC
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiSettingsControllerCreateKeyRequest struct {
@@ -241,12 +299,16 @@ func (r ApiSettingsControllerCreateKeyRequest) CreateKeyDto(createKeyDto CreateK
 	return r
 }
 
-func (r ApiSettingsControllerCreateKeyRequest) Execute() (*http.Response, error) {
+func (r ApiSettingsControllerCreateKeyRequest) Execute() (*ApiKeyCreated, *http.Response, error) {
 	return r.ApiService.SettingsControllerCreateKeyExecute(r)
 }
 
 /*
-SettingsControllerCreateKey Method for SettingsControllerCreateKey
+SettingsControllerCreateKey Create an API key
+
+Creates a scoped API key with `name`, optional `scopes` (default `["read"]`) and optional `expiresInDays` (1-365; omitted = never expires). The full `key` (`ak_<prefix>.<secret>`) is returned exactly once; only its SHA-256 hash is stored. The key is projected to Redis immediately so the ad-engine accepts it without waiting for a resync.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiSettingsControllerCreateKeyRequest
@@ -259,16 +321,18 @@ func (a *SettingsAPIService) SettingsControllerCreateKey(ctx context.Context) Ap
 }
 
 // Execute executes the request
-func (a *SettingsAPIService) SettingsControllerCreateKeyExecute(r ApiSettingsControllerCreateKeyRequest) (*http.Response, error) {
+//  @return ApiKeyCreated
+func (a *SettingsAPIService) SettingsControllerCreateKeyExecute(r ApiSettingsControllerCreateKeyRequest) (*ApiKeyCreated, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ApiKeyCreated
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SettingsAPIService.SettingsControllerCreateKey")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/keys"
@@ -277,7 +341,7 @@ func (a *SettingsAPIService) SettingsControllerCreateKeyExecute(r ApiSettingsCon
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.createKeyDto == nil {
-		return nil, reportError("createKeyDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("createKeyDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -290,7 +354,7 @@ func (a *SettingsAPIService) SettingsControllerCreateKeyExecute(r ApiSettingsCon
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -299,21 +363,35 @@ func (a *SettingsAPIService) SettingsControllerCreateKeyExecute(r ApiSettingsCon
 	}
 	// body params
 	localVarPostBody = r.createKeyDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -321,10 +399,19 @@ func (a *SettingsAPIService) SettingsControllerCreateKeyExecute(r ApiSettingsCon
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiSettingsControllerCreateTerminalTokenRequest struct {
@@ -338,12 +425,16 @@ func (r ApiSettingsControllerCreateTerminalTokenRequest) CreateTerminalTokenDto(
 	return r
 }
 
-func (r ApiSettingsControllerCreateTerminalTokenRequest) Execute() (*http.Response, error) {
+func (r ApiSettingsControllerCreateTerminalTokenRequest) Execute() (*SettingsControllerCreateTerminalToken201Response, *http.Response, error) {
 	return r.ApiService.SettingsControllerCreateTerminalTokenExecute(r)
 }
 
 /*
-SettingsControllerCreateTerminalToken Method for SettingsControllerCreateTerminalToken
+SettingsControllerCreateTerminalToken Create a terminal serve token
+
+Mints a public `ts_` token for shipping inside a terminal client, with optional `name`, `campaignId` (must be one of your `terminal`-format campaigns) and `switch` policy. A switch policy (`flipAfter` / `flipOnClick`) requires a pinned campaign, and `fallbackTag` must be one of your own placement tags, otherwise 400. The token is projected to Redis so the engine resolves it on the serve path.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiSettingsControllerCreateTerminalTokenRequest
@@ -356,16 +447,18 @@ func (a *SettingsAPIService) SettingsControllerCreateTerminalToken(ctx context.C
 }
 
 // Execute executes the request
-func (a *SettingsAPIService) SettingsControllerCreateTerminalTokenExecute(r ApiSettingsControllerCreateTerminalTokenRequest) (*http.Response, error) {
+//  @return SettingsControllerCreateTerminalToken201Response
+func (a *SettingsAPIService) SettingsControllerCreateTerminalTokenExecute(r ApiSettingsControllerCreateTerminalTokenRequest) (*SettingsControllerCreateTerminalToken201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SettingsControllerCreateTerminalToken201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SettingsAPIService.SettingsControllerCreateTerminalToken")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/terminal-tokens"
@@ -374,7 +467,7 @@ func (a *SettingsAPIService) SettingsControllerCreateTerminalTokenExecute(r ApiS
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.createTerminalTokenDto == nil {
-		return nil, reportError("createTerminalTokenDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("createTerminalTokenDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -387,7 +480,7 @@ func (a *SettingsAPIService) SettingsControllerCreateTerminalTokenExecute(r ApiS
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -396,21 +489,35 @@ func (a *SettingsAPIService) SettingsControllerCreateTerminalTokenExecute(r ApiS
 	}
 	// body params
 	localVarPostBody = r.createTerminalTokenDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -418,10 +525,19 @@ func (a *SettingsAPIService) SettingsControllerCreateTerminalTokenExecute(r ApiS
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiSettingsControllerListKeysRequest struct {
@@ -429,12 +545,16 @@ type ApiSettingsControllerListKeysRequest struct {
 	ApiService *SettingsAPIService
 }
 
-func (r ApiSettingsControllerListKeysRequest) Execute() (*http.Response, error) {
+func (r ApiSettingsControllerListKeysRequest) Execute() ([]ApiKey, *http.Response, error) {
 	return r.ApiService.SettingsControllerListKeysExecute(r)
 }
 
 /*
-SettingsControllerListKeys Method for SettingsControllerListKeys
+SettingsControllerListKeys List API keys
+
+Lists the account's live (non-revoked) API keys, newest first. Only the public `key_prefix` is returned; the secret is never shown again after creation. `expired` is true once `expires_at` has passed.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiSettingsControllerListKeysRequest
@@ -447,16 +567,18 @@ func (a *SettingsAPIService) SettingsControllerListKeys(ctx context.Context) Api
 }
 
 // Execute executes the request
-func (a *SettingsAPIService) SettingsControllerListKeysExecute(r ApiSettingsControllerListKeysRequest) (*http.Response, error) {
+//  @return []ApiKey
+func (a *SettingsAPIService) SettingsControllerListKeysExecute(r ApiSettingsControllerListKeysRequest) ([]ApiKey, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []ApiKey
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SettingsAPIService.SettingsControllerListKeys")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/keys"
@@ -475,28 +597,42 @@ func (a *SettingsAPIService) SettingsControllerListKeysExecute(r ApiSettingsCont
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -504,10 +640,19 @@ func (a *SettingsAPIService) SettingsControllerListKeysExecute(r ApiSettingsCont
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiSettingsControllerListTerminalTokensRequest struct {
@@ -515,12 +660,16 @@ type ApiSettingsControllerListTerminalTokensRequest struct {
 	ApiService *SettingsAPIService
 }
 
-func (r ApiSettingsControllerListTerminalTokensRequest) Execute() (*http.Response, error) {
+func (r ApiSettingsControllerListTerminalTokensRequest) Execute() ([]SettingsControllerListTerminalTokens200ResponseInner, *http.Response, error) {
 	return r.ApiService.SettingsControllerListTerminalTokensExecute(r)
 }
 
 /*
-SettingsControllerListTerminalTokens Method for SettingsControllerListTerminalTokens
+SettingsControllerListTerminalTokens List terminal serve tokens
+
+Lists the account's live public terminal serve tokens (`ts_...`), newest first, including any adaptive switch policy columns. These tokens are serve-only and safe to embed in distributed CLIs, so the full value is returned.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiSettingsControllerListTerminalTokensRequest
@@ -533,16 +682,18 @@ func (a *SettingsAPIService) SettingsControllerListTerminalTokens(ctx context.Co
 }
 
 // Execute executes the request
-func (a *SettingsAPIService) SettingsControllerListTerminalTokensExecute(r ApiSettingsControllerListTerminalTokensRequest) (*http.Response, error) {
+//  @return []SettingsControllerListTerminalTokens200ResponseInner
+func (a *SettingsAPIService) SettingsControllerListTerminalTokensExecute(r ApiSettingsControllerListTerminalTokensRequest) ([]SettingsControllerListTerminalTokens200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []SettingsControllerListTerminalTokens200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SettingsAPIService.SettingsControllerListTerminalTokens")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/terminal-tokens"
@@ -561,28 +712,42 @@ func (a *SettingsAPIService) SettingsControllerListTerminalTokensExecute(r ApiSe
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -590,10 +755,19 @@ func (a *SettingsAPIService) SettingsControllerListTerminalTokensExecute(r ApiSe
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiSettingsControllerRevokeKeyRequest struct {
@@ -602,12 +776,16 @@ type ApiSettingsControllerRevokeKeyRequest struct {
 	id string
 }
 
-func (r ApiSettingsControllerRevokeKeyRequest) Execute() (*http.Response, error) {
+func (r ApiSettingsControllerRevokeKeyRequest) Execute() (*SettingsControllerRevokeKey200Response, *http.Response, error) {
 	return r.ApiService.SettingsControllerRevokeKeyExecute(r)
 }
 
 /*
-SettingsControllerRevokeKey Method for SettingsControllerRevokeKey
+SettingsControllerRevokeKey Revoke an API key
+
+Marks the key revoked and removes it from the engine's Redis credential map, so it stops working everywhere. Revoking an unknown or foreign id is a silent no-op.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -622,16 +800,18 @@ func (a *SettingsAPIService) SettingsControllerRevokeKey(ctx context.Context, id
 }
 
 // Execute executes the request
-func (a *SettingsAPIService) SettingsControllerRevokeKeyExecute(r ApiSettingsControllerRevokeKeyRequest) (*http.Response, error) {
+//  @return SettingsControllerRevokeKey200Response
+func (a *SettingsAPIService) SettingsControllerRevokeKeyExecute(r ApiSettingsControllerRevokeKeyRequest) (*SettingsControllerRevokeKey200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SettingsControllerRevokeKey200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SettingsAPIService.SettingsControllerRevokeKey")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/keys/{id}"
@@ -651,28 +831,42 @@ func (a *SettingsAPIService) SettingsControllerRevokeKeyExecute(r ApiSettingsCon
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -680,10 +874,19 @@ func (a *SettingsAPIService) SettingsControllerRevokeKeyExecute(r ApiSettingsCon
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiSettingsControllerRevokeTerminalTokenRequest struct {
@@ -692,12 +895,16 @@ type ApiSettingsControllerRevokeTerminalTokenRequest struct {
 	id string
 }
 
-func (r ApiSettingsControllerRevokeTerminalTokenRequest) Execute() (*http.Response, error) {
+func (r ApiSettingsControllerRevokeTerminalTokenRequest) Execute() (*SegmentsControllerRevoke201Response, *http.Response, error) {
 	return r.ApiService.SettingsControllerRevokeTerminalTokenExecute(r)
 }
 
 /*
-SettingsControllerRevokeTerminalToken Method for SettingsControllerRevokeTerminalToken
+SettingsControllerRevokeTerminalToken Revoke a terminal serve token
+
+Marks the token revoked and deletes its Redis projection so the engine stops serving it. Unknown ids are a no-op.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -712,16 +919,18 @@ func (a *SettingsAPIService) SettingsControllerRevokeTerminalToken(ctx context.C
 }
 
 // Execute executes the request
-func (a *SettingsAPIService) SettingsControllerRevokeTerminalTokenExecute(r ApiSettingsControllerRevokeTerminalTokenRequest) (*http.Response, error) {
+//  @return SegmentsControllerRevoke201Response
+func (a *SettingsAPIService) SettingsControllerRevokeTerminalTokenExecute(r ApiSettingsControllerRevokeTerminalTokenRequest) (*SegmentsControllerRevoke201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SegmentsControllerRevoke201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SettingsAPIService.SettingsControllerRevokeTerminalToken")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/terminal-tokens/{id}"
@@ -741,28 +950,42 @@ func (a *SettingsAPIService) SettingsControllerRevokeTerminalTokenExecute(r ApiS
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -770,10 +993,19 @@ func (a *SettingsAPIService) SettingsControllerRevokeTerminalTokenExecute(r ApiS
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiSettingsControllerRotateTerminalTokenRequest struct {
@@ -782,12 +1014,16 @@ type ApiSettingsControllerRotateTerminalTokenRequest struct {
 	id string
 }
 
-func (r ApiSettingsControllerRotateTerminalTokenRequest) Execute() (*http.Response, error) {
+func (r ApiSettingsControllerRotateTerminalTokenRequest) Execute() (*SettingsControllerRotateTerminalToken201Response, *http.Response, error) {
 	return r.ApiService.SettingsControllerRotateTerminalTokenExecute(r)
 }
 
 /*
-SettingsControllerRotateTerminalToken Method for SettingsControllerRotateTerminalToken
+SettingsControllerRotateTerminalToken Rotate a terminal serve token
+
+Replaces the token value with a new `ts_` string, keeping its campaign and switch policy. The old value is removed from Redis and stops serving immediately. Returns 400 if the token is not found.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -802,16 +1038,18 @@ func (a *SettingsAPIService) SettingsControllerRotateTerminalToken(ctx context.C
 }
 
 // Execute executes the request
-func (a *SettingsAPIService) SettingsControllerRotateTerminalTokenExecute(r ApiSettingsControllerRotateTerminalTokenRequest) (*http.Response, error) {
+//  @return SettingsControllerRotateTerminalToken201Response
+func (a *SettingsAPIService) SettingsControllerRotateTerminalTokenExecute(r ApiSettingsControllerRotateTerminalTokenRequest) (*SettingsControllerRotateTerminalToken201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SettingsControllerRotateTerminalToken201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SettingsAPIService.SettingsControllerRotateTerminalToken")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/terminal-tokens/{id}/rotate"
@@ -831,28 +1069,42 @@ func (a *SettingsAPIService) SettingsControllerRotateTerminalTokenExecute(r ApiS
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -860,10 +1112,19 @@ func (a *SettingsAPIService) SettingsControllerRotateTerminalTokenExecute(r ApiS
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiSettingsControllerSetTerminalTokenPolicyRequest struct {
@@ -878,12 +1139,16 @@ func (r ApiSettingsControllerSetTerminalTokenPolicyRequest) TerminalSwitchDto(te
 	return r
 }
 
-func (r ApiSettingsControllerSetTerminalTokenPolicyRequest) Execute() (*http.Response, error) {
+func (r ApiSettingsControllerSetTerminalTokenPolicyRequest) Execute() (*SettingsControllerSetTerminalTokenPolicy200Response, *http.Response, error) {
 	return r.ApiService.SettingsControllerSetTerminalTokenPolicyExecute(r)
 }
 
 /*
-SettingsControllerSetTerminalTokenPolicy Method for SettingsControllerSetTerminalTokenPolicy
+SettingsControllerSetTerminalTokenPolicy Update a terminal token switch policy
+
+Arms, changes or disables (`flipAfter: 0`, `flipOnClick: false`) adaptive mode-switching on an existing token without changing its `ts_` value. Same validation as creation; 400 if the token is not found or the policy is invalid. The new policy is re-projected to Redis.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -898,16 +1163,18 @@ func (a *SettingsAPIService) SettingsControllerSetTerminalTokenPolicy(ctx contex
 }
 
 // Execute executes the request
-func (a *SettingsAPIService) SettingsControllerSetTerminalTokenPolicyExecute(r ApiSettingsControllerSetTerminalTokenPolicyRequest) (*http.Response, error) {
+//  @return SettingsControllerSetTerminalTokenPolicy200Response
+func (a *SettingsAPIService) SettingsControllerSetTerminalTokenPolicyExecute(r ApiSettingsControllerSetTerminalTokenPolicyRequest) (*SettingsControllerSetTerminalTokenPolicy200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPatch
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SettingsControllerSetTerminalTokenPolicy200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SettingsAPIService.SettingsControllerSetTerminalTokenPolicy")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/terminal-tokens/{id}/switch"
@@ -917,7 +1184,7 @@ func (a *SettingsAPIService) SettingsControllerSetTerminalTokenPolicyExecute(r A
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.terminalSwitchDto == nil {
-		return nil, reportError("terminalSwitchDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("terminalSwitchDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -930,7 +1197,7 @@ func (a *SettingsAPIService) SettingsControllerSetTerminalTokenPolicyExecute(r A
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -939,21 +1206,35 @@ func (a *SettingsAPIService) SettingsControllerSetTerminalTokenPolicyExecute(r A
 	}
 	// body params
 	localVarPostBody = r.terminalSwitchDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -961,10 +1242,19 @@ func (a *SettingsAPIService) SettingsControllerSetTerminalTokenPolicyExecute(r A
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiSettingsControllerUpdateNetworkRequest struct {
@@ -978,12 +1268,16 @@ func (r ApiSettingsControllerUpdateNetworkRequest) NetworkSettingsDto(networkSet
 	return r
 }
 
-func (r ApiSettingsControllerUpdateNetworkRequest) Execute() (*http.Response, error) {
+func (r ApiSettingsControllerUpdateNetworkRequest) Execute() (*SettingsControllerUpdateNetwork200Response, *http.Response, error) {
 	return r.ApiService.SettingsControllerUpdateNetworkExecute(r)
 }
 
 /*
-SettingsControllerUpdateNetwork Method for SettingsControllerUpdateNetwork
+SettingsControllerUpdateNetwork Update network membership and cross-fill
+
+Sets the account's tenant `networkId` (null or empty = the general open pool) and/or `crossFill` opt-in to transact with other networks. Only provided fields change. Because these flags are projected onto every campaign and placement in the serving index, the indexer republishes after a change.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiSettingsControllerUpdateNetworkRequest
@@ -996,16 +1290,18 @@ func (a *SettingsAPIService) SettingsControllerUpdateNetwork(ctx context.Context
 }
 
 // Execute executes the request
-func (a *SettingsAPIService) SettingsControllerUpdateNetworkExecute(r ApiSettingsControllerUpdateNetworkRequest) (*http.Response, error) {
+//  @return SettingsControllerUpdateNetwork200Response
+func (a *SettingsAPIService) SettingsControllerUpdateNetworkExecute(r ApiSettingsControllerUpdateNetworkRequest) (*SettingsControllerUpdateNetwork200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPatch
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SettingsControllerUpdateNetwork200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SettingsAPIService.SettingsControllerUpdateNetwork")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/account/network"
@@ -1014,7 +1310,7 @@ func (a *SettingsAPIService) SettingsControllerUpdateNetworkExecute(r ApiSetting
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.networkSettingsDto == nil {
-		return nil, reportError("networkSettingsDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("networkSettingsDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1027,7 +1323,7 @@ func (a *SettingsAPIService) SettingsControllerUpdateNetworkExecute(r ApiSetting
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1036,21 +1332,35 @@ func (a *SettingsAPIService) SettingsControllerUpdateNetworkExecute(r ApiSetting
 	}
 	// body params
 	localVarPostBody = r.networkSettingsDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1058,8 +1368,17 @@ func (a *SettingsAPIService) SettingsControllerUpdateNetworkExecute(r ApiSetting
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

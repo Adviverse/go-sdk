@@ -42,12 +42,16 @@ func (r ApiPromoteCampaignReportingControllerReportRequest) From(from string) Ap
 	return r
 }
 
-func (r ApiPromoteCampaignReportingControllerReportRequest) Execute() (*http.Response, error) {
+func (r ApiPromoteCampaignReportingControllerReportRequest) Execute() ([]ReportPromoteCampaignRow, *http.Response, error) {
 	return r.ApiService.PromoteCampaignReportingControllerReportExecute(r)
 }
 
 /*
-PromoteCampaignReportingControllerReport Method for PromoteCampaignReportingControllerReport
+PromoteCampaignReportingControllerReport Get per-promote-campaign performance
+
+Returns one row for each of the caller's non-deleted promote (Sponsored Products) campaigns, including those with no traffic yet (zeros). Delivery and spend come from stats_hourly and revenue from attributed conversion_value, scoped to the caller's own promote campaign ids. Sorted by spend then impressions. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPromoteCampaignReportingControllerReportRequest
@@ -60,16 +64,18 @@ func (a *ReportingAPIService) PromoteCampaignReportingControllerReport(ctx conte
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) PromoteCampaignReportingControllerReportExecute(r ApiPromoteCampaignReportingControllerReportRequest) (*http.Response, error) {
+//  @return []ReportPromoteCampaignRow
+func (a *ReportingAPIService) PromoteCampaignReportingControllerReportExecute(r ApiPromoteCampaignReportingControllerReportRequest) ([]ReportPromoteCampaignRow, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []ReportPromoteCampaignRow
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.PromoteCampaignReportingControllerReport")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/promote-campaigns/report"
@@ -94,28 +100,42 @@ func (a *ReportingAPIService) PromoteCampaignReportingControllerReportExecute(r 
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -123,10 +143,19 @@ func (a *ReportingAPIService) PromoteCampaignReportingControllerReportExecute(r 
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPromoteCampaignReportingControllerSummaryRequest struct {
@@ -148,12 +177,16 @@ func (r ApiPromoteCampaignReportingControllerSummaryRequest) From(from string) A
 	return r
 }
 
-func (r ApiPromoteCampaignReportingControllerSummaryRequest) Execute() (*http.Response, error) {
+func (r ApiPromoteCampaignReportingControllerSummaryRequest) Execute() (*PromoteCampaignReportingControllerSummary200Response, *http.Response, error) {
 	return r.ApiService.PromoteCampaignReportingControllerSummaryExecute(r)
 }
 
 /*
-PromoteCampaignReportingControllerSummary Method for PromoteCampaignReportingControllerSummary
+PromoteCampaignReportingControllerSummary Get totals across promote campaigns
+
+Rolls up the per-promote-campaign report into one totals object over the same window, with the campaign count and recomputed CTR and ROAS. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPromoteCampaignReportingControllerSummaryRequest
@@ -166,16 +199,18 @@ func (a *ReportingAPIService) PromoteCampaignReportingControllerSummary(ctx cont
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) PromoteCampaignReportingControllerSummaryExecute(r ApiPromoteCampaignReportingControllerSummaryRequest) (*http.Response, error) {
+//  @return PromoteCampaignReportingControllerSummary200Response
+func (a *ReportingAPIService) PromoteCampaignReportingControllerSummaryExecute(r ApiPromoteCampaignReportingControllerSummaryRequest) (*PromoteCampaignReportingControllerSummary200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PromoteCampaignReportingControllerSummary200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.PromoteCampaignReportingControllerSummary")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/promote-campaigns/report/summary"
@@ -200,28 +235,42 @@ func (a *ReportingAPIService) PromoteCampaignReportingControllerSummaryExecute(r
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -229,10 +278,19 @@ func (a *ReportingAPIService) PromoteCampaignReportingControllerSummaryExecute(r
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerAdvertiserRequest struct {
@@ -240,12 +298,16 @@ type ApiReportingControllerAdvertiserRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerAdvertiserRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerAdvertiserRequest) Execute() ([]ReportAdvertiserStatsRow, *http.Response, error) {
 	return r.ApiService.ReportingControllerAdvertiserExecute(r)
 }
 
 /*
-ReportingControllerAdvertiser Method for ReportingControllerAdvertiser
+ReportingControllerAdvertiser Get advertiser spend and performance by dimension
+
+Aggregates the caller's advertiser delivery from adnet.stats_hourly, grouped by `dim` (day default, hour, geo, device, format, placement_id, campaign_id), with eCPM, eCPC, eCPA and CTR. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerAdvertiserRequest
@@ -258,16 +320,18 @@ func (a *ReportingAPIService) ReportingControllerAdvertiser(ctx context.Context)
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerAdvertiserExecute(r ApiReportingControllerAdvertiserRequest) (*http.Response, error) {
+//  @return []ReportAdvertiserStatsRow
+func (a *ReportingAPIService) ReportingControllerAdvertiserExecute(r ApiReportingControllerAdvertiserRequest) ([]ReportAdvertiserStatsRow, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []ReportAdvertiserStatsRow
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerAdvertiser")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/advertiser"
@@ -286,28 +350,42 @@ func (a *ReportingAPIService) ReportingControllerAdvertiserExecute(r ApiReportin
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -315,10 +393,19 @@ func (a *ReportingAPIService) ReportingControllerAdvertiserExecute(r ApiReportin
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerAffiliateRequest struct {
@@ -345,12 +432,16 @@ func (r ApiReportingControllerAffiliateRequest) Sub(sub string) ApiReportingCont
 	return r
 }
 
-func (r ApiReportingControllerAffiliateRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerAffiliateRequest) Execute() ([]ReportingControllerAffiliate200ResponseInner, *http.Response, error) {
 	return r.ApiService.ReportingControllerAffiliateExecute(r)
 }
 
 /*
-ReportingControllerAffiliate Method for ReportingControllerAffiliate
+ReportingControllerAffiliate Get affiliate sub-id funnel
+
+Per sub-id value funnel (impressions, clicks, conversions) with CTR and CVR in percent, revenue (earnings or spend), CPA payout and conversion value. `sub` picks sub1..sub5 (default sub1). Conversions carry no publisher id, so publishers get impressions/clicks/revenue only. Top 100 by revenue. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerAffiliateRequest
@@ -363,16 +454,18 @@ func (a *ReportingAPIService) ReportingControllerAffiliate(ctx context.Context) 
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerAffiliateExecute(r ApiReportingControllerAffiliateRequest) (*http.Response, error) {
+//  @return []ReportingControllerAffiliate200ResponseInner
+func (a *ReportingAPIService) ReportingControllerAffiliateExecute(r ApiReportingControllerAffiliateRequest) ([]ReportingControllerAffiliate200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []ReportingControllerAffiliate200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerAffiliate")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/affiliate"
@@ -400,28 +493,42 @@ func (a *ReportingAPIService) ReportingControllerAffiliateExecute(r ApiReporting
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -429,10 +536,19 @@ func (a *ReportingAPIService) ReportingControllerAffiliateExecute(r ApiReporting
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerAntiAdblockRequest struct {
@@ -440,12 +556,16 @@ type ApiReportingControllerAntiAdblockRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerAntiAdblockRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerAntiAdblockRequest) Execute() (*ReportingControllerAntiAdblock200Response, *http.Response, error) {
 	return r.ApiService.ReportingControllerAntiAdblockExecute(r)
 }
 
 /*
-ReportingControllerAntiAdblock Method for ReportingControllerAntiAdblock
+ReportingControllerAntiAdblock Get impressions recovered from adblock visitors
+
+Reports valid impressions served to visitors the SDK detected as running an adblocker (for example via a first-party serving domain), as a daily series and a window total. recovered_pct is the share of valid impressions that came from adblock users. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerAntiAdblockRequest
@@ -458,16 +578,18 @@ func (a *ReportingAPIService) ReportingControllerAntiAdblock(ctx context.Context
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerAntiAdblockExecute(r ApiReportingControllerAntiAdblockRequest) (*http.Response, error) {
+//  @return ReportingControllerAntiAdblock200Response
+func (a *ReportingAPIService) ReportingControllerAntiAdblockExecute(r ApiReportingControllerAntiAdblockRequest) (*ReportingControllerAntiAdblock200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ReportingControllerAntiAdblock200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerAntiAdblock")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/publisher/anti-adblock"
@@ -486,28 +608,42 @@ func (a *ReportingAPIService) ReportingControllerAntiAdblockExecute(r ApiReporti
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -515,10 +651,19 @@ func (a *ReportingAPIService) ReportingControllerAntiAdblockExecute(r ApiReporti
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerAuctionRequest struct {
@@ -526,12 +671,16 @@ type ApiReportingControllerAuctionRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerAuctionRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerAuctionRequest) Execute() (*ReportingControllerAuction200Response, *http.Response, error) {
 	return r.ApiService.ReportingControllerAuctionExecute(r)
 }
 
 /*
-ReportingControllerAuction Method for ReportingControllerAuction
+ReportingControllerAuction Get auction fill rate and top no-fill reasons
+
+Request count, filled count and fill rate from adnet.ad_requests plus the top 10 no-fill reasons. Publishers see their own inventory; ad_requests has no advertiser column, so other accounts see network-wide auction health. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerAuctionRequest
@@ -544,16 +693,18 @@ func (a *ReportingAPIService) ReportingControllerAuction(ctx context.Context) Ap
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerAuctionExecute(r ApiReportingControllerAuctionRequest) (*http.Response, error) {
+//  @return ReportingControllerAuction200Response
+func (a *ReportingAPIService) ReportingControllerAuctionExecute(r ApiReportingControllerAuctionRequest) (*ReportingControllerAuction200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ReportingControllerAuction200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerAuction")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/auction"
@@ -572,28 +723,42 @@ func (a *ReportingAPIService) ReportingControllerAuctionExecute(r ApiReportingCo
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -601,10 +766,19 @@ func (a *ReportingAPIService) ReportingControllerAuctionExecute(r ApiReportingCo
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerBenchmarkRequest struct {
@@ -612,12 +786,16 @@ type ApiReportingControllerBenchmarkRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerBenchmarkRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerBenchmarkRequest) Execute() (*ReportingControllerBenchmark200Response, *http.Response, error) {
 	return r.ApiService.ReportingControllerBenchmarkExecute(r)
 }
 
 /*
-ReportingControllerBenchmark Method for ReportingControllerBenchmark
+ReportingControllerBenchmark Benchmark eCPM, fill and viewability against the network
+
+Ranks the caller among publishers with enough volume in the window (>= 1000 impressions for eCPM, >= 1000 requests for fill, >= 500 measurable for viewability). Only the caller's own value plus the network median, percentile rank and sample size are returned, never another publisher's data. fillRate and viewableRate are percentages. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerBenchmarkRequest
@@ -630,16 +808,18 @@ func (a *ReportingAPIService) ReportingControllerBenchmark(ctx context.Context) 
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerBenchmarkExecute(r ApiReportingControllerBenchmarkRequest) (*http.Response, error) {
+//  @return ReportingControllerBenchmark200Response
+func (a *ReportingAPIService) ReportingControllerBenchmarkExecute(r ApiReportingControllerBenchmarkRequest) (*ReportingControllerBenchmark200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ReportingControllerBenchmark200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerBenchmark")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/benchmark"
@@ -658,28 +838,42 @@ func (a *ReportingAPIService) ReportingControllerBenchmarkExecute(r ApiReporting
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -687,10 +881,19 @@ func (a *ReportingAPIService) ReportingControllerBenchmarkExecute(r ApiReporting
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerBidLandscapeRequest struct {
@@ -698,12 +901,16 @@ type ApiReportingControllerBidLandscapeRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerBidLandscapeRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerBidLandscapeRequest) Execute() (*ReportingControllerBidLandscape200Response, *http.Response, error) {
 	return r.ApiService.ReportingControllerBidLandscapeExecute(r)
 }
 
 /*
-ReportingControllerBidLandscape Method for ReportingControllerBidLandscape
+ReportingControllerBidLandscape Get clearing-price percentiles and estimated win curve
+
+From the caller's valid paid impressions over the last 30 days, returns clearing-price (price_paid) percentiles and a 10-point estimated win-rate curve: for each candidate bid, the fraction of observed won auctions that cleared at or below it. Only won auctions are seen, so the curve is optimistic at low bids. With no history the curve is empty and `note` is set.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerBidLandscapeRequest
@@ -716,16 +923,18 @@ func (a *ReportingAPIService) ReportingControllerBidLandscape(ctx context.Contex
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerBidLandscapeExecute(r ApiReportingControllerBidLandscapeRequest) (*http.Response, error) {
+//  @return ReportingControllerBidLandscape200Response
+func (a *ReportingAPIService) ReportingControllerBidLandscapeExecute(r ApiReportingControllerBidLandscapeRequest) (*ReportingControllerBidLandscape200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ReportingControllerBidLandscape200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerBidLandscape")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/bid-landscape"
@@ -744,28 +953,42 @@ func (a *ReportingAPIService) ReportingControllerBidLandscapeExecute(r ApiReport
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -773,10 +996,19 @@ func (a *ReportingAPIService) ReportingControllerBidLandscapeExecute(r ApiReport
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerBreakdownRequest struct {
@@ -805,12 +1037,16 @@ func (r ApiReportingControllerBreakdownRequest) Bdim(bdim string) ApiReportingCo
 	return r
 }
 
-func (r ApiReportingControllerBreakdownRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerBreakdownRequest) Execute() ([]ReportBreakdownRow, *http.Response, error) {
 	return r.ApiService.ReportingControllerBreakdownExecute(r)
 }
 
 /*
-ReportingControllerBreakdown Method for ReportingControllerBreakdown
+ReportingControllerBreakdown Break down delivery by OS, browser, deal, page, app or sub-id
+
+Groups valid raw impressions (and matching clicks) by `bdim`: os (default), browser, deal, page (host), page_url (host+path), app, property, region, make, model or sub1..sub5. Unknown values fall back to os. Returns at most 50 rows ordered by revenue (impression-only dims) or impressions (os/browser). Revenue is publisher earnings for publishers and spend for other accounts. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerBreakdownRequest
@@ -823,16 +1059,18 @@ func (a *ReportingAPIService) ReportingControllerBreakdown(ctx context.Context) 
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerBreakdownExecute(r ApiReportingControllerBreakdownRequest) (*http.Response, error) {
+//  @return []ReportBreakdownRow
+func (a *ReportingAPIService) ReportingControllerBreakdownExecute(r ApiReportingControllerBreakdownRequest) ([]ReportBreakdownRow, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []ReportBreakdownRow
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerBreakdown")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/breakdown"
@@ -860,28 +1098,42 @@ func (a *ReportingAPIService) ReportingControllerBreakdownExecute(r ApiReporting
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -889,10 +1141,19 @@ func (a *ReportingAPIService) ReportingControllerBreakdownExecute(r ApiReporting
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerCarouselRequest struct {
@@ -900,12 +1161,16 @@ type ApiReportingControllerCarouselRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerCarouselRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerCarouselRequest) Execute() ([]ReportingControllerCarousel200ResponseInner, *http.Response, error) {
 	return r.ApiService.ReportingControllerCarouselExecute(r)
 }
 
 /*
-ReportingControllerCarousel Method for ReportingControllerCarousel
+ReportingControllerCarousel Get clicks per carousel card
+
+Clicks per card (0-based index) of each of the caller's carousel creatives, with the card title and price taken from the creative's stored carousel_items (title defaults to 'Card N'). Top 500 by clicks. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerCarouselRequest
@@ -918,16 +1183,18 @@ func (a *ReportingAPIService) ReportingControllerCarousel(ctx context.Context) A
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerCarouselExecute(r ApiReportingControllerCarouselRequest) (*http.Response, error) {
+//  @return []ReportingControllerCarousel200ResponseInner
+func (a *ReportingAPIService) ReportingControllerCarouselExecute(r ApiReportingControllerCarouselRequest) ([]ReportingControllerCarousel200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []ReportingControllerCarousel200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerCarousel")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/carousel"
@@ -946,28 +1213,42 @@ func (a *ReportingAPIService) ReportingControllerCarouselExecute(r ApiReportingC
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -975,10 +1256,19 @@ func (a *ReportingAPIService) ReportingControllerCarouselExecute(r ApiReportingC
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerClosedLoopRequest struct {
@@ -986,12 +1276,16 @@ type ApiReportingControllerClosedLoopRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerClosedLoopRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerClosedLoopRequest) Execute() (*ReportingControllerClosedLoop200Response, *http.Response, error) {
 	return r.ApiService.ReportingControllerClosedLoopExecute(r)
 }
 
 /*
-ReportingControllerClosedLoop Method for ReportingControllerClosedLoop
+ReportingControllerClosedLoop Get funnel for the account's house campaigns
+
+Impressions, clicks, conversions and spend (returned as `revenue`) across the caller's house-ad campaigns from stats_hourly, with CTR, CVR and impression-to-conversion rate in percent. Returns zeros (with houseCampaigns) when there are no house campaigns or the query fails. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerClosedLoopRequest
@@ -1004,16 +1298,18 @@ func (a *ReportingAPIService) ReportingControllerClosedLoop(ctx context.Context)
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerClosedLoopExecute(r ApiReportingControllerClosedLoopRequest) (*http.Response, error) {
+//  @return ReportingControllerClosedLoop200Response
+func (a *ReportingAPIService) ReportingControllerClosedLoopExecute(r ApiReportingControllerClosedLoopRequest) (*ReportingControllerClosedLoop200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ReportingControllerClosedLoop200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerClosedLoop")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/closed-loop"
@@ -1032,28 +1328,42 @@ func (a *ReportingAPIService) ReportingControllerClosedLoopExecute(r ApiReportin
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1061,10 +1371,19 @@ func (a *ReportingAPIService) ReportingControllerClosedLoopExecute(r ApiReportin
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerCohortsRequest struct {
@@ -1072,12 +1391,16 @@ type ApiReportingControllerCohortsRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerCohortsRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerCohortsRequest) Execute() (*ReportingControllerCohorts200Response, *http.Response, error) {
 	return r.ApiService.ReportingControllerCohortsExecute(r)
 }
 
 /*
-ReportingControllerCohorts Method for ReportingControllerCohorts
+ReportingControllerCohorts Get cohort retention and LTV triangle (admin)
+
+Groups accounts by signup month and, for months 0..12 after signup, reports retention (fraction of the cohort with delivery that month) and cumulative average revenue per account. `scope=advertiser` uses spend; anything else (default) uses publisher earnings. Only accounts ever active on the chosen side are counted; cells in the future are null. No date window.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerCohortsRequest
@@ -1090,16 +1413,18 @@ func (a *ReportingAPIService) ReportingControllerCohorts(ctx context.Context) Ap
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerCohortsExecute(r ApiReportingControllerCohortsRequest) (*http.Response, error) {
+//  @return ReportingControllerCohorts200Response
+func (a *ReportingAPIService) ReportingControllerCohortsExecute(r ApiReportingControllerCohortsRequest) (*ReportingControllerCohorts200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ReportingControllerCohorts200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerCohorts")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/admin/cohorts"
@@ -1118,28 +1443,42 @@ func (a *ReportingAPIService) ReportingControllerCohortsExecute(r ApiReportingCo
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1147,10 +1486,19 @@ func (a *ReportingAPIService) ReportingControllerCohortsExecute(r ApiReportingCo
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerConsentRateRequest struct {
@@ -1158,12 +1506,16 @@ type ApiReportingControllerConsentRateRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerConsentRateRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerConsentRateRequest) Execute() (*ReportingControllerConsentRate200Response, *http.Response, error) {
 	return r.ApiService.ReportingControllerConsentRateExecute(r)
 }
 
 /*
-ReportingControllerConsentRate Method for ReportingControllerConsentRate
+ReportingControllerConsentRate Get pixel consent rate (personalized vs aggregate-only)
+
+Share of the caller's pixel events (adnet.pixel_events) ingested in personalized mode (consent granted, no GPC) versus aggregate-only, as totals and a daily series. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerConsentRateRequest
@@ -1176,16 +1528,18 @@ func (a *ReportingAPIService) ReportingControllerConsentRate(ctx context.Context
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerConsentRateExecute(r ApiReportingControllerConsentRateRequest) (*http.Response, error) {
+//  @return ReportingControllerConsentRate200Response
+func (a *ReportingAPIService) ReportingControllerConsentRateExecute(r ApiReportingControllerConsentRateRequest) (*ReportingControllerConsentRate200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ReportingControllerConsentRate200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerConsentRate")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/consent-rate"
@@ -1204,28 +1558,42 @@ func (a *ReportingAPIService) ReportingControllerConsentRateExecute(r ApiReporti
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1233,10 +1601,19 @@ func (a *ReportingAPIService) ReportingControllerConsentRateExecute(r ApiReporti
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerCreateSavedRequest struct {
@@ -1250,12 +1627,16 @@ func (r ApiReportingControllerCreateSavedRequest) CreateSavedReportDto(createSav
 	return r
 }
 
-func (r ApiReportingControllerCreateSavedRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerCreateSavedRequest) Execute() (*ReportSavedReport, *http.Response, error) {
 	return r.ApiService.ReportingControllerCreateSavedExecute(r)
 }
 
 /*
-ReportingControllerCreateSaved Method for ReportingControllerCreateSaved
+ReportingControllerCreateSaved Save a report definition
+
+Stores a named report definition for the caller. Body: `name` (default 'Untitled report') and `config` (any JSON object, default {}).
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser, publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerCreateSavedRequest
@@ -1268,16 +1649,18 @@ func (a *ReportingAPIService) ReportingControllerCreateSaved(ctx context.Context
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerCreateSavedExecute(r ApiReportingControllerCreateSavedRequest) (*http.Response, error) {
+//  @return ReportSavedReport
+func (a *ReportingAPIService) ReportingControllerCreateSavedExecute(r ApiReportingControllerCreateSavedRequest) (*ReportSavedReport, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ReportSavedReport
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerCreateSaved")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/saved"
@@ -1286,7 +1669,7 @@ func (a *ReportingAPIService) ReportingControllerCreateSavedExecute(r ApiReporti
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.createSavedReportDto == nil {
-		return nil, reportError("createSavedReportDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("createSavedReportDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1299,7 +1682,7 @@ func (a *ReportingAPIService) ReportingControllerCreateSavedExecute(r ApiReporti
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1308,21 +1691,35 @@ func (a *ReportingAPIService) ReportingControllerCreateSavedExecute(r ApiReporti
 	}
 	// body params
 	localVarPostBody = r.createSavedReportDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1330,10 +1727,19 @@ func (a *ReportingAPIService) ReportingControllerCreateSavedExecute(r ApiReporti
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerCreateScheduledRequest struct {
@@ -1347,12 +1753,16 @@ func (r ApiReportingControllerCreateScheduledRequest) CreateScheduledReportDto(c
 	return r
 }
 
-func (r ApiReportingControllerCreateScheduledRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerCreateScheduledRequest) Execute() (*ReportScheduledReport, *http.Response, error) {
 	return r.ApiService.ReportingControllerCreateScheduledExecute(r)
 }
 
 /*
-ReportingControllerCreateScheduled Method for ReportingControllerCreateScheduled
+ReportingControllerCreateScheduled Schedule an emailed report
+
+Creates a scheduled report. Body: `name`, `config` (JSON; `scope` 'advertiser'|'publisher' and `dim` select the stats query), `cadence` ('daily' default, or 'weekly') and `email`. next_run_at is set one day or one week from now; each run emails the stats for the last 1 or 7 days.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser, publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerCreateScheduledRequest
@@ -1365,16 +1775,18 @@ func (a *ReportingAPIService) ReportingControllerCreateScheduled(ctx context.Con
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerCreateScheduledExecute(r ApiReportingControllerCreateScheduledRequest) (*http.Response, error) {
+//  @return ReportScheduledReport
+func (a *ReportingAPIService) ReportingControllerCreateScheduledExecute(r ApiReportingControllerCreateScheduledRequest) (*ReportScheduledReport, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ReportScheduledReport
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerCreateScheduled")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/scheduled"
@@ -1383,7 +1795,7 @@ func (a *ReportingAPIService) ReportingControllerCreateScheduledExecute(r ApiRep
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.createScheduledReportDto == nil {
-		return nil, reportError("createScheduledReportDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("createScheduledReportDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1396,7 +1808,7 @@ func (a *ReportingAPIService) ReportingControllerCreateScheduledExecute(r ApiRep
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1405,21 +1817,35 @@ func (a *ReportingAPIService) ReportingControllerCreateScheduledExecute(r ApiRep
 	}
 	// body params
 	localVarPostBody = r.createScheduledReportDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1427,10 +1853,19 @@ func (a *ReportingAPIService) ReportingControllerCreateScheduledExecute(r ApiRep
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerCreativesRequest struct {
@@ -1438,12 +1873,16 @@ type ApiReportingControllerCreativesRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerCreativesRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerCreativesRequest) Execute() (*ReportingControllerCreatives200Response, *http.Response, error) {
 	return r.ApiService.ReportingControllerCreativesExecute(r)
 }
 
 /*
-ReportingControllerCreatives Method for ReportingControllerCreatives
+ReportingControllerCreatives Get per-creative performance and fatigue
+
+For the caller's creatives: valid impressions, clicks, CTR, conversions (attributed through the click that drove them) and CVR, sorted by impressions and capped at 50. Names come from the creative title or brand name. `fatigue` is the daily CTR series of the highest-volume creative so decay is visible. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerCreativesRequest
@@ -1456,16 +1895,18 @@ func (a *ReportingAPIService) ReportingControllerCreatives(ctx context.Context) 
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerCreativesExecute(r ApiReportingControllerCreativesRequest) (*http.Response, error) {
+//  @return ReportingControllerCreatives200Response
+func (a *ReportingAPIService) ReportingControllerCreativesExecute(r ApiReportingControllerCreativesRequest) (*ReportingControllerCreatives200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ReportingControllerCreatives200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerCreatives")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/creatives"
@@ -1484,28 +1925,42 @@ func (a *ReportingAPIService) ReportingControllerCreativesExecute(r ApiReporting
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1513,10 +1968,19 @@ func (a *ReportingAPIService) ReportingControllerCreativesExecute(r ApiReporting
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerDeleteSavedRequest struct {
@@ -1525,12 +1989,16 @@ type ApiReportingControllerDeleteSavedRequest struct {
 	id string
 }
 
-func (r ApiReportingControllerDeleteSavedRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerDeleteSavedRequest) Execute() (*ReportingControllerDeleteSaved200Response, *http.Response, error) {
 	return r.ApiService.ReportingControllerDeleteSavedExecute(r)
 }
 
 /*
-ReportingControllerDeleteSaved Method for ReportingControllerDeleteSaved
+ReportingControllerDeleteSaved Delete a saved report
+
+Deletes one of the caller's saved reports by id. Returns 404 if it does not exist or belongs to another account.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser, publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1545,16 +2013,18 @@ func (a *ReportingAPIService) ReportingControllerDeleteSaved(ctx context.Context
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerDeleteSavedExecute(r ApiReportingControllerDeleteSavedRequest) (*http.Response, error) {
+//  @return ReportingControllerDeleteSaved200Response
+func (a *ReportingAPIService) ReportingControllerDeleteSavedExecute(r ApiReportingControllerDeleteSavedRequest) (*ReportingControllerDeleteSaved200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ReportingControllerDeleteSaved200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerDeleteSaved")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/saved/{id}"
@@ -1574,28 +2044,42 @@ func (a *ReportingAPIService) ReportingControllerDeleteSavedExecute(r ApiReporti
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1603,10 +2087,19 @@ func (a *ReportingAPIService) ReportingControllerDeleteSavedExecute(r ApiReporti
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerDeleteScheduledRequest struct {
@@ -1615,12 +2108,16 @@ type ApiReportingControllerDeleteScheduledRequest struct {
 	id string
 }
 
-func (r ApiReportingControllerDeleteScheduledRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerDeleteScheduledRequest) Execute() (*ReportingControllerDeleteSaved200Response, *http.Response, error) {
 	return r.ApiService.ReportingControllerDeleteScheduledExecute(r)
 }
 
 /*
-ReportingControllerDeleteScheduled Method for ReportingControllerDeleteScheduled
+ReportingControllerDeleteScheduled Delete a scheduled report
+
+Deletes one of the caller's scheduled reports by id. Returns 404 if it does not exist or belongs to another account.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser, publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1635,16 +2132,18 @@ func (a *ReportingAPIService) ReportingControllerDeleteScheduled(ctx context.Con
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerDeleteScheduledExecute(r ApiReportingControllerDeleteScheduledRequest) (*http.Response, error) {
+//  @return ReportingControllerDeleteSaved200Response
+func (a *ReportingAPIService) ReportingControllerDeleteScheduledExecute(r ApiReportingControllerDeleteScheduledRequest) (*ReportingControllerDeleteSaved200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ReportingControllerDeleteSaved200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerDeleteScheduled")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/scheduled/{id}"
@@ -1664,28 +2163,42 @@ func (a *ReportingAPIService) ReportingControllerDeleteScheduledExecute(r ApiRep
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1693,10 +2206,19 @@ func (a *ReportingAPIService) ReportingControllerDeleteScheduledExecute(r ApiRep
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerDeliveryFunnelRequest struct {
@@ -1704,12 +2226,16 @@ type ApiReportingControllerDeliveryFunnelRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerDeliveryFunnelRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerDeliveryFunnelRequest) Execute() (*ReportingControllerDeliveryFunnel200Response, *http.Response, error) {
 	return r.ApiService.ReportingControllerDeliveryFunnelExecute(r)
 }
 
 /*
-ReportingControllerDeliveryFunnel Method for ReportingControllerDeliveryFunnel
+ReportingControllerDeliveryFunnel Get publisher delivery waterfall
+
+Requests and filled responses (ad_requests), rendered valid impressions (impressions) and measurable/viewable beacons (viewability) for the caller's inventory, with stage-to-stage rates. `discrepancy` is filled minus rendered (floored at 0). Rates are fractions 0..1. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerDeliveryFunnelRequest
@@ -1722,16 +2248,18 @@ func (a *ReportingAPIService) ReportingControllerDeliveryFunnel(ctx context.Cont
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerDeliveryFunnelExecute(r ApiReportingControllerDeliveryFunnelRequest) (*http.Response, error) {
+//  @return ReportingControllerDeliveryFunnel200Response
+func (a *ReportingAPIService) ReportingControllerDeliveryFunnelExecute(r ApiReportingControllerDeliveryFunnelRequest) (*ReportingControllerDeliveryFunnel200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ReportingControllerDeliveryFunnel200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerDeliveryFunnel")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/delivery-funnel"
@@ -1750,28 +2278,42 @@ func (a *ReportingAPIService) ReportingControllerDeliveryFunnelExecute(r ApiRepo
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1779,10 +2321,19 @@ func (a *ReportingAPIService) ReportingControllerDeliveryFunnelExecute(r ApiRepo
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerDeliveryPacingRequest struct {
@@ -1790,12 +2341,16 @@ type ApiReportingControllerDeliveryPacingRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerDeliveryPacingRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerDeliveryPacingRequest) Execute() ([]ReportingControllerDeliveryPacing200ResponseInner, *http.Response, error) {
 	return r.ApiService.ReportingControllerDeliveryPacingExecute(r)
 }
 
 /*
-ReportingControllerDeliveryPacing Method for ReportingControllerDeliveryPacing
+ReportingControllerDeliveryPacing Get delivery pacing for booked and goal campaigns
+
+For each of the caller's campaigns with a delivery_goal or a guaranteed/sponsorship priority tier: the goal, all-time valid delivered impressions or clicks (per goal_type), percent to goal, percent of the flight elapsed, and whether delivery is keeping up (pctToGoal >= flightProgressPct). Open-ended flights count as 100% elapsed once started. No query params.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerDeliveryPacingRequest
@@ -1808,16 +2363,18 @@ func (a *ReportingAPIService) ReportingControllerDeliveryPacing(ctx context.Cont
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerDeliveryPacingExecute(r ApiReportingControllerDeliveryPacingRequest) (*http.Response, error) {
+//  @return []ReportingControllerDeliveryPacing200ResponseInner
+func (a *ReportingAPIService) ReportingControllerDeliveryPacingExecute(r ApiReportingControllerDeliveryPacingRequest) ([]ReportingControllerDeliveryPacing200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []ReportingControllerDeliveryPacing200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerDeliveryPacing")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/delivery-pacing"
@@ -1836,28 +2393,42 @@ func (a *ReportingAPIService) ReportingControllerDeliveryPacingExecute(r ApiRepo
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1865,10 +2436,19 @@ func (a *ReportingAPIService) ReportingControllerDeliveryPacingExecute(r ApiRepo
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerFillRequest struct {
@@ -1876,12 +2456,16 @@ type ApiReportingControllerFillRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerFillRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerFillRequest) Execute() (*ReportingControllerFill200Response, *http.Response, error) {
 	return r.ApiService.ReportingControllerFillExecute(r)
 }
 
 /*
-ReportingControllerFill Method for ReportingControllerFill
+ReportingControllerFill Get publisher fill rate and no-fill reasons
+
+Counts the caller's ad requests from adnet.ad_requests, how many were filled, and the fill rate, plus a map of unfilled requests by no-fill reason (empty reasons bucketed as 'unknown'). Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerFillRequest
@@ -1894,16 +2478,18 @@ func (a *ReportingAPIService) ReportingControllerFill(ctx context.Context) ApiRe
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerFillExecute(r ApiReportingControllerFillRequest) (*http.Response, error) {
+//  @return ReportingControllerFill200Response
+func (a *ReportingAPIService) ReportingControllerFillExecute(r ApiReportingControllerFillRequest) (*ReportingControllerFill200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ReportingControllerFill200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerFill")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/publisher/fill"
@@ -1922,28 +2508,42 @@ func (a *ReportingAPIService) ReportingControllerFillExecute(r ApiReportingContr
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1951,10 +2551,19 @@ func (a *ReportingAPIService) ReportingControllerFillExecute(r ApiReportingContr
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerFunnelRequest struct {
@@ -1962,12 +2571,16 @@ type ApiReportingControllerFunnelRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerFunnelRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerFunnelRequest) Execute() (*ReportingControllerFunnel200Response, *http.Response, error) {
 	return r.ApiService.ReportingControllerFunnelExecute(r)
 }
 
 /*
-ReportingControllerFunnel Method for ReportingControllerFunnel
+ReportingControllerFunnel Get advertiser impression-click-conversion funnel
+
+Totals impressions, clicks and conversions for the caller's campaigns from adnet.stats_hourly with CTR, CVR (conversions/clicks) and impression-to-conversion rate, all in percent. Returns zeros when there is no data. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerFunnelRequest
@@ -1980,16 +2593,18 @@ func (a *ReportingAPIService) ReportingControllerFunnel(ctx context.Context) Api
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerFunnelExecute(r ApiReportingControllerFunnelRequest) (*http.Response, error) {
+//  @return ReportingControllerFunnel200Response
+func (a *ReportingAPIService) ReportingControllerFunnelExecute(r ApiReportingControllerFunnelRequest) (*ReportingControllerFunnel200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ReportingControllerFunnel200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerFunnel")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/funnel"
@@ -2008,28 +2623,42 @@ func (a *ReportingAPIService) ReportingControllerFunnelExecute(r ApiReportingCon
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2037,10 +2666,19 @@ func (a *ReportingAPIService) ReportingControllerFunnelExecute(r ApiReportingCon
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerGeoRequest struct {
@@ -2048,12 +2686,16 @@ type ApiReportingControllerGeoRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerGeoRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerGeoRequest) Execute() ([]ReportingControllerGeo200ResponseInner, *http.Response, error) {
 	return r.ApiService.ReportingControllerGeoExecute(r)
 }
 
 /*
-ReportingControllerGeo Method for ReportingControllerGeo
+ReportingControllerGeo Get per-country delivery breakdown
+
+Impressions, clicks and amount per country from adnet.stats_hourly, ordered by amount. Amount is publisher earnings for publisher accounts and spend for other accounts; rows with an empty geo are skipped. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerGeoRequest
@@ -2066,16 +2708,18 @@ func (a *ReportingAPIService) ReportingControllerGeo(ctx context.Context) ApiRep
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerGeoExecute(r ApiReportingControllerGeoRequest) (*http.Response, error) {
+//  @return []ReportingControllerGeo200ResponseInner
+func (a *ReportingAPIService) ReportingControllerGeoExecute(r ApiReportingControllerGeoRequest) ([]ReportingControllerGeo200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []ReportingControllerGeo200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerGeo")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/geo"
@@ -2094,28 +2738,42 @@ func (a *ReportingAPIService) ReportingControllerGeoExecute(r ApiReportingContro
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2123,10 +2781,19 @@ func (a *ReportingAPIService) ReportingControllerGeoExecute(r ApiReportingContro
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerIncrementalityRequest struct {
@@ -2134,12 +2801,16 @@ type ApiReportingControllerIncrementalityRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerIncrementalityRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerIncrementalityRequest) Execute() ([]ReportingControllerIncrementality200ResponseInner, *http.Response, error) {
 	return r.ApiService.ReportingControllerIncrementalityExecute(r)
 }
 
 /*
-ReportingControllerIncrementality Method for ReportingControllerIncrementality
+ReportingControllerIncrementality Get per-campaign conversion lift vs holdout
+
+For up to 200 of the caller's campaigns, compares the conversion rate of exposed users (served an impression) with a holdout group (adnet.holdouts). Conversions attribute to users via the click that drove them. lift = (exposedCvr - holdoutCvr) / holdoutCvr; holdout figures and lift are 0 when there is no holdout data. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerIncrementalityRequest
@@ -2152,16 +2823,18 @@ func (a *ReportingAPIService) ReportingControllerIncrementality(ctx context.Cont
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerIncrementalityExecute(r ApiReportingControllerIncrementalityRequest) (*http.Response, error) {
+//  @return []ReportingControllerIncrementality200ResponseInner
+func (a *ReportingAPIService) ReportingControllerIncrementalityExecute(r ApiReportingControllerIncrementalityRequest) ([]ReportingControllerIncrementality200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []ReportingControllerIncrementality200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerIncrementality")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/incrementality"
@@ -2180,28 +2853,42 @@ func (a *ReportingAPIService) ReportingControllerIncrementalityExecute(r ApiRepo
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2209,10 +2896,19 @@ func (a *ReportingAPIService) ReportingControllerIncrementalityExecute(r ApiRepo
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerIvtRequest struct {
@@ -2220,12 +2916,16 @@ type ApiReportingControllerIvtRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerIvtRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerIvtRequest) Execute() ([]ReportingControllerIvt200ResponseInner, *http.Response, error) {
 	return r.ApiService.ReportingControllerIvtExecute(r)
 }
 
 /*
-ReportingControllerIvt Method for ReportingControllerIvt
+ReportingControllerIvt Get invalid-traffic breakdown by reason (last 30 days)
+
+Counts impressions flagged invalid (is_valid = 0) in the last 30 days, grouped by IVT reason and ordered by count. Publishers see IVT on their inventory; every other account sees IVT on its campaigns. Takes no window params.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerIvtRequest
@@ -2238,16 +2938,18 @@ func (a *ReportingAPIService) ReportingControllerIvt(ctx context.Context) ApiRep
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerIvtExecute(r ApiReportingControllerIvtRequest) (*http.Response, error) {
+//  @return []ReportingControllerIvt200ResponseInner
+func (a *ReportingAPIService) ReportingControllerIvtExecute(r ApiReportingControllerIvtRequest) ([]ReportingControllerIvt200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []ReportingControllerIvt200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerIvt")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/ivt"
@@ -2266,28 +2968,42 @@ func (a *ReportingAPIService) ReportingControllerIvtExecute(r ApiReportingContro
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2295,10 +3011,19 @@ func (a *ReportingAPIService) ReportingControllerIvtExecute(r ApiReportingContro
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerJourneyRequest struct {
@@ -2306,12 +3031,16 @@ type ApiReportingControllerJourneyRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerJourneyRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerJourneyRequest) Execute() ([]ReportingControllerJourney200ResponseInner, *http.Response, error) {
 	return r.ApiService.ReportingControllerJourneyExecute(r)
 }
 
 /*
-ReportingControllerJourney Method for ReportingControllerJourney
+ReportingControllerJourney Get top cross-site user paths
+
+Builds each user's time-ordered sequence of placements (first 6) from the caller's valid impressions and counts the most common paths, joined with ' > '. `topN` sets the result size (default 20, max 50); at most 50,000 users are scanned. Returns an empty list on query failure. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerJourneyRequest
@@ -2324,16 +3053,18 @@ func (a *ReportingAPIService) ReportingControllerJourney(ctx context.Context) Ap
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerJourneyExecute(r ApiReportingControllerJourneyRequest) (*http.Response, error) {
+//  @return []ReportingControllerJourney200ResponseInner
+func (a *ReportingAPIService) ReportingControllerJourneyExecute(r ApiReportingControllerJourneyRequest) ([]ReportingControllerJourney200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []ReportingControllerJourney200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerJourney")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/journey"
@@ -2352,28 +3083,42 @@ func (a *ReportingAPIService) ReportingControllerJourneyExecute(r ApiReportingCo
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2381,10 +3126,19 @@ func (a *ReportingAPIService) ReportingControllerJourneyExecute(r ApiReportingCo
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerLiquidityRequest struct {
@@ -2392,12 +3146,16 @@ type ApiReportingControllerLiquidityRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerLiquidityRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerLiquidityRequest) Execute() (*ReportingControllerLiquidity200Response, *http.Response, error) {
 	return r.ApiService.ReportingControllerLiquidityExecute(r)
 }
 
 /*
-ReportingControllerLiquidity Method for ReportingControllerLiquidity
+ReportingControllerLiquidity Get network-wide marketplace liquidity (admin)
+
+Network-wide ad requests, filled and unmatched requests, fill rate, the top 12 no-fill reasons and a daily requests/filled series, from adnet.ad_requests. Not scoped to an account. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerLiquidityRequest
@@ -2410,16 +3168,18 @@ func (a *ReportingAPIService) ReportingControllerLiquidity(ctx context.Context) 
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerLiquidityExecute(r ApiReportingControllerLiquidityRequest) (*http.Response, error) {
+//  @return ReportingControllerLiquidity200Response
+func (a *ReportingAPIService) ReportingControllerLiquidityExecute(r ApiReportingControllerLiquidityRequest) (*ReportingControllerLiquidity200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ReportingControllerLiquidity200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerLiquidity")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/admin/liquidity"
@@ -2438,28 +3198,42 @@ func (a *ReportingAPIService) ReportingControllerLiquidityExecute(r ApiReporting
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2467,10 +3241,19 @@ func (a *ReportingAPIService) ReportingControllerLiquidityExecute(r ApiReporting
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerListSavedRequest struct {
@@ -2478,12 +3261,16 @@ type ApiReportingControllerListSavedRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerListSavedRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerListSavedRequest) Execute() ([]ReportSavedReport, *http.Response, error) {
 	return r.ApiService.ReportingControllerListSavedExecute(r)
 }
 
 /*
-ReportingControllerListSaved Method for ReportingControllerListSaved
+ReportingControllerListSaved List saved reports
+
+Returns the caller's saved report definitions, newest first. The config is opaque JSON stored for the dashboard.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerListSavedRequest
@@ -2496,16 +3283,18 @@ func (a *ReportingAPIService) ReportingControllerListSaved(ctx context.Context) 
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerListSavedExecute(r ApiReportingControllerListSavedRequest) (*http.Response, error) {
+//  @return []ReportSavedReport
+func (a *ReportingAPIService) ReportingControllerListSavedExecute(r ApiReportingControllerListSavedRequest) ([]ReportSavedReport, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []ReportSavedReport
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerListSaved")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/saved"
@@ -2524,28 +3313,42 @@ func (a *ReportingAPIService) ReportingControllerListSavedExecute(r ApiReporting
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2553,10 +3356,19 @@ func (a *ReportingAPIService) ReportingControllerListSavedExecute(r ApiReporting
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerListScheduledRequest struct {
@@ -2564,12 +3376,16 @@ type ApiReportingControllerListScheduledRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerListScheduledRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerListScheduledRequest) Execute() ([]ReportScheduledReport, *http.Response, error) {
 	return r.ApiService.ReportingControllerListScheduledExecute(r)
 }
 
 /*
-ReportingControllerListScheduled Method for ReportingControllerListScheduled
+ReportingControllerListScheduled List scheduled email reports
+
+Returns the caller's scheduled email reports with cadence, recipient and last/next run times, newest first.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerListScheduledRequest
@@ -2582,16 +3398,18 @@ func (a *ReportingAPIService) ReportingControllerListScheduled(ctx context.Conte
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerListScheduledExecute(r ApiReportingControllerListScheduledRequest) (*http.Response, error) {
+//  @return []ReportScheduledReport
+func (a *ReportingAPIService) ReportingControllerListScheduledExecute(r ApiReportingControllerListScheduledRequest) ([]ReportScheduledReport, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []ReportScheduledReport
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerListScheduled")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/scheduled"
@@ -2610,28 +3428,42 @@ func (a *ReportingAPIService) ReportingControllerListScheduledExecute(r ApiRepor
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2639,10 +3471,19 @@ func (a *ReportingAPIService) ReportingControllerListScheduledExecute(r ApiRepor
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerMarketplaceRequest struct {
@@ -2650,12 +3491,16 @@ type ApiReportingControllerMarketplaceRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerMarketplaceRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerMarketplaceRequest) Execute() (*ReportingControllerMarketplace200Response, *http.Response, error) {
 	return r.ApiService.ReportingControllerMarketplaceExecute(r)
 }
 
 /*
-ReportingControllerMarketplace Method for ReportingControllerMarketplace
+ReportingControllerMarketplace Get marketplace economics and concentration (admin)
+
+Gross advertiser spend, publisher payout, platform margin and take rate over the window (stats_hourly), the top 10 advertisers by spend and publishers by earnings with their share of the total, and monthly signup counts per account type from Postgres (cohorts ignore the window). Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerMarketplaceRequest
@@ -2668,16 +3513,18 @@ func (a *ReportingAPIService) ReportingControllerMarketplace(ctx context.Context
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerMarketplaceExecute(r ApiReportingControllerMarketplaceRequest) (*http.Response, error) {
+//  @return ReportingControllerMarketplace200Response
+func (a *ReportingAPIService) ReportingControllerMarketplaceExecute(r ApiReportingControllerMarketplaceRequest) (*ReportingControllerMarketplace200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ReportingControllerMarketplace200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerMarketplace")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/admin/marketplace"
@@ -2696,28 +3543,42 @@ func (a *ReportingAPIService) ReportingControllerMarketplaceExecute(r ApiReporti
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2725,10 +3586,19 @@ func (a *ReportingAPIService) ReportingControllerMarketplaceExecute(r ApiReporti
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerPersonalNetworkRequest struct {
@@ -2736,12 +3606,16 @@ type ApiReportingControllerPersonalNetworkRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerPersonalNetworkRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerPersonalNetworkRequest) Execute() (*ReportingControllerPersonalNetwork200Response, *http.Response, error) {
 	return r.ApiService.ReportingControllerPersonalNetworkExecute(r)
 }
 
 /*
-ReportingControllerPersonalNetwork Method for ReportingControllerPersonalNetwork
+ReportingControllerPersonalNetwork Get Personal Network infra fees and house-ad delivery
+
+Sums the 'infra_fee' ledger entries charged to the caller over the period (absolute value, total and per day) and counts valid impressions of the caller's house-ad campaigns. `from`/`to` are YYYY-MM-DD dates here (default: the last 30 days through today, inclusive). infraFeePct is read from platform_config (default 0.05).
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerPersonalNetworkRequest
@@ -2754,16 +3628,18 @@ func (a *ReportingAPIService) ReportingControllerPersonalNetwork(ctx context.Con
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerPersonalNetworkExecute(r ApiReportingControllerPersonalNetworkRequest) (*http.Response, error) {
+//  @return ReportingControllerPersonalNetwork200Response
+func (a *ReportingAPIService) ReportingControllerPersonalNetworkExecute(r ApiReportingControllerPersonalNetworkRequest) (*ReportingControllerPersonalNetwork200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ReportingControllerPersonalNetwork200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerPersonalNetwork")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/personal-network"
@@ -2782,28 +3658,42 @@ func (a *ReportingAPIService) ReportingControllerPersonalNetworkExecute(r ApiRep
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2811,10 +3701,19 @@ func (a *ReportingAPIService) ReportingControllerPersonalNetworkExecute(r ApiRep
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerPivotRequest struct {
@@ -2822,12 +3721,16 @@ type ApiReportingControllerPivotRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerPivotRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerPivotRequest) Execute() ([]ReportingControllerPivot200ResponseInner, *http.Response, error) {
 	return r.ApiService.ReportingControllerPivotExecute(r)
 }
 
 /*
-ReportingControllerPivot Method for ReportingControllerPivot
+ReportingControllerPivot Pivot delivery over two dimensions
+
+Groups adnet.stats_hourly by `dim1` x `dim2`, each one of day, geo, device, os, browser, format, placement_id, campaign_id (os/browser are not in the rollup and resolve to a constant '(n/a)'). An unknown dimension returns 403 'invalid pivot dimension'. Amount is earnings (publisher) or spend (advertiser); max 1000 rows ordered by amount. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerPivotRequest
@@ -2840,16 +3743,18 @@ func (a *ReportingAPIService) ReportingControllerPivot(ctx context.Context) ApiR
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerPivotExecute(r ApiReportingControllerPivotRequest) (*http.Response, error) {
+//  @return []ReportingControllerPivot200ResponseInner
+func (a *ReportingAPIService) ReportingControllerPivotExecute(r ApiReportingControllerPivotRequest) ([]ReportingControllerPivot200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []ReportingControllerPivot200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerPivot")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/pivot"
@@ -2868,28 +3773,42 @@ func (a *ReportingAPIService) ReportingControllerPivotExecute(r ApiReportingCont
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2897,10 +3816,19 @@ func (a *ReportingAPIService) ReportingControllerPivotExecute(r ApiReportingCont
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerPublisherRequest struct {
@@ -2908,12 +3836,16 @@ type ApiReportingControllerPublisherRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerPublisherRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerPublisherRequest) Execute() ([]ReportPublisherStatsRow, *http.Response, error) {
 	return r.ApiService.ReportingControllerPublisherExecute(r)
 }
 
 /*
-ReportingControllerPublisher Method for ReportingControllerPublisher
+ReportingControllerPublisher Get publisher earnings grouped by a dimension
+
+Aggregates the caller's publisher earnings from the hourly rollup (adnet.stats_hourly). `dim` picks the grouping: day (default), hour, geo, device, format, placement_id or campaign_id; rows are ordered by the dimension. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerPublisherRequest
@@ -2926,16 +3858,18 @@ func (a *ReportingAPIService) ReportingControllerPublisher(ctx context.Context) 
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerPublisherExecute(r ApiReportingControllerPublisherRequest) (*http.Response, error) {
+//  @return []ReportPublisherStatsRow
+func (a *ReportingAPIService) ReportingControllerPublisherExecute(r ApiReportingControllerPublisherRequest) ([]ReportPublisherStatsRow, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []ReportPublisherStatsRow
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerPublisher")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/publisher"
@@ -2954,28 +3888,42 @@ func (a *ReportingAPIService) ReportingControllerPublisherExecute(r ApiReporting
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2983,10 +3931,19 @@ func (a *ReportingAPIService) ReportingControllerPublisherExecute(r ApiReporting
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerPublisherConsentRequest struct {
@@ -2994,12 +3951,16 @@ type ApiReportingControllerPublisherConsentRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerPublisherConsentRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerPublisherConsentRequest) Execute() (*ReportingControllerPublisherConsent200Response, *http.Response, error) {
 	return r.ApiService.ReportingControllerPublisherConsentExecute(r)
 }
 
 /*
-ReportingControllerPublisherConsent Method for ReportingControllerPublisherConsent
+ReportingControllerPublisherConsent Get publisher ad-serving consent rate
+
+Share of the caller's valid impressions served with personalized-processing consent (impressions.consented, set by the engine from the request's privacy signals), as totals and a daily series. Distinct from the advertiser pixel consent rate. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerPublisherConsentRequest
@@ -3012,16 +3973,18 @@ func (a *ReportingAPIService) ReportingControllerPublisherConsent(ctx context.Co
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerPublisherConsentExecute(r ApiReportingControllerPublisherConsentRequest) (*http.Response, error) {
+//  @return ReportingControllerPublisherConsent200Response
+func (a *ReportingAPIService) ReportingControllerPublisherConsentExecute(r ApiReportingControllerPublisherConsentRequest) (*ReportingControllerPublisherConsent200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ReportingControllerPublisherConsent200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerPublisherConsent")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/publisher/consent"
@@ -3040,28 +4003,42 @@ func (a *ReportingAPIService) ReportingControllerPublisherConsentExecute(r ApiRe
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -3069,10 +4046,19 @@ func (a *ReportingAPIService) ReportingControllerPublisherConsentExecute(r ApiRe
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerPublisherPlacementsRequest struct {
@@ -3080,12 +4066,16 @@ type ApiReportingControllerPublisherPlacementsRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerPublisherPlacementsRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerPublisherPlacementsRequest) Execute() ([]ReportPlacementRow, *http.Response, error) {
 	return r.ApiService.ReportingControllerPublisherPlacementsExecute(r)
 }
 
 /*
-ReportingControllerPublisherPlacements Method for ReportingControllerPublisherPlacements
+ReportingControllerPublisherPlacements Get per-placement earnings, fill and viewability
+
+Joins three ClickHouse aggregations by placement_id: earnings (stats_hourly), fill (ad_requests) and viewability (adnet.viewability), then resolves placement names from Postgres. A placement appears if it has activity in any of the three. Sorted by revenue then impressions. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerPublisherPlacementsRequest
@@ -3098,16 +4088,18 @@ func (a *ReportingAPIService) ReportingControllerPublisherPlacements(ctx context
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerPublisherPlacementsExecute(r ApiReportingControllerPublisherPlacementsRequest) (*http.Response, error) {
+//  @return []ReportPlacementRow
+func (a *ReportingAPIService) ReportingControllerPublisherPlacementsExecute(r ApiReportingControllerPublisherPlacementsRequest) ([]ReportPlacementRow, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []ReportPlacementRow
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerPublisherPlacements")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/publisher/placements"
@@ -3126,28 +4118,42 @@ func (a *ReportingAPIService) ReportingControllerPublisherPlacementsExecute(r Ap
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -3155,10 +4161,19 @@ func (a *ReportingAPIService) ReportingControllerPublisherPlacementsExecute(r Ap
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerReachRequest struct {
@@ -3166,12 +4181,16 @@ type ApiReportingControllerReachRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerReachRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerReachRequest) Execute() (*ReportingControllerReach200Response, *http.Response, error) {
 	return r.ApiService.ReportingControllerReachExecute(r)
 }
 
 /*
-ReportingControllerReach Method for ReportingControllerReach
+ReportingControllerReach Get reach and frequency (unique users)
+
+Computes unique users (by user_id_hash) from valid raw impressions, average frequency, a frequency histogram (buckets 1, 2, 3, 4, 5, 6-10, 11+ in fixed order) and a daily reach series. Publishers measure their inventory's audience; other accounts their campaigns' reach. Impressions without a user hash are excluded. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerReachRequest
@@ -3184,16 +4203,18 @@ func (a *ReportingAPIService) ReportingControllerReach(ctx context.Context) ApiR
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerReachExecute(r ApiReportingControllerReachRequest) (*http.Response, error) {
+//  @return ReportingControllerReach200Response
+func (a *ReportingAPIService) ReportingControllerReachExecute(r ApiReportingControllerReachRequest) (*ReportingControllerReach200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ReportingControllerReach200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerReach")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/reach"
@@ -3212,28 +4233,42 @@ func (a *ReportingAPIService) ReportingControllerReachExecute(r ApiReportingCont
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -3241,10 +4276,19 @@ func (a *ReportingAPIService) ReportingControllerReachExecute(r ApiReportingCont
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerRealtimeRequest struct {
@@ -3252,12 +4296,16 @@ type ApiReportingControllerRealtimeRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerRealtimeRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerRealtimeRequest) Execute() (*ReportRealtime, *http.Response, error) {
 	return r.ApiService.ReportingControllerRealtimeExecute(r)
 }
 
 /*
-ReportingControllerRealtime Method for ReportingControllerRealtime
+ReportingControllerRealtime Get last-15-minute impressions, clicks and amount
+
+Per-minute series of valid impressions and clicks over the last 15 minutes from the raw event tables, with totals. Publisher accounts see their inventory (earnings); other accounts their campaigns (spend).
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerRealtimeRequest
@@ -3270,16 +4318,18 @@ func (a *ReportingAPIService) ReportingControllerRealtime(ctx context.Context) A
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerRealtimeExecute(r ApiReportingControllerRealtimeRequest) (*http.Response, error) {
+//  @return ReportRealtime
+func (a *ReportingAPIService) ReportingControllerRealtimeExecute(r ApiReportingControllerRealtimeRequest) (*ReportRealtime, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ReportRealtime
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerRealtime")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/realtime"
@@ -3298,28 +4348,42 @@ func (a *ReportingAPIService) ReportingControllerRealtimeExecute(r ApiReportingC
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -3327,10 +4391,19 @@ func (a *ReportingAPIService) ReportingControllerRealtimeExecute(r ApiReportingC
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerRealtimeStreamRequest struct {
@@ -3344,12 +4417,16 @@ func (r ApiReportingControllerRealtimeStreamRequest) Scope(scope string) ApiRepo
 	return r
 }
 
-func (r ApiReportingControllerRealtimeStreamRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerRealtimeStreamRequest) Execute() (string, *http.Response, error) {
 	return r.ApiService.ReportingControllerRealtimeStreamExecute(r)
 }
 
 /*
-ReportingControllerRealtimeStream Method for ReportingControllerRealtimeStream
+ReportingControllerRealtimeStream Stream the realtime report as Server-Sent Events
+
+Pushes the same payload as GET /v1/reporting/realtime as an SSE `data:` event immediately on connect and then every ~3 seconds (a server-side poll, not a sub-second event stream). Because EventSource cannot set headers, this route authenticates with the session token in `?access_token=`. `scope=advertiser|publisher` selects the side of a dual-sided account; it defaults to the account type.
+
+Auth: public, no credentials required. Additionally checked by SseAuthGuard.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerRealtimeStreamRequest
@@ -3362,16 +4439,18 @@ func (a *ReportingAPIService) ReportingControllerRealtimeStream(ctx context.Cont
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerRealtimeStreamExecute(r ApiReportingControllerRealtimeStreamRequest) (*http.Response, error) {
+//  @return string
+func (a *ReportingAPIService) ReportingControllerRealtimeStreamExecute(r ApiReportingControllerRealtimeStreamRequest) (string, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  string
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerRealtimeStream")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/realtime/stream"
@@ -3380,7 +4459,7 @@ func (a *ReportingAPIService) ReportingControllerRealtimeStreamExecute(r ApiRepo
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.scope == nil {
-		return nil, reportError("scope is required and must be specified")
+		return localVarReturnValue, nil, reportError("scope is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "scope", r.scope, "form", "")
@@ -3394,7 +4473,7 @@ func (a *ReportingAPIService) ReportingControllerRealtimeStreamExecute(r ApiRepo
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"text/event-stream"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -3403,19 +4482,19 @@ func (a *ReportingAPIService) ReportingControllerRealtimeStreamExecute(r ApiRepo
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -3423,10 +4502,19 @@ func (a *ReportingAPIService) ReportingControllerRealtimeStreamExecute(r ApiRepo
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerRoasRequest struct {
@@ -3434,12 +4522,16 @@ type ApiReportingControllerRoasRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerRoasRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerRoasRequest) Execute() ([]ReportingControllerRoas200ResponseInner, *http.Response, error) {
 	return r.ApiService.ReportingControllerRoasExecute(r)
 }
 
 /*
-ReportingControllerRoas Method for ReportingControllerRoas
+ReportingControllerRoas Get daily ROAS and conversion-value trend
+
+Per-day spend (stats_hourly) joined to attributed conversion count and conversion_value (adnet.conversions), with ROAS = conversionValue / spend. Days present in either source are included, sorted ascending. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerRoasRequest
@@ -3452,16 +4544,18 @@ func (a *ReportingAPIService) ReportingControllerRoas(ctx context.Context) ApiRe
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerRoasExecute(r ApiReportingControllerRoasRequest) (*http.Response, error) {
+//  @return []ReportingControllerRoas200ResponseInner
+func (a *ReportingAPIService) ReportingControllerRoasExecute(r ApiReportingControllerRoasRequest) ([]ReportingControllerRoas200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []ReportingControllerRoas200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerRoas")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/roas"
@@ -3480,28 +4574,42 @@ func (a *ReportingAPIService) ReportingControllerRoasExecute(r ApiReportingContr
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -3509,10 +4617,19 @@ func (a *ReportingAPIService) ReportingControllerRoasExecute(r ApiReportingContr
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerServeLatencyRequest struct {
@@ -3520,12 +4637,16 @@ type ApiReportingControllerServeLatencyRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerServeLatencyRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerServeLatencyRequest) Execute() (*ReportingControllerServeLatency200Response, *http.Response, error) {
 	return r.ApiService.ReportingControllerServeLatencyExecute(r)
 }
 
 /*
-ReportingControllerServeLatency Method for ReportingControllerServeLatency
+ReportingControllerServeLatency Get ad-serving decision and render latency
+
+Engine decision latency percentiles (from ad_requests.decision_us, reported in milliseconds) with the share of requests over the 100 ms soft SLA and a daily p95 series. Also returns client render latency from SDK beacons (null if the tag has not reported any) and client-side load failures (client_timeout/client_error) as a share of all requests. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerServeLatencyRequest
@@ -3538,16 +4659,18 @@ func (a *ReportingAPIService) ReportingControllerServeLatency(ctx context.Contex
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerServeLatencyExecute(r ApiReportingControllerServeLatencyRequest) (*http.Response, error) {
+//  @return ReportingControllerServeLatency200Response
+func (a *ReportingAPIService) ReportingControllerServeLatencyExecute(r ApiReportingControllerServeLatencyRequest) (*ReportingControllerServeLatency200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ReportingControllerServeLatency200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerServeLatency")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/serve-latency"
@@ -3566,28 +4689,42 @@ func (a *ReportingAPIService) ReportingControllerServeLatencyExecute(r ApiReport
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -3595,10 +4732,19 @@ func (a *ReportingAPIService) ReportingControllerServeLatencyExecute(r ApiReport
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerSustainabilityRequest struct {
@@ -3612,12 +4758,16 @@ func (r ApiReportingControllerSustainabilityRequest) PeriodDays(periodDays strin
 	return r
 }
 
-func (r ApiReportingControllerSustainabilityRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerSustainabilityRequest) Execute() (*ReportingControllerSustainability200Response, *http.Response, error) {
 	return r.ApiService.ReportingControllerSustainabilityExecute(r)
 }
 
 /*
-ReportingControllerSustainability Method for ReportingControllerSustainability
+ReportingControllerSustainability Estimate energy and carbon footprint of ad delivery
+
+Counts valid impressions over the last `periodDays` days (default 30, min 1) and converts them to kWh and kg CO2e using configurable factors (SUSTAINABILITY_KWH_PER_1K, default 0.0009 kWh per 1000 impressions; SUSTAINABILITY_GRID_GCO2_PER_KWH, default 475). Admins get a network-wide figure; publishers their inventory; other accounts their campaigns.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerSustainabilityRequest
@@ -3630,16 +4780,18 @@ func (a *ReportingAPIService) ReportingControllerSustainability(ctx context.Cont
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerSustainabilityExecute(r ApiReportingControllerSustainabilityRequest) (*http.Response, error) {
+//  @return ReportingControllerSustainability200Response
+func (a *ReportingAPIService) ReportingControllerSustainabilityExecute(r ApiReportingControllerSustainabilityRequest) (*ReportingControllerSustainability200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ReportingControllerSustainability200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerSustainability")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/sustainability"
@@ -3648,7 +4800,7 @@ func (a *ReportingAPIService) ReportingControllerSustainabilityExecute(r ApiRepo
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.periodDays == nil {
-		return nil, reportError("periodDays is required and must be specified")
+		return localVarReturnValue, nil, reportError("periodDays is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "periodDays", r.periodDays, "form", "")
@@ -3662,28 +4814,42 @@ func (a *ReportingAPIService) ReportingControllerSustainabilityExecute(r ApiRepo
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -3691,10 +4857,19 @@ func (a *ReportingAPIService) ReportingControllerSustainabilityExecute(r ApiRepo
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerTimeToClickRequest struct {
@@ -3702,12 +4877,16 @@ type ApiReportingControllerTimeToClickRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerTimeToClickRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerTimeToClickRequest) Execute() (*ReportingControllerTimeToClick200Response, *http.Response, error) {
 	return r.ApiService.ReportingControllerTimeToClickExecute(r)
 }
 
 /*
-ReportingControllerTimeToClick Method for ReportingControllerTimeToClick
+ReportingControllerTimeToClick Get time-to-click latency distribution
+
+Average and median milliseconds between render and click for valid clicks with a recorded time_to_click_ms, plus counts in fixed buckets (<1s, 1-3s, 3-10s, 10-30s, 30s+). Publishers see clicks on their inventory; other accounts on their campaigns. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerTimeToClickRequest
@@ -3720,16 +4899,18 @@ func (a *ReportingAPIService) ReportingControllerTimeToClick(ctx context.Context
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerTimeToClickExecute(r ApiReportingControllerTimeToClickRequest) (*http.Response, error) {
+//  @return ReportingControllerTimeToClick200Response
+func (a *ReportingAPIService) ReportingControllerTimeToClickExecute(r ApiReportingControllerTimeToClickRequest) (*ReportingControllerTimeToClick200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ReportingControllerTimeToClick200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerTimeToClick")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/time-to-click"
@@ -3748,28 +4929,42 @@ func (a *ReportingAPIService) ReportingControllerTimeToClickExecute(r ApiReporti
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -3777,10 +4972,19 @@ func (a *ReportingAPIService) ReportingControllerTimeToClickExecute(r ApiReporti
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerVideoRequest struct {
@@ -3788,12 +4992,16 @@ type ApiReportingControllerVideoRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerVideoRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerVideoRequest) Execute() (*ReportingControllerVideo200Response, *http.Response, error) {
 	return r.ApiService.ReportingControllerVideoExecute(r)
 }
 
 /*
-ReportingControllerVideo Method for ReportingControllerVideo
+ReportingControllerVideo Get video completion funnel and breakdown
+
+Overall video funnel (starts, quartiles, completes, skips, errors and rates) from adnet.video_events, plus the same metrics per placement (publisher accounts) or per campaign (other accounts), top 100 by starts. Only exact VAST quartile events count toward the funnel. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerVideoRequest
@@ -3806,16 +5014,18 @@ func (a *ReportingAPIService) ReportingControllerVideo(ctx context.Context) ApiR
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerVideoExecute(r ApiReportingControllerVideoRequest) (*http.Response, error) {
+//  @return ReportingControllerVideo200Response
+func (a *ReportingAPIService) ReportingControllerVideoExecute(r ApiReportingControllerVideoRequest) (*ReportingControllerVideo200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ReportingControllerVideo200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerVideo")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/video"
@@ -3834,28 +5044,42 @@ func (a *ReportingAPIService) ReportingControllerVideoExecute(r ApiReportingCont
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -3863,10 +5087,19 @@ func (a *ReportingAPIService) ReportingControllerVideoExecute(r ApiReportingCont
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiReportingControllerViewabilityRequest struct {
@@ -3874,12 +5107,16 @@ type ApiReportingControllerViewabilityRequest struct {
 	ApiService *ReportingAPIService
 }
 
-func (r ApiReportingControllerViewabilityRequest) Execute() (*http.Response, error) {
+func (r ApiReportingControllerViewabilityRequest) Execute() ([]ReportingControllerViewability200ResponseInner, *http.Response, error) {
 	return r.ApiService.ReportingControllerViewabilityExecute(r)
 }
 
 /*
-ReportingControllerViewability Method for ReportingControllerViewability
+ReportingControllerViewability Get viewability by placement or campaign
+
+Measurable and viewable beacon counts, viewable rate, and average in-view percent and duration (of viewable events) from adnet.viewability. `groupBy=campaign` groups by campaign, anything else by placement. Advertisers see their own campaigns, publishers their own inventory, admins the whole network. Max 1000 rows ordered by measurable. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiReportingControllerViewabilityRequest
@@ -3892,16 +5129,18 @@ func (a *ReportingAPIService) ReportingControllerViewability(ctx context.Context
 }
 
 // Execute executes the request
-func (a *ReportingAPIService) ReportingControllerViewabilityExecute(r ApiReportingControllerViewabilityRequest) (*http.Response, error) {
+//  @return []ReportingControllerViewability200ResponseInner
+func (a *ReportingAPIService) ReportingControllerViewabilityExecute(r ApiReportingControllerViewabilityRequest) ([]ReportingControllerViewability200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []ReportingControllerViewability200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ReportingAPIService.ReportingControllerViewability")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/reporting/viewability"
@@ -3920,28 +5159,42 @@ func (a *ReportingAPIService) ReportingControllerViewabilityExecute(r ApiReporti
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -3949,8 +5202,17 @@ func (a *ReportingAPIService) ReportingControllerViewabilityExecute(r ApiReporti
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

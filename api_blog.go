@@ -34,12 +34,16 @@ func (r ApiBlogControllerAdminListRequest) Locale(locale string) ApiBlogControll
 	return r
 }
 
-func (r ApiBlogControllerAdminListRequest) Execute() (*http.Response, error) {
+func (r ApiBlogControllerAdminListRequest) Execute() ([]BlogPost, *http.Response, error) {
 	return r.ApiService.BlogControllerAdminListExecute(r)
 }
 
 /*
-BlogControllerAdminList Method for BlogControllerAdminList
+BlogControllerAdminList List all blog posts
+
+Returns every post, including unpublished ones, optionally filtered by `locale`.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiBlogControllerAdminListRequest
@@ -52,16 +56,18 @@ func (a *BlogAPIService) BlogControllerAdminList(ctx context.Context) ApiBlogCon
 }
 
 // Execute executes the request
-func (a *BlogAPIService) BlogControllerAdminListExecute(r ApiBlogControllerAdminListRequest) (*http.Response, error) {
+//  @return []BlogPost
+func (a *BlogAPIService) BlogControllerAdminListExecute(r ApiBlogControllerAdminListRequest) ([]BlogPost, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []BlogPost
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "BlogAPIService.BlogControllerAdminList")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/blog"
@@ -70,7 +76,7 @@ func (a *BlogAPIService) BlogControllerAdminListExecute(r ApiBlogControllerAdmin
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.locale == nil {
-		return nil, reportError("locale is required and must be specified")
+		return localVarReturnValue, nil, reportError("locale is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "locale", r.locale, "form", "")
@@ -84,28 +90,42 @@ func (a *BlogAPIService) BlogControllerAdminListExecute(r ApiBlogControllerAdmin
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -113,10 +133,19 @@ func (a *BlogAPIService) BlogControllerAdminListExecute(r ApiBlogControllerAdmin
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiBlogControllerCreateRequest struct {
@@ -130,12 +159,16 @@ func (r ApiBlogControllerCreateRequest) CreatePostDto(createPostDto CreatePostDt
 	return r
 }
 
-func (r ApiBlogControllerCreateRequest) Execute() (*http.Response, error) {
+func (r ApiBlogControllerCreateRequest) Execute() (*BlogPost, *http.Response, error) {
 	return r.ApiService.BlogControllerCreateExecute(r)
 }
 
 /*
-BlogControllerCreate Method for BlogControllerCreate
+BlogControllerCreate Create or replace a blog post
+
+Creates a post from `slug` and `title` with optional `locale` (`en`), `tag` (`News`), `author` (`Adviverse Team`), `excerpt`, Markdown `body`, `cover_image`, `published_at` (now), `position` and `published` (true). An existing post with the same slug and locale is overwritten (upsert). Clears the public cache. Posts without a cover get a generated SVG cover at the next service start.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiBlogControllerCreateRequest
@@ -148,16 +181,18 @@ func (a *BlogAPIService) BlogControllerCreate(ctx context.Context) ApiBlogContro
 }
 
 // Execute executes the request
-func (a *BlogAPIService) BlogControllerCreateExecute(r ApiBlogControllerCreateRequest) (*http.Response, error) {
+//  @return BlogPost
+func (a *BlogAPIService) BlogControllerCreateExecute(r ApiBlogControllerCreateRequest) (*BlogPost, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *BlogPost
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "BlogAPIService.BlogControllerCreate")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/blog"
@@ -166,7 +201,7 @@ func (a *BlogAPIService) BlogControllerCreateExecute(r ApiBlogControllerCreateRe
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.createPostDto == nil {
-		return nil, reportError("createPostDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("createPostDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -179,7 +214,7 @@ func (a *BlogAPIService) BlogControllerCreateExecute(r ApiBlogControllerCreateRe
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -188,21 +223,35 @@ func (a *BlogAPIService) BlogControllerCreateExecute(r ApiBlogControllerCreateRe
 	}
 	// body params
 	localVarPostBody = r.createPostDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -210,10 +259,19 @@ func (a *BlogAPIService) BlogControllerCreateExecute(r ApiBlogControllerCreateRe
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiBlogControllerGetRequest struct {
@@ -228,12 +286,16 @@ func (r ApiBlogControllerGetRequest) Locale(locale string) ApiBlogControllerGetR
 	return r
 }
 
-func (r ApiBlogControllerGetRequest) Execute() (*http.Response, error) {
+func (r ApiBlogControllerGetRequest) Execute() (*BlogControllerGet200Response, *http.Response, error) {
 	return r.ApiService.BlogControllerGetExecute(r)
 }
 
 /*
-BlogControllerGet Method for BlogControllerGet
+BlogControllerGet Get a published blog post
+
+Public. Returns a published post by `slug` and `locale` (default `en`). An unknown or unpublished slug returns HTTP 200 with `{ error: "not_found" }`, not 404.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param slug
@@ -248,16 +310,18 @@ func (a *BlogAPIService) BlogControllerGet(ctx context.Context, slug string) Api
 }
 
 // Execute executes the request
-func (a *BlogAPIService) BlogControllerGetExecute(r ApiBlogControllerGetRequest) (*http.Response, error) {
+//  @return BlogControllerGet200Response
+func (a *BlogAPIService) BlogControllerGetExecute(r ApiBlogControllerGetRequest) (*BlogControllerGet200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *BlogControllerGet200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "BlogAPIService.BlogControllerGet")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/blog/{slug}"
@@ -267,7 +331,7 @@ func (a *BlogAPIService) BlogControllerGetExecute(r ApiBlogControllerGetRequest)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.locale == nil {
-		return nil, reportError("locale is required and must be specified")
+		return localVarReturnValue, nil, reportError("locale is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "locale", r.locale, "form", "")
@@ -281,7 +345,7 @@ func (a *BlogAPIService) BlogControllerGetExecute(r ApiBlogControllerGetRequest)
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -290,19 +354,19 @@ func (a *BlogAPIService) BlogControllerGetExecute(r ApiBlogControllerGetRequest)
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -310,10 +374,19 @@ func (a *BlogAPIService) BlogControllerGetExecute(r ApiBlogControllerGetRequest)
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiBlogControllerIndexHtmlRequest struct {
@@ -321,12 +394,16 @@ type ApiBlogControllerIndexHtmlRequest struct {
 	ApiService *BlogAPIService
 }
 
-func (r ApiBlogControllerIndexHtmlRequest) Execute() (*http.Response, error) {
+func (r ApiBlogControllerIndexHtmlRequest) Execute() (string, *http.Response, error) {
 	return r.ApiService.BlogControllerIndexHtmlExecute(r)
 }
 
 /*
-BlogControllerIndexHtml Method for BlogControllerIndexHtml
+BlogControllerIndexHtml Render the public blog index page
+
+Public, server-rendered HTML for /blog listing published English posts. Cached (max-age 300, s-maxage 3600).
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiBlogControllerIndexHtmlRequest
@@ -339,16 +416,18 @@ func (a *BlogAPIService) BlogControllerIndexHtml(ctx context.Context) ApiBlogCon
 }
 
 // Execute executes the request
-func (a *BlogAPIService) BlogControllerIndexHtmlExecute(r ApiBlogControllerIndexHtmlRequest) (*http.Response, error) {
+//  @return string
+func (a *BlogAPIService) BlogControllerIndexHtmlExecute(r ApiBlogControllerIndexHtmlRequest) (string, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  string
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "BlogAPIService.BlogControllerIndexHtml")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/blog"
@@ -367,7 +446,7 @@ func (a *BlogAPIService) BlogControllerIndexHtmlExecute(r ApiBlogControllerIndex
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"text/html"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -376,19 +455,19 @@ func (a *BlogAPIService) BlogControllerIndexHtmlExecute(r ApiBlogControllerIndex
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -396,10 +475,19 @@ func (a *BlogAPIService) BlogControllerIndexHtmlExecute(r ApiBlogControllerIndex
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiBlogControllerListRequest struct {
@@ -419,12 +507,16 @@ func (r ApiBlogControllerListRequest) Tag(tag string) ApiBlogControllerListReque
 	return r
 }
 
-func (r ApiBlogControllerListRequest) Execute() (*http.Response, error) {
+func (r ApiBlogControllerListRequest) Execute() ([]BlogPost, *http.Response, error) {
 	return r.ApiService.BlogControllerListExecute(r)
 }
 
 /*
-BlogControllerList Method for BlogControllerList
+BlogControllerList List published blog posts
+
+Public. Returns published posts for `locale` (default `en`), newest `published_at` first, optionally filtered by `tag`. Reads are cached in Redis for 60 seconds.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiBlogControllerListRequest
@@ -437,16 +529,18 @@ func (a *BlogAPIService) BlogControllerList(ctx context.Context) ApiBlogControll
 }
 
 // Execute executes the request
-func (a *BlogAPIService) BlogControllerListExecute(r ApiBlogControllerListRequest) (*http.Response, error) {
+//  @return []BlogPost
+func (a *BlogAPIService) BlogControllerListExecute(r ApiBlogControllerListRequest) ([]BlogPost, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []BlogPost
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "BlogAPIService.BlogControllerList")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/blog"
@@ -455,10 +549,10 @@ func (a *BlogAPIService) BlogControllerListExecute(r ApiBlogControllerListReques
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.locale == nil {
-		return nil, reportError("locale is required and must be specified")
+		return localVarReturnValue, nil, reportError("locale is required and must be specified")
 	}
 	if r.tag == nil {
-		return nil, reportError("tag is required and must be specified")
+		return localVarReturnValue, nil, reportError("tag is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "locale", r.locale, "form", "")
@@ -473,7 +567,7 @@ func (a *BlogAPIService) BlogControllerListExecute(r ApiBlogControllerListReques
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -482,19 +576,19 @@ func (a *BlogAPIService) BlogControllerListExecute(r ApiBlogControllerListReques
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -502,10 +596,19 @@ func (a *BlogAPIService) BlogControllerListExecute(r ApiBlogControllerListReques
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiBlogControllerPageHtmlRequest struct {
@@ -514,12 +617,16 @@ type ApiBlogControllerPageHtmlRequest struct {
 	slug string
 }
 
-func (r ApiBlogControllerPageHtmlRequest) Execute() (*http.Response, error) {
+func (r ApiBlogControllerPageHtmlRequest) Execute() (string, *http.Response, error) {
 	return r.ApiService.BlogControllerPageHtmlExecute(r)
 }
 
 /*
-BlogControllerPageHtml Method for BlogControllerPageHtml
+BlogControllerPageHtml Render a public blog post page
+
+Public, server-rendered HTML for one English post, with its Markdown body rendered escape-first. Unknown slugs return a 404 HTML page.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param slug
@@ -534,16 +641,18 @@ func (a *BlogAPIService) BlogControllerPageHtml(ctx context.Context, slug string
 }
 
 // Execute executes the request
-func (a *BlogAPIService) BlogControllerPageHtmlExecute(r ApiBlogControllerPageHtmlRequest) (*http.Response, error) {
+//  @return string
+func (a *BlogAPIService) BlogControllerPageHtmlExecute(r ApiBlogControllerPageHtmlRequest) (string, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  string
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "BlogAPIService.BlogControllerPageHtml")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/blog/{slug}"
@@ -563,7 +672,7 @@ func (a *BlogAPIService) BlogControllerPageHtmlExecute(r ApiBlogControllerPageHt
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"text/html"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -572,19 +681,19 @@ func (a *BlogAPIService) BlogControllerPageHtmlExecute(r ApiBlogControllerPageHt
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -592,10 +701,19 @@ func (a *BlogAPIService) BlogControllerPageHtmlExecute(r ApiBlogControllerPageHt
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiBlogControllerRemoveRequest struct {
@@ -604,12 +722,16 @@ type ApiBlogControllerRemoveRequest struct {
 	id string
 }
 
-func (r ApiBlogControllerRemoveRequest) Execute() (*http.Response, error) {
+func (r ApiBlogControllerRemoveRequest) Execute() (*AdminControllerSetStatus201Response, *http.Response, error) {
 	return r.ApiService.BlogControllerRemoveExecute(r)
 }
 
 /*
-BlogControllerRemove Method for BlogControllerRemove
+BlogControllerRemove Delete a blog post
+
+Deletes the post and clears the public cache. Returns `{ ok: true }` even for an unknown id.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -624,16 +746,18 @@ func (a *BlogAPIService) BlogControllerRemove(ctx context.Context, id string) Ap
 }
 
 // Execute executes the request
-func (a *BlogAPIService) BlogControllerRemoveExecute(r ApiBlogControllerRemoveRequest) (*http.Response, error) {
+//  @return AdminControllerSetStatus201Response
+func (a *BlogAPIService) BlogControllerRemoveExecute(r ApiBlogControllerRemoveRequest) (*AdminControllerSetStatus201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdminControllerSetStatus201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "BlogAPIService.BlogControllerRemove")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/blog/{id}"
@@ -653,28 +777,42 @@ func (a *BlogAPIService) BlogControllerRemoveExecute(r ApiBlogControllerRemoveRe
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -682,10 +820,19 @@ func (a *BlogAPIService) BlogControllerRemoveExecute(r ApiBlogControllerRemoveRe
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiBlogControllerSitemapRequest struct {
@@ -693,12 +840,16 @@ type ApiBlogControllerSitemapRequest struct {
 	ApiService *BlogAPIService
 }
 
-func (r ApiBlogControllerSitemapRequest) Execute() (*http.Response, error) {
+func (r ApiBlogControllerSitemapRequest) Execute() (string, *http.Response, error) {
 	return r.ApiService.BlogControllerSitemapExecute(r)
 }
 
 /*
-BlogControllerSitemap Method for BlogControllerSitemap
+BlogControllerSitemap Get the blog sitemap
+
+Public XML sitemap listing /blog and every published English post page.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiBlogControllerSitemapRequest
@@ -711,16 +862,18 @@ func (a *BlogAPIService) BlogControllerSitemap(ctx context.Context) ApiBlogContr
 }
 
 // Execute executes the request
-func (a *BlogAPIService) BlogControllerSitemapExecute(r ApiBlogControllerSitemapRequest) (*http.Response, error) {
+//  @return string
+func (a *BlogAPIService) BlogControllerSitemapExecute(r ApiBlogControllerSitemapRequest) (string, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  string
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "BlogAPIService.BlogControllerSitemap")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/blog/sitemap.xml"
@@ -739,7 +892,7 @@ func (a *BlogAPIService) BlogControllerSitemapExecute(r ApiBlogControllerSitemap
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/xml"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -748,19 +901,19 @@ func (a *BlogAPIService) BlogControllerSitemapExecute(r ApiBlogControllerSitemap
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -768,10 +921,19 @@ func (a *BlogAPIService) BlogControllerSitemapExecute(r ApiBlogControllerSitemap
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiBlogControllerUpdateRequest struct {
@@ -786,12 +948,16 @@ func (r ApiBlogControllerUpdateRequest) UpdatePostDto(updatePostDto UpdatePostDt
 	return r
 }
 
-func (r ApiBlogControllerUpdateRequest) Execute() (*http.Response, error) {
+func (r ApiBlogControllerUpdateRequest) Execute() (*BlogPost, *http.Response, error) {
 	return r.ApiService.BlogControllerUpdateExecute(r)
 }
 
 /*
-BlogControllerUpdate Method for BlogControllerUpdate
+BlogControllerUpdate Update a blog post
+
+Partially updates any post field (slug, locale, title, tag, author, excerpt, body, cover_image, position, published, published_at) and clears the public cache. Returns the updated post, or null for an unknown id.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -806,16 +972,18 @@ func (a *BlogAPIService) BlogControllerUpdate(ctx context.Context, id string) Ap
 }
 
 // Execute executes the request
-func (a *BlogAPIService) BlogControllerUpdateExecute(r ApiBlogControllerUpdateRequest) (*http.Response, error) {
+//  @return BlogPost
+func (a *BlogAPIService) BlogControllerUpdateExecute(r ApiBlogControllerUpdateRequest) (*BlogPost, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPatch
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *BlogPost
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "BlogAPIService.BlogControllerUpdate")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/blog/{id}"
@@ -825,7 +993,7 @@ func (a *BlogAPIService) BlogControllerUpdateExecute(r ApiBlogControllerUpdateRe
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.updatePostDto == nil {
-		return nil, reportError("updatePostDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("updatePostDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -838,7 +1006,7 @@ func (a *BlogAPIService) BlogControllerUpdateExecute(r ApiBlogControllerUpdateRe
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -847,21 +1015,35 @@ func (a *BlogAPIService) BlogControllerUpdateExecute(r ApiBlogControllerUpdateRe
 	}
 	// body params
 	localVarPostBody = r.updatePostDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -869,8 +1051,17 @@ func (a *BlogAPIService) BlogControllerUpdateExecute(r ApiBlogControllerUpdateRe
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

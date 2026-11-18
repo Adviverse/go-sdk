@@ -34,12 +34,16 @@ func (r ApiRewardsControllerAdminPayoutsRequest) Limit(limit string) ApiRewardsC
 	return r
 }
 
-func (r ApiRewardsControllerAdminPayoutsRequest) Execute() (*http.Response, error) {
+func (r ApiRewardsControllerAdminPayoutsRequest) Execute() ([]RewardsControllerAdminPayouts200ResponseInner, *http.Response, error) {
 	return r.ApiService.RewardsControllerAdminPayoutsExecute(r)
 }
 
 /*
-RewardsControllerAdminPayouts Method for RewardsControllerAdminPayouts
+RewardsControllerAdminPayouts List recent reward payouts
+
+Admin view of the most recent reward payouts across all pools, including delivery attempts and last error. `?limit=` defaults to 200 (max 1000).
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiRewardsControllerAdminPayoutsRequest
@@ -52,16 +56,18 @@ func (a *RewardsAPIService) RewardsControllerAdminPayouts(ctx context.Context) A
 }
 
 // Execute executes the request
-func (a *RewardsAPIService) RewardsControllerAdminPayoutsExecute(r ApiRewardsControllerAdminPayoutsRequest) (*http.Response, error) {
+//  @return []RewardsControllerAdminPayouts200ResponseInner
+func (a *RewardsAPIService) RewardsControllerAdminPayoutsExecute(r ApiRewardsControllerAdminPayoutsRequest) ([]RewardsControllerAdminPayouts200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []RewardsControllerAdminPayouts200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RewardsAPIService.RewardsControllerAdminPayouts")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/rewards/payouts"
@@ -70,7 +76,7 @@ func (a *RewardsAPIService) RewardsControllerAdminPayoutsExecute(r ApiRewardsCon
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.limit == nil {
-		return nil, reportError("limit is required and must be specified")
+		return localVarReturnValue, nil, reportError("limit is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "limit", r.limit, "form", "")
@@ -84,28 +90,42 @@ func (a *RewardsAPIService) RewardsControllerAdminPayoutsExecute(r ApiRewardsCon
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -113,10 +133,19 @@ func (a *RewardsAPIService) RewardsControllerAdminPayoutsExecute(r ApiRewardsCon
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiRewardsControllerCreateOnchainPoolRequest struct {
@@ -130,12 +159,16 @@ func (r ApiRewardsControllerCreateOnchainPoolRequest) CreateOnchainPoolDto(creat
 	return r
 }
 
-func (r ApiRewardsControllerCreateOnchainPoolRequest) Execute() (*http.Response, error) {
+func (r ApiRewardsControllerCreateOnchainPoolRequest) Execute() (*RewPool, *http.Response, error) {
 	return r.ApiService.RewardsControllerCreateOnchainPoolExecute(r)
 }
 
 /*
-RewardsControllerCreateOnchainPool Method for RewardsControllerCreateOnchainPool
+RewardsControllerCreateOnchainPool Create an on-chain (advertiser-custodied) reward pool
+
+Creates or converts a campaign's pool to `onchain_creative` mode: no escrow and no ledger movement, because your own contract pays users on-chain. Adviverse verifies each completion and issues the creative a signed single-use eligibility voucher. `perCompletion`, `token` and optional `chain` are display/report values. The response includes `voucher_secret`, used to verify vouchers before disbursing (empty if the platform voucher key is not configured). 404 if the campaign is not yours.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiRewardsControllerCreateOnchainPoolRequest
@@ -148,16 +181,18 @@ func (a *RewardsAPIService) RewardsControllerCreateOnchainPool(ctx context.Conte
 }
 
 // Execute executes the request
-func (a *RewardsAPIService) RewardsControllerCreateOnchainPoolExecute(r ApiRewardsControllerCreateOnchainPoolRequest) (*http.Response, error) {
+//  @return RewPool
+func (a *RewardsAPIService) RewardsControllerCreateOnchainPoolExecute(r ApiRewardsControllerCreateOnchainPoolRequest) (*RewPool, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *RewPool
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RewardsAPIService.RewardsControllerCreateOnchainPool")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/rewards/pools/onchain"
@@ -166,7 +201,7 @@ func (a *RewardsAPIService) RewardsControllerCreateOnchainPoolExecute(r ApiRewar
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.createOnchainPoolDto == nil {
-		return nil, reportError("createOnchainPoolDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("createOnchainPoolDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -179,7 +214,7 @@ func (a *RewardsAPIService) RewardsControllerCreateOnchainPoolExecute(r ApiRewar
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -188,21 +223,35 @@ func (a *RewardsAPIService) RewardsControllerCreateOnchainPoolExecute(r ApiRewar
 	}
 	// body params
 	localVarPostBody = r.createOnchainPoolDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -210,10 +259,19 @@ func (a *RewardsAPIService) RewardsControllerCreateOnchainPoolExecute(r ApiRewar
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiRewardsControllerFundPoolRequest struct {
@@ -227,12 +285,16 @@ func (r ApiRewardsControllerFundPoolRequest) FundPoolDto(fundPoolDto FundPoolDto
 	return r
 }
 
-func (r ApiRewardsControllerFundPoolRequest) Execute() (*http.Response, error) {
+func (r ApiRewardsControllerFundPoolRequest) Execute() (*RewPool, *http.Response, error) {
 	return r.ApiService.RewardsControllerFundPoolExecute(r)
 }
 
 /*
-RewardsControllerFundPool Method for RewardsControllerFundPool
+RewardsControllerFundPool Fund or top up a campaign reward pool
+
+Creates the reward pool for one of your campaigns, or adds to it, and escrows `amount` from your available balance in the same transaction (a `reward_fund` ledger entry). `perCompletion` is the fixed reward per verified completion; `token` defaults to your account currency; `perUserDailyCap`/`perWalletDailyCap` default to 5. 404 if the campaign is not yours; fails with insufficient funds if your balance cannot cover `amount`.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiRewardsControllerFundPoolRequest
@@ -245,16 +307,18 @@ func (a *RewardsAPIService) RewardsControllerFundPool(ctx context.Context) ApiRe
 }
 
 // Execute executes the request
-func (a *RewardsAPIService) RewardsControllerFundPoolExecute(r ApiRewardsControllerFundPoolRequest) (*http.Response, error) {
+//  @return RewPool
+func (a *RewardsAPIService) RewardsControllerFundPoolExecute(r ApiRewardsControllerFundPoolRequest) (*RewPool, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *RewPool
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RewardsAPIService.RewardsControllerFundPool")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/rewards/pools"
@@ -263,7 +327,7 @@ func (a *RewardsAPIService) RewardsControllerFundPoolExecute(r ApiRewardsControl
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.fundPoolDto == nil {
-		return nil, reportError("fundPoolDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("fundPoolDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -276,7 +340,7 @@ func (a *RewardsAPIService) RewardsControllerFundPoolExecute(r ApiRewardsControl
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -285,21 +349,35 @@ func (a *RewardsAPIService) RewardsControllerFundPoolExecute(r ApiRewardsControl
 	}
 	// body params
 	localVarPostBody = r.fundPoolDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -307,10 +385,19 @@ func (a *RewardsAPIService) RewardsControllerFundPoolExecute(r ApiRewardsControl
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiRewardsControllerGetPoolRequest struct {
@@ -319,12 +406,16 @@ type ApiRewardsControllerGetPoolRequest struct {
 	campaignId string
 }
 
-func (r ApiRewardsControllerGetPoolRequest) Execute() (*http.Response, error) {
+func (r ApiRewardsControllerGetPoolRequest) Execute() (*RewPool, *http.Response, error) {
 	return r.ApiService.RewardsControllerGetPoolExecute(r)
 }
 
 /*
-RewardsControllerGetPool Method for RewardsControllerGetPool
+RewardsControllerGetPool Get a campaign reward pool
+
+Returns the reward pool for `campaignId`; on-chain pools also include `voucher_secret`. 404 if you have no pool for that campaign.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param campaignId
@@ -339,16 +430,18 @@ func (a *RewardsAPIService) RewardsControllerGetPool(ctx context.Context, campai
 }
 
 // Execute executes the request
-func (a *RewardsAPIService) RewardsControllerGetPoolExecute(r ApiRewardsControllerGetPoolRequest) (*http.Response, error) {
+//  @return RewPool
+func (a *RewardsAPIService) RewardsControllerGetPoolExecute(r ApiRewardsControllerGetPoolRequest) (*RewPool, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *RewPool
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RewardsAPIService.RewardsControllerGetPool")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/rewards/pools/{campaignId}"
@@ -368,28 +461,42 @@ func (a *RewardsAPIService) RewardsControllerGetPoolExecute(r ApiRewardsControll
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -397,10 +504,19 @@ func (a *RewardsAPIService) RewardsControllerGetPoolExecute(r ApiRewardsControll
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiRewardsControllerListPoolsRequest struct {
@@ -408,12 +524,16 @@ type ApiRewardsControllerListPoolsRequest struct {
 	ApiService *RewardsAPIService
 }
 
-func (r ApiRewardsControllerListPoolsRequest) Execute() (*http.Response, error) {
+func (r ApiRewardsControllerListPoolsRequest) Execute() ([]RewPool, *http.Response, error) {
 	return r.ApiService.RewardsControllerListPoolsExecute(r)
 }
 
 /*
-RewardsControllerListPools Method for RewardsControllerListPools
+RewardsControllerListPools List your reward pools
+
+Returns all of your campaign reward pools, newest first. Voucher secrets are not included here.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiRewardsControllerListPoolsRequest
@@ -426,16 +546,18 @@ func (a *RewardsAPIService) RewardsControllerListPools(ctx context.Context) ApiR
 }
 
 // Execute executes the request
-func (a *RewardsAPIService) RewardsControllerListPoolsExecute(r ApiRewardsControllerListPoolsRequest) (*http.Response, error) {
+//  @return []RewPool
+func (a *RewardsAPIService) RewardsControllerListPoolsExecute(r ApiRewardsControllerListPoolsRequest) ([]RewPool, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []RewPool
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RewardsAPIService.RewardsControllerListPools")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/rewards/pools"
@@ -454,28 +576,42 @@ func (a *RewardsAPIService) RewardsControllerListPoolsExecute(r ApiRewardsContro
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -483,10 +619,19 @@ func (a *RewardsAPIService) RewardsControllerListPoolsExecute(r ApiRewardsContro
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiRewardsControllerReportRequest struct {
@@ -506,12 +651,16 @@ func (r ApiRewardsControllerReportRequest) To(to string) ApiRewardsControllerRep
 	return r
 }
 
-func (r ApiRewardsControllerReportRequest) Execute() (*http.Response, error) {
+func (r ApiRewardsControllerReportRequest) Execute() (*RewardsControllerReport200Response, *http.Response, error) {
 	return r.ApiService.RewardsControllerReportExecute(r)
 }
 
 /*
-RewardsControllerReport Method for RewardsControllerReport
+RewardsControllerReport Get your reward payout report
+
+Reports reward payouts on your pools between `from` and `to` (default last 30 days): totals by status (sent, pending, failed, on-chain, on-chain with a tx hash), amount paid and distinct recipient wallets, a per-campaign breakdown, current pool balances, and up to 2000 payout rows.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiRewardsControllerReportRequest
@@ -524,16 +673,18 @@ func (a *RewardsAPIService) RewardsControllerReport(ctx context.Context) ApiRewa
 }
 
 // Execute executes the request
-func (a *RewardsAPIService) RewardsControllerReportExecute(r ApiRewardsControllerReportRequest) (*http.Response, error) {
+//  @return RewardsControllerReport200Response
+func (a *RewardsAPIService) RewardsControllerReportExecute(r ApiRewardsControllerReportRequest) (*RewardsControllerReport200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *RewardsControllerReport200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RewardsAPIService.RewardsControllerReport")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/rewards/report"
@@ -542,10 +693,10 @@ func (a *RewardsAPIService) RewardsControllerReportExecute(r ApiRewardsControlle
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.from == nil {
-		return nil, reportError("from is required and must be specified")
+		return localVarReturnValue, nil, reportError("from is required and must be specified")
 	}
 	if r.to == nil {
-		return nil, reportError("to is required and must be specified")
+		return localVarReturnValue, nil, reportError("to is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "from", r.from, "form", "")
@@ -560,28 +711,42 @@ func (a *RewardsAPIService) RewardsControllerReportExecute(r ApiRewardsControlle
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -589,10 +754,19 @@ func (a *RewardsAPIService) RewardsControllerReportExecute(r ApiRewardsControlle
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiRewardsControllerSetPoolStatusRequest struct {
@@ -607,12 +781,16 @@ func (r ApiRewardsControllerSetPoolStatusRequest) SetPoolStatusDto(setPoolStatus
 	return r
 }
 
-func (r ApiRewardsControllerSetPoolStatusRequest) Execute() (*http.Response, error) {
+func (r ApiRewardsControllerSetPoolStatusRequest) Execute() (*RewardsControllerSetPoolStatus201Response, *http.Response, error) {
 	return r.ApiService.RewardsControllerSetPoolStatusExecute(r)
 }
 
 /*
-RewardsControllerSetPoolStatus Method for RewardsControllerSetPoolStatus
+RewardsControllerSetPoolStatus Pause or resume a reward pool
+
+Sets the pool `status` to `paused` (stops accruing completions) or `active`. 404 if you have no pool for that campaign.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param campaignId
@@ -627,16 +805,18 @@ func (a *RewardsAPIService) RewardsControllerSetPoolStatus(ctx context.Context, 
 }
 
 // Execute executes the request
-func (a *RewardsAPIService) RewardsControllerSetPoolStatusExecute(r ApiRewardsControllerSetPoolStatusRequest) (*http.Response, error) {
+//  @return RewardsControllerSetPoolStatus201Response
+func (a *RewardsAPIService) RewardsControllerSetPoolStatusExecute(r ApiRewardsControllerSetPoolStatusRequest) (*RewardsControllerSetPoolStatus201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *RewardsControllerSetPoolStatus201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RewardsAPIService.RewardsControllerSetPoolStatus")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/rewards/pools/{campaignId}/status"
@@ -646,7 +826,7 @@ func (a *RewardsAPIService) RewardsControllerSetPoolStatusExecute(r ApiRewardsCo
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.setPoolStatusDto == nil {
-		return nil, reportError("setPoolStatusDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("setPoolStatusDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -659,7 +839,7 @@ func (a *RewardsAPIService) RewardsControllerSetPoolStatusExecute(r ApiRewardsCo
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -668,21 +848,35 @@ func (a *RewardsAPIService) RewardsControllerSetPoolStatusExecute(r ApiRewardsCo
 	}
 	// body params
 	localVarPostBody = r.setPoolStatusDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -690,10 +884,19 @@ func (a *RewardsAPIService) RewardsControllerSetPoolStatusExecute(r ApiRewardsCo
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiRewardsControllerSetWorldWebhookRequest struct {
@@ -707,12 +910,16 @@ func (r ApiRewardsControllerSetWorldWebhookRequest) SetWorldWebhookDto(setWorldW
 	return r
 }
 
-func (r ApiRewardsControllerSetWorldWebhookRequest) Execute() (*http.Response, error) {
+func (r ApiRewardsControllerSetWorldWebhookRequest) Execute() (*RewardsControllerSetWorldWebhook201Response, *http.Response, error) {
 	return r.ApiService.RewardsControllerSetWorldWebhookExecute(r)
 }
 
 /*
-RewardsControllerSetWorldWebhook Method for RewardsControllerSetWorldWebhook
+RewardsControllerSetWorldWebhook Set a world's reward-payout webhook
+
+Points one of your world integrations at `url`. Pending reward payouts for that operator are POSTed there as signed `reward.payout` webhooks (HMAC with the world's signing secret) so the operator can pay the user; delivery is retried up to 8 times. 404 if the world is not yours.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiRewardsControllerSetWorldWebhookRequest
@@ -725,16 +932,18 @@ func (a *RewardsAPIService) RewardsControllerSetWorldWebhook(ctx context.Context
 }
 
 // Execute executes the request
-func (a *RewardsAPIService) RewardsControllerSetWorldWebhookExecute(r ApiRewardsControllerSetWorldWebhookRequest) (*http.Response, error) {
+//  @return RewardsControllerSetWorldWebhook201Response
+func (a *RewardsAPIService) RewardsControllerSetWorldWebhookExecute(r ApiRewardsControllerSetWorldWebhookRequest) (*RewardsControllerSetWorldWebhook201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *RewardsControllerSetWorldWebhook201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RewardsAPIService.RewardsControllerSetWorldWebhook")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/rewards/world-webhook"
@@ -743,7 +952,7 @@ func (a *RewardsAPIService) RewardsControllerSetWorldWebhookExecute(r ApiRewards
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.setWorldWebhookDto == nil {
-		return nil, reportError("setWorldWebhookDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("setWorldWebhookDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -756,7 +965,7 @@ func (a *RewardsAPIService) RewardsControllerSetWorldWebhookExecute(r ApiRewards
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -765,21 +974,35 @@ func (a *RewardsAPIService) RewardsControllerSetWorldWebhookExecute(r ApiRewards
 	}
 	// body params
 	localVarPostBody = r.setWorldWebhookDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -787,10 +1010,19 @@ func (a *RewardsAPIService) RewardsControllerSetWorldWebhookExecute(r ApiRewards
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiRewardsControllerVoucherSecretRequest struct {
@@ -799,12 +1031,16 @@ type ApiRewardsControllerVoucherSecretRequest struct {
 	campaignId string
 }
 
-func (r ApiRewardsControllerVoucherSecretRequest) Execute() (*http.Response, error) {
+func (r ApiRewardsControllerVoucherSecretRequest) Execute() (*RewardsControllerVoucherSecret200Response, *http.Response, error) {
 	return r.ApiService.RewardsControllerVoucherSecretExecute(r)
 }
 
 /*
-RewardsControllerVoucherSecret Method for RewardsControllerVoucherSecret
+RewardsControllerVoucherSecret Get the voucher secret for an on-chain pool
+
+Returns the HMAC voucher secret for the campaign's on-chain reward pool. 404 if you have no pool for the campaign, 400 if the pool is not in on-chain mode.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param campaignId
@@ -819,16 +1055,18 @@ func (a *RewardsAPIService) RewardsControllerVoucherSecret(ctx context.Context, 
 }
 
 // Execute executes the request
-func (a *RewardsAPIService) RewardsControllerVoucherSecretExecute(r ApiRewardsControllerVoucherSecretRequest) (*http.Response, error) {
+//  @return RewardsControllerVoucherSecret200Response
+func (a *RewardsAPIService) RewardsControllerVoucherSecretExecute(r ApiRewardsControllerVoucherSecretRequest) (*RewardsControllerVoucherSecret200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *RewardsControllerVoucherSecret200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RewardsAPIService.RewardsControllerVoucherSecret")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/rewards/pools/{campaignId}/voucher-secret"
@@ -848,28 +1086,42 @@ func (a *RewardsAPIService) RewardsControllerVoucherSecretExecute(r ApiRewardsCo
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -877,8 +1129,17 @@ func (a *RewardsAPIService) RewardsControllerVoucherSecretExecute(r ApiRewardsCo
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

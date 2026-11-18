@@ -35,12 +35,16 @@ func (r ApiWebhooksControllerDeliveriesRequest) Limit(limit float32) ApiWebhooks
 	return r
 }
 
-func (r ApiWebhooksControllerDeliveriesRequest) Execute() (*http.Response, error) {
+func (r ApiWebhooksControllerDeliveriesRequest) Execute() ([]WebhookDelivery, *http.Response, error) {
 	return r.ApiService.WebhooksControllerDeliveriesExecute(r)
 }
 
 /*
-WebhooksControllerDeliveries Method for WebhooksControllerDeliveries
+WebhooksControllerDeliveries List recent deliveries
+
+Lists delivery attempts for one endpoint, newest first. `limit` defaults to 50 (max 200). Returns 400 if the endpoint is not found.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -55,16 +59,18 @@ func (a *WebhooksAPIService) WebhooksControllerDeliveries(ctx context.Context, i
 }
 
 // Execute executes the request
-func (a *WebhooksAPIService) WebhooksControllerDeliveriesExecute(r ApiWebhooksControllerDeliveriesRequest) (*http.Response, error) {
+//  @return []WebhookDelivery
+func (a *WebhooksAPIService) WebhooksControllerDeliveriesExecute(r ApiWebhooksControllerDeliveriesRequest) ([]WebhookDelivery, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []WebhookDelivery
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "WebhooksAPIService.WebhooksControllerDeliveries")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/webhooks/{id}/deliveries"
@@ -87,28 +93,42 @@ func (a *WebhooksAPIService) WebhooksControllerDeliveriesExecute(r ApiWebhooksCo
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -116,10 +136,19 @@ func (a *WebhooksAPIService) WebhooksControllerDeliveriesExecute(r ApiWebhooksCo
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiWebhooksControllerEventsRequest struct {
@@ -127,12 +156,16 @@ type ApiWebhooksControllerEventsRequest struct {
 	ApiService *WebhooksAPIService
 }
 
-func (r ApiWebhooksControllerEventsRequest) Execute() (*http.Response, error) {
+func (r ApiWebhooksControllerEventsRequest) Execute() (*WebhooksControllerEvents200Response, *http.Response, error) {
 	return r.ApiService.WebhooksControllerEventsExecute(r)
 }
 
 /*
-WebhooksControllerEvents Method for WebhooksControllerEvents
+WebhooksControllerEvents List webhook event types
+
+Returns the event type names a webhook endpoint can subscribe to.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiWebhooksControllerEventsRequest
@@ -145,16 +178,18 @@ func (a *WebhooksAPIService) WebhooksControllerEvents(ctx context.Context) ApiWe
 }
 
 // Execute executes the request
-func (a *WebhooksAPIService) WebhooksControllerEventsExecute(r ApiWebhooksControllerEventsRequest) (*http.Response, error) {
+//  @return WebhooksControllerEvents200Response
+func (a *WebhooksAPIService) WebhooksControllerEventsExecute(r ApiWebhooksControllerEventsRequest) (*WebhooksControllerEvents200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *WebhooksControllerEvents200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "WebhooksAPIService.WebhooksControllerEvents")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/webhooks/events"
@@ -173,28 +208,42 @@ func (a *WebhooksAPIService) WebhooksControllerEventsExecute(r ApiWebhooksContro
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -202,10 +251,19 @@ func (a *WebhooksAPIService) WebhooksControllerEventsExecute(r ApiWebhooksContro
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiWebhooksControllerListRequest struct {
@@ -213,12 +271,16 @@ type ApiWebhooksControllerListRequest struct {
 	ApiService *WebhooksAPIService
 }
 
-func (r ApiWebhooksControllerListRequest) Execute() (*http.Response, error) {
+func (r ApiWebhooksControllerListRequest) Execute() ([]WebhookEndpoint, *http.Response, error) {
 	return r.ApiService.WebhooksControllerListExecute(r)
 }
 
 /*
-WebhooksControllerList Method for WebhooksControllerList
+WebhooksControllerList List webhook endpoints
+
+Lists the account's webhook subscriptions, newest first. Includes each endpoint's HMAC signing `secret` so the dashboard can show it for verifying the `X-Adviverse-Signature` header.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiWebhooksControllerListRequest
@@ -231,16 +293,18 @@ func (a *WebhooksAPIService) WebhooksControllerList(ctx context.Context) ApiWebh
 }
 
 // Execute executes the request
-func (a *WebhooksAPIService) WebhooksControllerListExecute(r ApiWebhooksControllerListRequest) (*http.Response, error) {
+//  @return []WebhookEndpoint
+func (a *WebhooksAPIService) WebhooksControllerListExecute(r ApiWebhooksControllerListRequest) ([]WebhookEndpoint, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []WebhookEndpoint
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "WebhooksAPIService.WebhooksControllerList")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/webhooks"
@@ -259,28 +323,42 @@ func (a *WebhooksAPIService) WebhooksControllerListExecute(r ApiWebhooksControll
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -288,10 +366,19 @@ func (a *WebhooksAPIService) WebhooksControllerListExecute(r ApiWebhooksControll
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiWebhooksControllerPingRequest struct {
@@ -300,12 +387,16 @@ type ApiWebhooksControllerPingRequest struct {
 	id string
 }
 
-func (r ApiWebhooksControllerPingRequest) Execute() (*http.Response, error) {
+func (r ApiWebhooksControllerPingRequest) Execute() (*WebhookDeliveryResult, *http.Response, error) {
 	return r.ApiService.WebhooksControllerPingExecute(r)
 }
 
 /*
-WebhooksControllerPing Method for WebhooksControllerPing
+WebhooksControllerPing Send a test ping
+
+Synchronously delivers a signed `ping` event to the endpoint and reports the result. The attempt is logged as a delivery and retried later if it failed. Returns 400 if the endpoint is not found.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -320,16 +411,18 @@ func (a *WebhooksAPIService) WebhooksControllerPing(ctx context.Context, id stri
 }
 
 // Execute executes the request
-func (a *WebhooksAPIService) WebhooksControllerPingExecute(r ApiWebhooksControllerPingRequest) (*http.Response, error) {
+//  @return WebhookDeliveryResult
+func (a *WebhooksAPIService) WebhooksControllerPingExecute(r ApiWebhooksControllerPingRequest) (*WebhookDeliveryResult, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *WebhookDeliveryResult
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "WebhooksAPIService.WebhooksControllerPing")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/webhooks/{id}/ping"
@@ -349,28 +442,42 @@ func (a *WebhooksAPIService) WebhooksControllerPingExecute(r ApiWebhooksControll
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -378,10 +485,19 @@ func (a *WebhooksAPIService) WebhooksControllerPingExecute(r ApiWebhooksControll
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiWebhooksControllerRedeliverRequest struct {
@@ -390,12 +506,16 @@ type ApiWebhooksControllerRedeliverRequest struct {
 	deliveryId string
 }
 
-func (r ApiWebhooksControllerRedeliverRequest) Execute() (*http.Response, error) {
+func (r ApiWebhooksControllerRedeliverRequest) Execute() (*WebhookDeliveryResult, *http.Response, error) {
 	return r.ApiService.WebhooksControllerRedeliverExecute(r)
 }
 
 /*
-WebhooksControllerRedeliver Method for WebhooksControllerRedeliver
+WebhooksControllerRedeliver Redeliver a past webhook
+
+Re-sends the exact stored payload of a past delivery as a new attempt, with a signature computed from the endpoint's current secret. Returns 400 if the delivery does not belong to this account.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param deliveryId
@@ -410,16 +530,18 @@ func (a *WebhooksAPIService) WebhooksControllerRedeliver(ctx context.Context, de
 }
 
 // Execute executes the request
-func (a *WebhooksAPIService) WebhooksControllerRedeliverExecute(r ApiWebhooksControllerRedeliverRequest) (*http.Response, error) {
+//  @return WebhookDeliveryResult
+func (a *WebhooksAPIService) WebhooksControllerRedeliverExecute(r ApiWebhooksControllerRedeliverRequest) (*WebhookDeliveryResult, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *WebhookDeliveryResult
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "WebhooksAPIService.WebhooksControllerRedeliver")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/webhooks/deliveries/{deliveryId}/redeliver"
@@ -439,28 +561,42 @@ func (a *WebhooksAPIService) WebhooksControllerRedeliverExecute(r ApiWebhooksCon
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -468,10 +604,19 @@ func (a *WebhooksAPIService) WebhooksControllerRedeliverExecute(r ApiWebhooksCon
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiWebhooksControllerRotateSecretRequest struct {
@@ -480,12 +625,16 @@ type ApiWebhooksControllerRotateSecretRequest struct {
 	id string
 }
 
-func (r ApiWebhooksControllerRotateSecretRequest) Execute() (*http.Response, error) {
+func (r ApiWebhooksControllerRotateSecretRequest) Execute() (*WebhookEndpoint, *http.Response, error) {
 	return r.ApiService.WebhooksControllerRotateSecretExecute(r)
 }
 
 /*
-WebhooksControllerRotateSecret Method for WebhooksControllerRotateSecret
+WebhooksControllerRotateSecret Rotate a webhook signing secret
+
+Generates a new `whsec_` signing secret. The old secret stops verifying immediately, so update the receiver right away. Returns 400 if the endpoint is not found.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -500,16 +649,18 @@ func (a *WebhooksAPIService) WebhooksControllerRotateSecret(ctx context.Context,
 }
 
 // Execute executes the request
-func (a *WebhooksAPIService) WebhooksControllerRotateSecretExecute(r ApiWebhooksControllerRotateSecretRequest) (*http.Response, error) {
+//  @return WebhookEndpoint
+func (a *WebhooksAPIService) WebhooksControllerRotateSecretExecute(r ApiWebhooksControllerRotateSecretRequest) (*WebhookEndpoint, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *WebhookEndpoint
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "WebhooksAPIService.WebhooksControllerRotateSecret")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/webhooks/{id}/rotate-secret"
@@ -529,28 +680,42 @@ func (a *WebhooksAPIService) WebhooksControllerRotateSecretExecute(r ApiWebhooks
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -558,10 +723,19 @@ func (a *WebhooksAPIService) WebhooksControllerRotateSecretExecute(r ApiWebhooks
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiWebhooksControllerSubscribeRequest struct {
@@ -575,12 +749,16 @@ func (r ApiWebhooksControllerSubscribeRequest) SubscribeWebhookDto(subscribeWebh
 	return r
 }
 
-func (r ApiWebhooksControllerSubscribeRequest) Execute() (*http.Response, error) {
+func (r ApiWebhooksControllerSubscribeRequest) Execute() (*WebhookEndpoint, *http.Response, error) {
 	return r.ApiService.WebhooksControllerSubscribeExecute(r)
 }
 
 /*
-WebhooksControllerSubscribe Method for WebhooksControllerSubscribe
+WebhooksControllerSubscribe Create a webhook endpoint
+
+Registers `url` to receive the listed `events` (non-empty array). The URL is checked by the SSRF guard (localhost, private and metadata addresses are rejected with 400). A `whsec_` signing secret is generated and returned. Deliveries are JSON `{ event, data, ts }` POSTs signed with HMAC-SHA256 of the body in `X-Adviverse-Signature`; failures are retried with backoff.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiWebhooksControllerSubscribeRequest
@@ -593,16 +771,18 @@ func (a *WebhooksAPIService) WebhooksControllerSubscribe(ctx context.Context) Ap
 }
 
 // Execute executes the request
-func (a *WebhooksAPIService) WebhooksControllerSubscribeExecute(r ApiWebhooksControllerSubscribeRequest) (*http.Response, error) {
+//  @return WebhookEndpoint
+func (a *WebhooksAPIService) WebhooksControllerSubscribeExecute(r ApiWebhooksControllerSubscribeRequest) (*WebhookEndpoint, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *WebhookEndpoint
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "WebhooksAPIService.WebhooksControllerSubscribe")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/webhooks"
@@ -611,7 +791,7 @@ func (a *WebhooksAPIService) WebhooksControllerSubscribeExecute(r ApiWebhooksCon
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.subscribeWebhookDto == nil {
-		return nil, reportError("subscribeWebhookDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("subscribeWebhookDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -624,7 +804,7 @@ func (a *WebhooksAPIService) WebhooksControllerSubscribeExecute(r ApiWebhooksCon
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -633,21 +813,35 @@ func (a *WebhooksAPIService) WebhooksControllerSubscribeExecute(r ApiWebhooksCon
 	}
 	// body params
 	localVarPostBody = r.subscribeWebhookDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -655,10 +849,19 @@ func (a *WebhooksAPIService) WebhooksControllerSubscribeExecute(r ApiWebhooksCon
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiWebhooksControllerUnsubscribeRequest struct {
@@ -667,12 +870,16 @@ type ApiWebhooksControllerUnsubscribeRequest struct {
 	id string
 }
 
-func (r ApiWebhooksControllerUnsubscribeRequest) Execute() (*http.Response, error) {
+func (r ApiWebhooksControllerUnsubscribeRequest) Execute() (*WebhooksControllerUnsubscribe200Response, *http.Response, error) {
 	return r.ApiService.WebhooksControllerUnsubscribeExecute(r)
 }
 
 /*
-WebhooksControllerUnsubscribe Method for WebhooksControllerUnsubscribe
+WebhooksControllerUnsubscribe Delete a webhook endpoint
+
+Deletes the subscription. Unknown or foreign ids are a silent no-op.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -687,16 +894,18 @@ func (a *WebhooksAPIService) WebhooksControllerUnsubscribe(ctx context.Context, 
 }
 
 // Execute executes the request
-func (a *WebhooksAPIService) WebhooksControllerUnsubscribeExecute(r ApiWebhooksControllerUnsubscribeRequest) (*http.Response, error) {
+//  @return WebhooksControllerUnsubscribe200Response
+func (a *WebhooksAPIService) WebhooksControllerUnsubscribeExecute(r ApiWebhooksControllerUnsubscribeRequest) (*WebhooksControllerUnsubscribe200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *WebhooksControllerUnsubscribe200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "WebhooksAPIService.WebhooksControllerUnsubscribe")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/webhooks/{id}"
@@ -716,28 +925,42 @@ func (a *WebhooksAPIService) WebhooksControllerUnsubscribeExecute(r ApiWebhooksC
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -745,10 +968,19 @@ func (a *WebhooksAPIService) WebhooksControllerUnsubscribeExecute(r ApiWebhooksC
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiWebhooksControllerUpdateRequest struct {
@@ -763,12 +995,16 @@ func (r ApiWebhooksControllerUpdateRequest) UpdateWebhookDto(updateWebhookDto Up
 	return r
 }
 
-func (r ApiWebhooksControllerUpdateRequest) Execute() (*http.Response, error) {
+func (r ApiWebhooksControllerUpdateRequest) Execute() (*WebhookEndpoint, *http.Response, error) {
 	return r.ApiService.WebhooksControllerUpdateExecute(r)
 }
 
 /*
-WebhooksControllerUpdate Method for WebhooksControllerUpdate
+WebhooksControllerUpdate Update a webhook endpoint
+
+Changes an endpoint's `url`, `events` and/or `active` flag (set false to pause deliveries); omitted fields are kept. A new URL goes through the SSRF guard and unknown event names are rejected with 400. Returns 400 if the endpoint is not found for this account.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -783,16 +1019,18 @@ func (a *WebhooksAPIService) WebhooksControllerUpdate(ctx context.Context, id st
 }
 
 // Execute executes the request
-func (a *WebhooksAPIService) WebhooksControllerUpdateExecute(r ApiWebhooksControllerUpdateRequest) (*http.Response, error) {
+//  @return WebhookEndpoint
+func (a *WebhooksAPIService) WebhooksControllerUpdateExecute(r ApiWebhooksControllerUpdateRequest) (*WebhookEndpoint, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPatch
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *WebhookEndpoint
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "WebhooksAPIService.WebhooksControllerUpdate")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/webhooks/{id}"
@@ -802,7 +1040,7 @@ func (a *WebhooksAPIService) WebhooksControllerUpdateExecute(r ApiWebhooksContro
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.updateWebhookDto == nil {
-		return nil, reportError("updateWebhookDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("updateWebhookDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -815,7 +1053,7 @@ func (a *WebhooksAPIService) WebhooksControllerUpdateExecute(r ApiWebhooksContro
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -824,21 +1062,35 @@ func (a *WebhooksAPIService) WebhooksControllerUpdateExecute(r ApiWebhooksContro
 	}
 	// body params
 	localVarPostBody = r.updateWebhookDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -846,8 +1098,17 @@ func (a *WebhooksAPIService) WebhooksControllerUpdateExecute(r ApiWebhooksContro
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

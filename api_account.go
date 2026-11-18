@@ -45,12 +45,16 @@ func (r ApiAccountControllerDiditWebhookRequest) XSignature(xSignature string) A
 	return r
 }
 
-func (r ApiAccountControllerDiditWebhookRequest) Execute() (*http.Response, error) {
+func (r ApiAccountControllerDiditWebhookRequest) Execute() (*AccountControllerDiditWebhook201Response, *http.Response, error) {
 	return r.ApiService.AccountControllerDiditWebhookExecute(r)
 }
 
 /*
-AccountControllerDiditWebhook Method for AccountControllerDiditWebhook
+AccountControllerDiditWebhook Receive Didit verification webhooks
+
+Public callback for Didit, authenticated by HMAC signature (`x-signature-simple`, `x-signature-v2` or `x-signature` over the raw body) plus a `created_at` within 5 minutes. Updates the KYC session and maps the decision onto the account's KYC status, never downgrading a verified account. Returns 401 on a bad or stale signature, otherwise 200 so Didit does not retry.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAccountControllerDiditWebhookRequest
@@ -63,16 +67,18 @@ func (a *AccountAPIService) AccountControllerDiditWebhook(ctx context.Context) A
 }
 
 // Execute executes the request
-func (a *AccountAPIService) AccountControllerDiditWebhookExecute(r ApiAccountControllerDiditWebhookRequest) (*http.Response, error) {
+//  @return AccountControllerDiditWebhook201Response
+func (a *AccountAPIService) AccountControllerDiditWebhookExecute(r ApiAccountControllerDiditWebhookRequest) (*AccountControllerDiditWebhook201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AccountControllerDiditWebhook201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AccountAPIService.AccountControllerDiditWebhook")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/account/kyc/didit/webhook"
@@ -81,13 +87,13 @@ func (a *AccountAPIService) AccountControllerDiditWebhookExecute(r ApiAccountCon
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.xSignatureSimple == nil {
-		return nil, reportError("xSignatureSimple is required and must be specified")
+		return localVarReturnValue, nil, reportError("xSignatureSimple is required and must be specified")
 	}
 	if r.xSignatureV2 == nil {
-		return nil, reportError("xSignatureV2 is required and must be specified")
+		return localVarReturnValue, nil, reportError("xSignatureV2 is required and must be specified")
 	}
 	if r.xSignature == nil {
-		return nil, reportError("xSignature is required and must be specified")
+		return localVarReturnValue, nil, reportError("xSignature is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -100,7 +106,7 @@ func (a *AccountAPIService) AccountControllerDiditWebhookExecute(r ApiAccountCon
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -112,19 +118,19 @@ func (a *AccountAPIService) AccountControllerDiditWebhookExecute(r ApiAccountCon
 	parameterAddToHeaderOrQuery(localVarHeaderParams, "x-signature", r.xSignature, "simple", "")
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -132,10 +138,19 @@ func (a *AccountAPIService) AccountControllerDiditWebhookExecute(r ApiAccountCon
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAccountControllerKycStatusRequest struct {
@@ -143,12 +158,16 @@ type ApiAccountControllerKycStatusRequest struct {
 	ApiService *AccountAPIService
 }
 
-func (r ApiAccountControllerKycStatusRequest) Execute() (*http.Response, error) {
+func (r ApiAccountControllerKycStatusRequest) Execute() (*AccountControllerKycStatus200Response, *http.Response, error) {
 	return r.ApiService.AccountControllerKycStatusExecute(r)
 }
 
 /*
-AccountControllerKycStatus Method for AccountControllerKycStatus
+AccountControllerKycStatus Get KYC verification status
+
+Returns the account's identity verification status (`none`, `submitted`, `verified` or `rejected`) and `instantProvider`, which is `didit` when hosted verification is configured and null otherwise. There is no manual document upload path.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAccountControllerKycStatusRequest
@@ -161,16 +180,18 @@ func (a *AccountAPIService) AccountControllerKycStatus(ctx context.Context) ApiA
 }
 
 // Execute executes the request
-func (a *AccountAPIService) AccountControllerKycStatusExecute(r ApiAccountControllerKycStatusRequest) (*http.Response, error) {
+//  @return AccountControllerKycStatus200Response
+func (a *AccountAPIService) AccountControllerKycStatusExecute(r ApiAccountControllerKycStatusRequest) (*AccountControllerKycStatus200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AccountControllerKycStatus200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AccountAPIService.AccountControllerKycStatus")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/account/kyc"
@@ -189,28 +210,42 @@ func (a *AccountAPIService) AccountControllerKycStatusExecute(r ApiAccountContro
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -218,10 +253,19 @@ func (a *AccountAPIService) AccountControllerKycStatusExecute(r ApiAccountContro
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAccountControllerStartDiditRequest struct {
@@ -229,12 +273,16 @@ type ApiAccountControllerStartDiditRequest struct {
 	ApiService *AccountAPIService
 }
 
-func (r ApiAccountControllerStartDiditRequest) Execute() (*http.Response, error) {
+func (r ApiAccountControllerStartDiditRequest) Execute() (*AccountControllerStartDidit201Response, *http.Response, error) {
 	return r.ApiService.AccountControllerStartDiditExecute(r)
 }
 
 /*
-AccountControllerStartDidit Method for AccountControllerStartDidit
+AccountControllerStartDidit Start a hosted KYC session
+
+Creates a Didit verification session and returns the URL to send the user to. Documents are captured and reviewed by Didit; Adviverse never receives them. Records the session and sets the account to `submitted` unless already verified. Returns 400 if the provider is not configured or the session could not be created.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser, publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAccountControllerStartDiditRequest
@@ -247,16 +295,18 @@ func (a *AccountAPIService) AccountControllerStartDidit(ctx context.Context) Api
 }
 
 // Execute executes the request
-func (a *AccountAPIService) AccountControllerStartDiditExecute(r ApiAccountControllerStartDiditRequest) (*http.Response, error) {
+//  @return AccountControllerStartDidit201Response
+func (a *AccountAPIService) AccountControllerStartDiditExecute(r ApiAccountControllerStartDiditRequest) (*AccountControllerStartDidit201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AccountControllerStartDidit201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AccountAPIService.AccountControllerStartDidit")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/account/kyc/didit/start"
@@ -275,28 +325,42 @@ func (a *AccountAPIService) AccountControllerStartDiditExecute(r ApiAccountContr
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -304,10 +368,19 @@ func (a *AccountAPIService) AccountControllerStartDiditExecute(r ApiAccountContr
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiOnboardingControllerSaveProfileRequest struct {
@@ -321,12 +394,16 @@ func (r ApiOnboardingControllerSaveProfileRequest) ProfileDto(profileDto Profile
 	return r
 }
 
-func (r ApiOnboardingControllerSaveProfileRequest) Execute() (*http.Response, error) {
+func (r ApiOnboardingControllerSaveProfileRequest) Execute() (*OnboardingControllerSaveProfile201Response, *http.Response, error) {
 	return r.ApiService.OnboardingControllerSaveProfileExecute(r)
 }
 
 /*
-OnboardingControllerSaveProfile Method for OnboardingControllerSaveProfile
+OnboardingControllerSaveProfile Save onboarding profile answers
+
+Stores the onboarding wizard answers. `company` and `country` (2 letters) update the account columns; `currency` updates the account currency when it is a 2-12 character code; `goal` (advertiser|publisher|both, default both) sets the default landing side. `name`, `timezone`, `marketingOptIn` and an onboarding-completed flag are merged into account metadata. Idempotent.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser, publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiOnboardingControllerSaveProfileRequest
@@ -339,16 +416,18 @@ func (a *AccountAPIService) OnboardingControllerSaveProfile(ctx context.Context)
 }
 
 // Execute executes the request
-func (a *AccountAPIService) OnboardingControllerSaveProfileExecute(r ApiOnboardingControllerSaveProfileRequest) (*http.Response, error) {
+//  @return OnboardingControllerSaveProfile201Response
+func (a *AccountAPIService) OnboardingControllerSaveProfileExecute(r ApiOnboardingControllerSaveProfileRequest) (*OnboardingControllerSaveProfile201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *OnboardingControllerSaveProfile201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AccountAPIService.OnboardingControllerSaveProfile")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/onboarding/profile"
@@ -357,7 +436,7 @@ func (a *AccountAPIService) OnboardingControllerSaveProfileExecute(r ApiOnboardi
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.profileDto == nil {
-		return nil, reportError("profileDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("profileDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -370,7 +449,7 @@ func (a *AccountAPIService) OnboardingControllerSaveProfileExecute(r ApiOnboardi
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -379,21 +458,35 @@ func (a *AccountAPIService) OnboardingControllerSaveProfileExecute(r ApiOnboardi
 	}
 	// body params
 	localVarPostBody = r.profileDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -401,10 +494,19 @@ func (a *AccountAPIService) OnboardingControllerSaveProfileExecute(r ApiOnboardi
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiOnboardingControllerStatusRequest struct {
@@ -412,12 +514,16 @@ type ApiOnboardingControllerStatusRequest struct {
 	ApiService *AccountAPIService
 }
 
-func (r ApiOnboardingControllerStatusRequest) Execute() (*http.Response, error) {
+func (r ApiOnboardingControllerStatusRequest) Execute() (*OnboardingControllerStatus200Response, *http.Response, error) {
 	return r.ApiService.OnboardingControllerStatusExecute(r)
 }
 
 /*
-OnboardingControllerStatus Method for OnboardingControllerStatus
+OnboardingControllerStatus Get onboarding checklist progress
+
+Returns onboarding checklist booleans for both sides, derived from real account state in one query: properties, verified properties, placements and tax form for the publisher side; a completed deposit, campaigns, creatives and an active campaign for the advertiser side.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiOnboardingControllerStatusRequest
@@ -430,16 +536,18 @@ func (a *AccountAPIService) OnboardingControllerStatus(ctx context.Context) ApiO
 }
 
 // Execute executes the request
-func (a *AccountAPIService) OnboardingControllerStatusExecute(r ApiOnboardingControllerStatusRequest) (*http.Response, error) {
+//  @return OnboardingControllerStatus200Response
+func (a *AccountAPIService) OnboardingControllerStatusExecute(r ApiOnboardingControllerStatusRequest) (*OnboardingControllerStatus200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *OnboardingControllerStatus200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AccountAPIService.OnboardingControllerStatus")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/onboarding"
@@ -458,28 +566,42 @@ func (a *AccountAPIService) OnboardingControllerStatusExecute(r ApiOnboardingCon
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -487,8 +609,17 @@ func (a *AccountAPIService) OnboardingControllerStatusExecute(r ApiOnboardingCon
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

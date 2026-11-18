@@ -28,12 +28,16 @@ type ApiSegmentsControllerCatalogRequest struct {
 	ApiService *SegmentsAPIService
 }
 
-func (r ApiSegmentsControllerCatalogRequest) Execute() (*http.Response, error) {
+func (r ApiSegmentsControllerCatalogRequest) Execute() ([]AudienceCatalogEntry, *http.Response, error) {
 	return r.ApiService.SegmentsControllerCatalogExecute(r)
 }
 
 /*
-SegmentsControllerCatalog Method for SegmentsControllerCatalog
+SegmentsControllerCatalog Get the targetable interest catalog
+
+Lists every non-sensitive taxonomy node with two ways to target it. `contextualKeywords` goes into targeting.contextual_include, is matched against page content at serve time and is free. `behavioral` is a network preset segment for targeting.audience_include and carries a data CPM; it is null until the preset reaches its k-anonymity minimum, and `behavioralBuilding` reports progress while it builds.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiSegmentsControllerCatalogRequest
@@ -46,16 +50,18 @@ func (a *SegmentsAPIService) SegmentsControllerCatalog(ctx context.Context) ApiS
 }
 
 // Execute executes the request
-func (a *SegmentsAPIService) SegmentsControllerCatalogExecute(r ApiSegmentsControllerCatalogRequest) (*http.Response, error) {
+//  @return []AudienceCatalogEntry
+func (a *SegmentsAPIService) SegmentsControllerCatalogExecute(r ApiSegmentsControllerCatalogRequest) ([]AudienceCatalogEntry, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []AudienceCatalogEntry
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SegmentsAPIService.SegmentsControllerCatalog")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/segments/catalog"
@@ -74,28 +80,42 @@ func (a *SegmentsAPIService) SegmentsControllerCatalogExecute(r ApiSegmentsContr
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -103,10 +123,19 @@ func (a *SegmentsAPIService) SegmentsControllerCatalogExecute(r ApiSegmentsContr
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiSegmentsControllerContributeRequest struct {
@@ -114,12 +143,16 @@ type ApiSegmentsControllerContributeRequest struct {
 	ApiService *SegmentsAPIService
 }
 
-func (r ApiSegmentsControllerContributeRequest) Execute() (*http.Response, error) {
+func (r ApiSegmentsControllerContributeRequest) Execute() (*SegmentsControllerContribute201Response, *http.Response, error) {
 	return r.ApiService.SegmentsControllerContributeExecute(r)
 }
 
 /*
-SegmentsControllerContribute Method for SegmentsControllerContribute
+SegmentsControllerContribute Contribute an audience to the co-op
+
+Shares one of the caller's audiences (`audienceId`) as a co-op segment that other advertisers can license. `taxonomyId` is optional: when omitted the niche is auto-detected from the members, and unknown or sensitive niches leave the segment uncategorized. `revShare` (default 0.5, clamped to 0-0.9) sets the contributor's share of data fees. Re-contributing updates the existing segment. Members are materialized minus opted-out ids. Returns 404 if the audience is not owned.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiSegmentsControllerContributeRequest
@@ -132,16 +165,18 @@ func (a *SegmentsAPIService) SegmentsControllerContribute(ctx context.Context) A
 }
 
 // Execute executes the request
-func (a *SegmentsAPIService) SegmentsControllerContributeExecute(r ApiSegmentsControllerContributeRequest) (*http.Response, error) {
+//  @return SegmentsControllerContribute201Response
+func (a *SegmentsAPIService) SegmentsControllerContributeExecute(r ApiSegmentsControllerContributeRequest) (*SegmentsControllerContribute201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SegmentsControllerContribute201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SegmentsAPIService.SegmentsControllerContribute")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/segments/contribute"
@@ -160,28 +195,42 @@ func (a *SegmentsAPIService) SegmentsControllerContributeExecute(r ApiSegmentsCo
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -189,10 +238,19 @@ func (a *SegmentsAPIService) SegmentsControllerContributeExecute(r ApiSegmentsCo
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiSegmentsControllerContributionsRequest struct {
@@ -200,12 +258,16 @@ type ApiSegmentsControllerContributionsRequest struct {
 	ApiService *SegmentsAPIService
 }
 
-func (r ApiSegmentsControllerContributionsRequest) Execute() (*http.Response, error) {
+func (r ApiSegmentsControllerContributionsRequest) Execute() ([]SegmentsControllerContributions200ResponseInner, *http.Response, error) {
 	return r.ApiService.SegmentsControllerContributionsExecute(r)
 }
 
 /*
-SegmentsControllerContributions Method for SegmentsControllerContributions
+SegmentsControllerContributions List your co-op contributions
+
+Returns the caller's contributed co-op segments, newest first, with their size, rev-share and the number of advertisers that have licensed each one.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiSegmentsControllerContributionsRequest
@@ -218,16 +280,18 @@ func (a *SegmentsAPIService) SegmentsControllerContributions(ctx context.Context
 }
 
 // Execute executes the request
-func (a *SegmentsAPIService) SegmentsControllerContributionsExecute(r ApiSegmentsControllerContributionsRequest) (*http.Response, error) {
+//  @return []SegmentsControllerContributions200ResponseInner
+func (a *SegmentsAPIService) SegmentsControllerContributionsExecute(r ApiSegmentsControllerContributionsRequest) ([]SegmentsControllerContributions200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []SegmentsControllerContributions200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SegmentsAPIService.SegmentsControllerContributions")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/segments/contributions"
@@ -246,28 +310,42 @@ func (a *SegmentsAPIService) SegmentsControllerContributionsExecute(r ApiSegment
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -275,10 +353,19 @@ func (a *SegmentsAPIService) SegmentsControllerContributionsExecute(r ApiSegment
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiSegmentsControllerDetectNicheRequest struct {
@@ -292,12 +379,16 @@ func (r ApiSegmentsControllerDetectNicheRequest) AudienceId(audienceId string) A
 	return r
 }
 
-func (r ApiSegmentsControllerDetectNicheRequest) Execute() (*http.Response, error) {
+func (r ApiSegmentsControllerDetectNicheRequest) Execute() (*SegmentsControllerDetectNiche200Response, *http.Response, error) {
 	return r.ApiService.SegmentsControllerDetectNicheExecute(r)
 }
 
 /*
-SegmentsControllerDetectNiche Method for SegmentsControllerDetectNiche
+SegmentsControllerDetectNiche Detect an audience's interest niche
+
+Previews the taxonomy node that best matches the members of `audienceId`, scored by keyword overlap. This is the niche contribute would assign. Returns nulls when nothing matches and 404 when the audience is not owned by the caller.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiSegmentsControllerDetectNicheRequest
@@ -310,16 +401,18 @@ func (a *SegmentsAPIService) SegmentsControllerDetectNiche(ctx context.Context) 
 }
 
 // Execute executes the request
-func (a *SegmentsAPIService) SegmentsControllerDetectNicheExecute(r ApiSegmentsControllerDetectNicheRequest) (*http.Response, error) {
+//  @return SegmentsControllerDetectNiche200Response
+func (a *SegmentsAPIService) SegmentsControllerDetectNicheExecute(r ApiSegmentsControllerDetectNicheRequest) (*SegmentsControllerDetectNiche200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SegmentsControllerDetectNiche200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SegmentsAPIService.SegmentsControllerDetectNiche")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/segments/detect-niche"
@@ -328,7 +421,7 @@ func (a *SegmentsAPIService) SegmentsControllerDetectNicheExecute(r ApiSegmentsC
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.audienceId == nil {
-		return nil, reportError("audienceId is required and must be specified")
+		return localVarReturnValue, nil, reportError("audienceId is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "audienceId", r.audienceId, "form", "")
@@ -342,28 +435,42 @@ func (a *SegmentsAPIService) SegmentsControllerDetectNicheExecute(r ApiSegmentsC
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -371,10 +478,19 @@ func (a *SegmentsAPIService) SegmentsControllerDetectNicheExecute(r ApiSegmentsC
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiSegmentsControllerEarningsRequest struct {
@@ -382,12 +498,16 @@ type ApiSegmentsControllerEarningsRequest struct {
 	ApiService *SegmentsAPIService
 }
 
-func (r ApiSegmentsControllerEarningsRequest) Execute() (*http.Response, error) {
+func (r ApiSegmentsControllerEarningsRequest) Execute() (*SegmentsControllerEarnings200Response, *http.Response, error) {
 	return r.ApiService.SegmentsControllerEarningsExecute(r)
 }
 
 /*
-SegmentsControllerEarnings Method for SegmentsControllerEarnings
+SegmentsControllerEarnings Co-op data-fee statement
+
+Reads the ledger for co-op data-fee movements. Returns the total earned as a contributor (rev-share credits) and the total spent as a licensee, a per-segment earnings rollup, and the 50 most recent earning and spend entries. Totals are rounded to cents.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiSegmentsControllerEarningsRequest
@@ -400,16 +520,18 @@ func (a *SegmentsAPIService) SegmentsControllerEarnings(ctx context.Context) Api
 }
 
 // Execute executes the request
-func (a *SegmentsAPIService) SegmentsControllerEarningsExecute(r ApiSegmentsControllerEarningsRequest) (*http.Response, error) {
+//  @return SegmentsControllerEarnings200Response
+func (a *SegmentsAPIService) SegmentsControllerEarningsExecute(r ApiSegmentsControllerEarningsRequest) (*SegmentsControllerEarnings200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SegmentsControllerEarnings200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SegmentsAPIService.SegmentsControllerEarnings")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/segments/earnings"
@@ -428,28 +550,42 @@ func (a *SegmentsAPIService) SegmentsControllerEarningsExecute(r ApiSegmentsCont
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -457,10 +593,19 @@ func (a *SegmentsAPIService) SegmentsControllerEarningsExecute(r ApiSegmentsCont
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiSegmentsControllerLicenseRequest struct {
@@ -469,12 +614,16 @@ type ApiSegmentsControllerLicenseRequest struct {
 	id string
 }
 
-func (r ApiSegmentsControllerLicenseRequest) Execute() (*http.Response, error) {
+func (r ApiSegmentsControllerLicenseRequest) Execute() (*SegmentsControllerLicense201Response, *http.Response, error) {
 	return r.ApiService.SegmentsControllerLicenseExecute(r)
 }
 
 /*
-SegmentsControllerLicense Method for SegmentsControllerLicense
+SegmentsControllerLicense License a co-op, preset or in-market segment
+
+Grants the advertiser the right to target segment `id`, recording the data CPM that is charged on delivery and shared with the contributor. Returns 404 if the segment is not a coop/preset/in_market segment. Returns 400 if the caller owns it, if it is sensitive, or if it is below the k-anonymity threshold. Licensing is idempotent; add the returned `segmentId` to a campaign's targeting.audience_include.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -489,16 +638,18 @@ func (a *SegmentsAPIService) SegmentsControllerLicense(ctx context.Context, id s
 }
 
 // Execute executes the request
-func (a *SegmentsAPIService) SegmentsControllerLicenseExecute(r ApiSegmentsControllerLicenseRequest) (*http.Response, error) {
+//  @return SegmentsControllerLicense201Response
+func (a *SegmentsAPIService) SegmentsControllerLicenseExecute(r ApiSegmentsControllerLicenseRequest) (*SegmentsControllerLicense201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SegmentsControllerLicense201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SegmentsAPIService.SegmentsControllerLicense")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/segments/{id}/license"
@@ -518,28 +669,42 @@ func (a *SegmentsAPIService) SegmentsControllerLicenseExecute(r ApiSegmentsContr
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -547,10 +712,19 @@ func (a *SegmentsAPIService) SegmentsControllerLicenseExecute(r ApiSegmentsContr
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiSegmentsControllerLicensesRequest struct {
@@ -558,12 +732,16 @@ type ApiSegmentsControllerLicensesRequest struct {
 	ApiService *SegmentsAPIService
 }
 
-func (r ApiSegmentsControllerLicensesRequest) Execute() (*http.Response, error) {
+func (r ApiSegmentsControllerLicensesRequest) Execute() ([]SegmentsControllerLicenses200ResponseInner, *http.Response, error) {
 	return r.ApiService.SegmentsControllerLicensesExecute(r)
 }
 
 /*
-SegmentsControllerLicenses Method for SegmentsControllerLicenses
+SegmentsControllerLicenses List licensed segments
+
+Returns the segments the advertiser has licensed, newest first, with the data CPM locked at license time and the segment's name, taxonomy node, size and scope.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiSegmentsControllerLicensesRequest
@@ -576,16 +754,18 @@ func (a *SegmentsAPIService) SegmentsControllerLicenses(ctx context.Context) Api
 }
 
 // Execute executes the request
-func (a *SegmentsAPIService) SegmentsControllerLicensesExecute(r ApiSegmentsControllerLicensesRequest) (*http.Response, error) {
+//  @return []SegmentsControllerLicenses200ResponseInner
+func (a *SegmentsAPIService) SegmentsControllerLicensesExecute(r ApiSegmentsControllerLicensesRequest) ([]SegmentsControllerLicenses200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []SegmentsControllerLicenses200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SegmentsAPIService.SegmentsControllerLicenses")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/segments/licenses"
@@ -604,28 +784,42 @@ func (a *SegmentsAPIService) SegmentsControllerLicensesExecute(r ApiSegmentsCont
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -633,10 +827,19 @@ func (a *SegmentsAPIService) SegmentsControllerLicensesExecute(r ApiSegmentsCont
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiSegmentsControllerOptOutRequest struct {
@@ -644,12 +847,16 @@ type ApiSegmentsControllerOptOutRequest struct {
 	ApiService *SegmentsAPIService
 }
 
-func (r ApiSegmentsControllerOptOutRequest) Execute() (*http.Response, error) {
+func (r ApiSegmentsControllerOptOutRequest) Execute() (*SegmentsControllerOptOut201Response, *http.Response, error) {
 	return r.ApiService.SegmentsControllerOptOutExecute(r)
 }
 
 /*
-SegmentsControllerOptOut Method for SegmentsControllerOptOut
+SegmentsControllerOptOut Opt a user out of all audience segments
+
+Public privacy endpoint, typically called by a preference center with the visitor's `adnet_uid` cookie or canonical id as `id`. The id is recorded as opted out and excluded from every future segment rebuild, and it is removed from live segment sets straight away on a best-effort basis. A missing `id` returns 400.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiSegmentsControllerOptOutRequest
@@ -662,16 +869,18 @@ func (a *SegmentsAPIService) SegmentsControllerOptOut(ctx context.Context) ApiSe
 }
 
 // Execute executes the request
-func (a *SegmentsAPIService) SegmentsControllerOptOutExecute(r ApiSegmentsControllerOptOutRequest) (*http.Response, error) {
+//  @return SegmentsControllerOptOut201Response
+func (a *SegmentsAPIService) SegmentsControllerOptOutExecute(r ApiSegmentsControllerOptOutRequest) (*SegmentsControllerOptOut201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SegmentsControllerOptOut201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SegmentsAPIService.SegmentsControllerOptOut")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/privacy/audience-optout"
@@ -690,7 +899,7 @@ func (a *SegmentsAPIService) SegmentsControllerOptOutExecute(r ApiSegmentsContro
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -699,19 +908,19 @@ func (a *SegmentsAPIService) SegmentsControllerOptOutExecute(r ApiSegmentsContro
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -719,10 +928,19 @@ func (a *SegmentsAPIService) SegmentsControllerOptOutExecute(r ApiSegmentsContro
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiSegmentsControllerRebuildRequest struct {
@@ -730,12 +948,16 @@ type ApiSegmentsControllerRebuildRequest struct {
 	ApiService *SegmentsAPIService
 }
 
-func (r ApiSegmentsControllerRebuildRequest) Execute() (*http.Response, error) {
+func (r ApiSegmentsControllerRebuildRequest) Execute() (*SegmentsControllerRebuild201Response, *http.Response, error) {
 	return r.ApiService.SegmentsControllerRebuildExecute(r)
 }
 
 /*
-SegmentsControllerRebuild Method for SegmentsControllerRebuild
+SegmentsControllerRebuild Force a segment rebuild
+
+Runs, in order, the jobs that normally run on a timer: network preset classification, co-op niche union, in-market segments, and per-account first-party interest segments. Returns each job's count. Can be slow on large datasets because it scans ClickHouse keyword data for each taxonomy node.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiSegmentsControllerRebuildRequest
@@ -748,16 +970,18 @@ func (a *SegmentsAPIService) SegmentsControllerRebuild(ctx context.Context) ApiS
 }
 
 // Execute executes the request
-func (a *SegmentsAPIService) SegmentsControllerRebuildExecute(r ApiSegmentsControllerRebuildRequest) (*http.Response, error) {
+//  @return SegmentsControllerRebuild201Response
+func (a *SegmentsAPIService) SegmentsControllerRebuildExecute(r ApiSegmentsControllerRebuildRequest) (*SegmentsControllerRebuild201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SegmentsControllerRebuild201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SegmentsAPIService.SegmentsControllerRebuild")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/segments/rebuild"
@@ -776,28 +1000,42 @@ func (a *SegmentsAPIService) SegmentsControllerRebuildExecute(r ApiSegmentsContr
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -805,10 +1043,19 @@ func (a *SegmentsAPIService) SegmentsControllerRebuildExecute(r ApiSegmentsContr
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiSegmentsControllerRevokeRequest struct {
@@ -817,12 +1064,16 @@ type ApiSegmentsControllerRevokeRequest struct {
 	id string
 }
 
-func (r ApiSegmentsControllerRevokeRequest) Execute() (*http.Response, error) {
+func (r ApiSegmentsControllerRevokeRequest) Execute() (*SegmentsControllerRevoke201Response, *http.Response, error) {
 	return r.ApiService.SegmentsControllerRevokeExecute(r)
 }
 
 /*
-SegmentsControllerRevoke Method for SegmentsControllerRevoke
+SegmentsControllerRevoke Stop sharing a contributed segment
+
+Unshares the co-op segment `id` and removes its contribution record, so it earns no further data fees. Only affects segments the caller owns; other ids are silently ignored.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -837,16 +1088,18 @@ func (a *SegmentsAPIService) SegmentsControllerRevoke(ctx context.Context, id st
 }
 
 // Execute executes the request
-func (a *SegmentsAPIService) SegmentsControllerRevokeExecute(r ApiSegmentsControllerRevokeRequest) (*http.Response, error) {
+//  @return SegmentsControllerRevoke201Response
+func (a *SegmentsAPIService) SegmentsControllerRevokeExecute(r ApiSegmentsControllerRevokeRequest) (*SegmentsControllerRevoke201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SegmentsControllerRevoke201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SegmentsAPIService.SegmentsControllerRevoke")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/segments/{id}/revoke"
@@ -866,28 +1119,42 @@ func (a *SegmentsAPIService) SegmentsControllerRevokeExecute(r ApiSegmentsContro
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -895,10 +1162,19 @@ func (a *SegmentsAPIService) SegmentsControllerRevokeExecute(r ApiSegmentsContro
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiSegmentsControllerTaxonomyRequest struct {
@@ -906,12 +1182,16 @@ type ApiSegmentsControllerTaxonomyRequest struct {
 	ApiService *SegmentsAPIService
 }
 
-func (r ApiSegmentsControllerTaxonomyRequest) Execute() (*http.Response, error) {
+func (r ApiSegmentsControllerTaxonomyRequest) Execute() ([]AudienceTaxonomyNode, *http.Response, error) {
 	return r.ApiService.SegmentsControllerTaxonomyExecute(r)
 }
 
 /*
-SegmentsControllerTaxonomy Method for SegmentsControllerTaxonomy
+SegmentsControllerTaxonomy Get the interest taxonomy
+
+Returns every node of the Audience Cloud interest taxonomy with its parent, display name, matching keywords and whether it is a sensitive category. Sensitive nodes are never built into shareable or licensable segments.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiSegmentsControllerTaxonomyRequest
@@ -924,16 +1204,18 @@ func (a *SegmentsAPIService) SegmentsControllerTaxonomy(ctx context.Context) Api
 }
 
 // Execute executes the request
-func (a *SegmentsAPIService) SegmentsControllerTaxonomyExecute(r ApiSegmentsControllerTaxonomyRequest) (*http.Response, error) {
+//  @return []AudienceTaxonomyNode
+func (a *SegmentsAPIService) SegmentsControllerTaxonomyExecute(r ApiSegmentsControllerTaxonomyRequest) ([]AudienceTaxonomyNode, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []AudienceTaxonomyNode
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SegmentsAPIService.SegmentsControllerTaxonomy")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/segments/taxonomy"
@@ -952,28 +1234,42 @@ func (a *SegmentsAPIService) SegmentsControllerTaxonomyExecute(r ApiSegmentsCont
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -981,10 +1277,19 @@ func (a *SegmentsAPIService) SegmentsControllerTaxonomyExecute(r ApiSegmentsCont
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiSegmentsControllerUserSegmentsRequest struct {
@@ -993,12 +1298,16 @@ type ApiSegmentsControllerUserSegmentsRequest struct {
 	idHash string
 }
 
-func (r ApiSegmentsControllerUserSegmentsRequest) Execute() (*http.Response, error) {
+func (r ApiSegmentsControllerUserSegmentsRequest) Execute() (*SegmentsControllerUserSegments200Response, *http.Response, error) {
 	return r.ApiService.SegmentsControllerUserSegmentsExecute(r)
 }
 
 /*
-SegmentsControllerUserSegments Method for SegmentsControllerUserSegments
+SegmentsControllerUserSegments List the segments containing an id
+
+Admin transparency tool: checks every non-empty segment for membership of `idHash` (a canonical id or uid) and returns the matching segments with their scope and taxonomy node.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param idHash
@@ -1013,16 +1322,18 @@ func (a *SegmentsAPIService) SegmentsControllerUserSegments(ctx context.Context,
 }
 
 // Execute executes the request
-func (a *SegmentsAPIService) SegmentsControllerUserSegmentsExecute(r ApiSegmentsControllerUserSegmentsRequest) (*http.Response, error) {
+//  @return SegmentsControllerUserSegments200Response
+func (a *SegmentsAPIService) SegmentsControllerUserSegmentsExecute(r ApiSegmentsControllerUserSegmentsRequest) (*SegmentsControllerUserSegments200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SegmentsControllerUserSegments200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SegmentsAPIService.SegmentsControllerUserSegments")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/segments/user/{idHash}"
@@ -1042,28 +1353,42 @@ func (a *SegmentsAPIService) SegmentsControllerUserSegmentsExecute(r ApiSegments
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1071,8 +1396,17 @@ func (a *SegmentsAPIService) SegmentsControllerUserSegmentsExecute(r ApiSegments
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

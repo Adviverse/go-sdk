@@ -28,12 +28,16 @@ type ApiAuthControllerConnectionsRequest struct {
 	ApiService *AuthAPIService
 }
 
-func (r ApiAuthControllerConnectionsRequest) Execute() (*http.Response, error) {
+func (r ApiAuthControllerConnectionsRequest) Execute() ([]AuthControllerConnections200ResponseInner, *http.Response, error) {
 	return r.ApiService.AuthControllerConnectionsExecute(r)
 }
 
 /*
-AuthControllerConnections Method for AuthControllerConnections
+AuthControllerConnections List linked SSO providers
+
+Lists the social sign-in providers connected to the current account, oldest first.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAuthControllerConnectionsRequest
@@ -46,16 +50,18 @@ func (a *AuthAPIService) AuthControllerConnections(ctx context.Context) ApiAuthC
 }
 
 // Execute executes the request
-func (a *AuthAPIService) AuthControllerConnectionsExecute(r ApiAuthControllerConnectionsRequest) (*http.Response, error) {
+//  @return []AuthControllerConnections200ResponseInner
+func (a *AuthAPIService) AuthControllerConnectionsExecute(r ApiAuthControllerConnectionsRequest) ([]AuthControllerConnections200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []AuthControllerConnections200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthAPIService.AuthControllerConnections")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/auth/connections"
@@ -74,28 +80,42 @@ func (a *AuthAPIService) AuthControllerConnectionsExecute(r ApiAuthControllerCon
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -103,10 +123,19 @@ func (a *AuthAPIService) AuthControllerConnectionsExecute(r ApiAuthControllerCon
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAuthControllerDisconnectRequest struct {
@@ -115,12 +144,16 @@ type ApiAuthControllerDisconnectRequest struct {
 	provider string
 }
 
-func (r ApiAuthControllerDisconnectRequest) Execute() (*http.Response, error) {
+func (r ApiAuthControllerDisconnectRequest) Execute() (*AuthControllerResendVerification201Response, *http.Response, error) {
 	return r.ApiService.AuthControllerDisconnectExecute(r)
 }
 
 /*
-AuthControllerDisconnect Method for AuthControllerDisconnect
+AuthControllerDisconnect Disconnect an SSO provider
+
+Removes the connection for `provider` from the current account. Refuses with 400 when the account has no password and this is its only connection, so the user cannot lock themselves out. Unknown providers are a no-op.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param provider
@@ -135,16 +168,18 @@ func (a *AuthAPIService) AuthControllerDisconnect(ctx context.Context, provider 
 }
 
 // Execute executes the request
-func (a *AuthAPIService) AuthControllerDisconnectExecute(r ApiAuthControllerDisconnectRequest) (*http.Response, error) {
+//  @return AuthControllerResendVerification201Response
+func (a *AuthAPIService) AuthControllerDisconnectExecute(r ApiAuthControllerDisconnectRequest) (*AuthControllerResendVerification201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AuthControllerResendVerification201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthAPIService.AuthControllerDisconnect")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/auth/connections/{provider}"
@@ -164,28 +199,42 @@ func (a *AuthAPIService) AuthControllerDisconnectExecute(r ApiAuthControllerDisc
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -193,10 +242,19 @@ func (a *AuthAPIService) AuthControllerDisconnectExecute(r ApiAuthControllerDisc
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAuthControllerEnable2faRequest struct {
@@ -204,12 +262,16 @@ type ApiAuthControllerEnable2faRequest struct {
 	ApiService *AuthAPIService
 }
 
-func (r ApiAuthControllerEnable2faRequest) Execute() (*http.Response, error) {
+func (r ApiAuthControllerEnable2faRequest) Execute() (*AuthControllerEnable2fa201Response, *http.Response, error) {
 	return r.ApiService.AuthControllerEnable2faExecute(r)
 }
 
 /*
-AuthControllerEnable2fa Method for AuthControllerEnable2fa
+AuthControllerEnable2fa Confirm and enable TOTP 2FA
+
+Verifies `totp` against the secret from the setup step and turns on 2FA, after which login requires a code. Returns 400 `run setup first` if no secret exists, or `invalid code`.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAuthControllerEnable2faRequest
@@ -222,16 +284,18 @@ func (a *AuthAPIService) AuthControllerEnable2fa(ctx context.Context) ApiAuthCon
 }
 
 // Execute executes the request
-func (a *AuthAPIService) AuthControllerEnable2faExecute(r ApiAuthControllerEnable2faRequest) (*http.Response, error) {
+//  @return AuthControllerEnable2fa201Response
+func (a *AuthAPIService) AuthControllerEnable2faExecute(r ApiAuthControllerEnable2faRequest) (*AuthControllerEnable2fa201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AuthControllerEnable2fa201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthAPIService.AuthControllerEnable2fa")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/auth/2fa/enable"
@@ -250,28 +314,42 @@ func (a *AuthAPIService) AuthControllerEnable2faExecute(r ApiAuthControllerEnabl
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -279,10 +357,19 @@ func (a *AuthAPIService) AuthControllerEnable2faExecute(r ApiAuthControllerEnabl
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAuthControllerForgotPasswordRequest struct {
@@ -296,12 +383,16 @@ func (r ApiAuthControllerForgotPasswordRequest) EmailDto(emailDto EmailDto) ApiA
 	return r
 }
 
-func (r ApiAuthControllerForgotPasswordRequest) Execute() (*http.Response, error) {
+func (r ApiAuthControllerForgotPasswordRequest) Execute() (*AuthControllerResendVerification201Response, *http.Response, error) {
 	return r.ApiService.AuthControllerForgotPasswordExecute(r)
 }
 
 /*
-AuthControllerForgotPassword Method for AuthControllerForgotPassword
+AuthControllerForgotPassword Start a password reset
+
+Emails a one-hour password reset link to `email` when an account exists. Always returns `{ ok: true }` to avoid account enumeration. Rate-limited per IP.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAuthControllerForgotPasswordRequest
@@ -314,16 +405,18 @@ func (a *AuthAPIService) AuthControllerForgotPassword(ctx context.Context) ApiAu
 }
 
 // Execute executes the request
-func (a *AuthAPIService) AuthControllerForgotPasswordExecute(r ApiAuthControllerForgotPasswordRequest) (*http.Response, error) {
+//  @return AuthControllerResendVerification201Response
+func (a *AuthAPIService) AuthControllerForgotPasswordExecute(r ApiAuthControllerForgotPasswordRequest) (*AuthControllerResendVerification201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AuthControllerResendVerification201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthAPIService.AuthControllerForgotPassword")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/auth/forgot-password"
@@ -332,7 +425,7 @@ func (a *AuthAPIService) AuthControllerForgotPasswordExecute(r ApiAuthController
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.emailDto == nil {
-		return nil, reportError("emailDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("emailDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -345,7 +438,7 @@ func (a *AuthAPIService) AuthControllerForgotPasswordExecute(r ApiAuthController
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -356,19 +449,19 @@ func (a *AuthAPIService) AuthControllerForgotPasswordExecute(r ApiAuthController
 	localVarPostBody = r.emailDto
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -376,10 +469,19 @@ func (a *AuthAPIService) AuthControllerForgotPasswordExecute(r ApiAuthController
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAuthControllerGithubCallbackRequest struct {
@@ -404,7 +506,11 @@ func (r ApiAuthControllerGithubCallbackRequest) Execute() (*http.Response, error
 }
 
 /*
-AuthControllerGithubCallback Method for AuthControllerGithubCallback
+AuthControllerGithubCallback GitHub OAuth callback
+
+Browser redirect target for GitHub. Exchanges `code`, verifies `state`, then 302-redirects to the dashboard: `/settings#sso=connected` after linking, `/login#sso_token=<token>` after login/signup, or `/login#sso_error=github` on any failure. The session token is passed in the URL fragment so it never reaches a server. Callbacks carrying a state issued by the Atlas identity service are forwarded there instead.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAuthControllerGithubCallbackRequest
@@ -505,12 +611,16 @@ func (r ApiAuthControllerGithubStartRequest) OauthStartDto(oauthStartDto OauthSt
 	return r
 }
 
-func (r ApiAuthControllerGithubStartRequest) Execute() (*http.Response, error) {
+func (r ApiAuthControllerGithubStartRequest) Execute() (*AuthControllerGithubStart201Response, *http.Response, error) {
 	return r.ApiService.AuthControllerGithubStartExecute(r)
 }
 
 /*
-AuthControllerGithubStart Method for AuthControllerGithubStart
+AuthControllerGithubStart Start GitHub sign-in
+
+Returns the GitHub authorize URL with a signed state carrying the optional signup `type` and, if a bearer token was sent, a "connect to this account" intent. POST is used so the session token never appears in a URL. Returns 401 if GitHub SSO is not configured.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAuthControllerGithubStartRequest
@@ -523,16 +633,18 @@ func (a *AuthAPIService) AuthControllerGithubStart(ctx context.Context) ApiAuthC
 }
 
 // Execute executes the request
-func (a *AuthAPIService) AuthControllerGithubStartExecute(r ApiAuthControllerGithubStartRequest) (*http.Response, error) {
+//  @return AuthControllerGithubStart201Response
+func (a *AuthAPIService) AuthControllerGithubStartExecute(r ApiAuthControllerGithubStartRequest) (*AuthControllerGithubStart201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AuthControllerGithubStart201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthAPIService.AuthControllerGithubStart")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/auth/oauth/github/start"
@@ -541,10 +653,10 @@ func (a *AuthAPIService) AuthControllerGithubStartExecute(r ApiAuthControllerGit
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.authorization == nil {
-		return nil, reportError("authorization is required and must be specified")
+		return localVarReturnValue, nil, reportError("authorization is required and must be specified")
 	}
 	if r.oauthStartDto == nil {
-		return nil, reportError("oauthStartDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("oauthStartDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -557,7 +669,7 @@ func (a *AuthAPIService) AuthControllerGithubStartExecute(r ApiAuthControllerGit
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -569,19 +681,19 @@ func (a *AuthAPIService) AuthControllerGithubStartExecute(r ApiAuthControllerGit
 	localVarPostBody = r.oauthStartDto
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -589,10 +701,19 @@ func (a *AuthAPIService) AuthControllerGithubStartExecute(r ApiAuthControllerGit
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAuthControllerLoginRequest struct {
@@ -606,12 +727,16 @@ func (r ApiAuthControllerLoginRequest) LoginDto(loginDto LoginDto) ApiAuthContro
 	return r
 }
 
-func (r ApiAuthControllerLoginRequest) Execute() (*http.Response, error) {
+func (r ApiAuthControllerLoginRequest) Execute() (*AuthSession, *http.Response, error) {
 	return r.ApiService.AuthControllerLoginExecute(r)
 }
 
 /*
-AuthControllerLogin Method for AuthControllerLogin
+AuthControllerLogin Log in with email and password
+
+Exchanges `email` + `password` for a session bearer token. When 2FA is enabled a `totp` code is required; without one the call fails with 401 `2fa_required`. Emails not found on an account are tried as agency team-member seats, in which case the session is bound to the agency account and `account.member` is set. Returns 401 for bad credentials, banned/suspended accounts, or SSO-only accounts without a password. A Turnstile token is checked when configured; rate-limited per IP.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAuthControllerLoginRequest
@@ -624,16 +749,18 @@ func (a *AuthAPIService) AuthControllerLogin(ctx context.Context) ApiAuthControl
 }
 
 // Execute executes the request
-func (a *AuthAPIService) AuthControllerLoginExecute(r ApiAuthControllerLoginRequest) (*http.Response, error) {
+//  @return AuthSession
+func (a *AuthAPIService) AuthControllerLoginExecute(r ApiAuthControllerLoginRequest) (*AuthSession, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AuthSession
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthAPIService.AuthControllerLogin")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/auth/login"
@@ -642,7 +769,7 @@ func (a *AuthAPIService) AuthControllerLoginExecute(r ApiAuthControllerLoginRequ
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.loginDto == nil {
-		return nil, reportError("loginDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("loginDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -655,7 +782,7 @@ func (a *AuthAPIService) AuthControllerLoginExecute(r ApiAuthControllerLoginRequ
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -666,19 +793,19 @@ func (a *AuthAPIService) AuthControllerLoginExecute(r ApiAuthControllerLoginRequ
 	localVarPostBody = r.loginDto
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -686,10 +813,19 @@ func (a *AuthAPIService) AuthControllerLoginExecute(r ApiAuthControllerLoginRequ
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAuthControllerLogoutRequest struct {
@@ -703,12 +839,16 @@ func (r ApiAuthControllerLogoutRequest) Authorization(authorization string) ApiA
 	return r
 }
 
-func (r ApiAuthControllerLogoutRequest) Execute() (*http.Response, error) {
+func (r ApiAuthControllerLogoutRequest) Execute() (*AuthControllerResendVerification201Response, *http.Response, error) {
 	return r.ApiService.AuthControllerLogoutExecute(r)
 }
 
 /*
-AuthControllerLogout Method for AuthControllerLogout
+AuthControllerLogout Log out
+
+Revokes the session identified by the bearer token in the Authorization header. Always returns `{ ok: true }`.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAuthControllerLogoutRequest
@@ -721,16 +861,18 @@ func (a *AuthAPIService) AuthControllerLogout(ctx context.Context) ApiAuthContro
 }
 
 // Execute executes the request
-func (a *AuthAPIService) AuthControllerLogoutExecute(r ApiAuthControllerLogoutRequest) (*http.Response, error) {
+//  @return AuthControllerResendVerification201Response
+func (a *AuthAPIService) AuthControllerLogoutExecute(r ApiAuthControllerLogoutRequest) (*AuthControllerResendVerification201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AuthControllerResendVerification201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthAPIService.AuthControllerLogout")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/auth/logout"
@@ -739,7 +881,7 @@ func (a *AuthAPIService) AuthControllerLogoutExecute(r ApiAuthControllerLogoutRe
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.authorization == nil {
-		return nil, reportError("authorization is required and must be specified")
+		return localVarReturnValue, nil, reportError("authorization is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -752,7 +894,7 @@ func (a *AuthAPIService) AuthControllerLogoutExecute(r ApiAuthControllerLogoutRe
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -760,21 +902,35 @@ func (a *AuthAPIService) AuthControllerLogoutExecute(r ApiAuthControllerLogoutRe
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	parameterAddToHeaderOrQuery(localVarHeaderParams, "authorization", r.authorization, "simple", "")
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -782,10 +938,19 @@ func (a *AuthAPIService) AuthControllerLogoutExecute(r ApiAuthControllerLogoutRe
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAuthControllerMeRequest struct {
@@ -793,12 +958,16 @@ type ApiAuthControllerMeRequest struct {
 	ApiService *AuthAPIService
 }
 
-func (r ApiAuthControllerMeRequest) Execute() (*http.Response, error) {
+func (r ApiAuthControllerMeRequest) Execute() (*AuthMe, *http.Response, error) {
 	return r.ApiService.AuthControllerMeExecute(r)
 }
 
 /*
-AuthControllerMe Method for AuthControllerMe
+AuthControllerMe Get the current session account
+
+Returns the account behind the current session or API key. `roles` is `["admin"]` for admins and `["publisher","advertiser"]` for every other account, since all accounts are dual-sided; `type` is only the signup choice. For agency team-member sessions `email` is the member email and `member` describes the seat role and pixel grant; otherwise `member` is null.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAuthControllerMeRequest
@@ -811,16 +980,18 @@ func (a *AuthAPIService) AuthControllerMe(ctx context.Context) ApiAuthController
 }
 
 // Execute executes the request
-func (a *AuthAPIService) AuthControllerMeExecute(r ApiAuthControllerMeRequest) (*http.Response, error) {
+//  @return AuthMe
+func (a *AuthAPIService) AuthControllerMeExecute(r ApiAuthControllerMeRequest) (*AuthMe, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AuthMe
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthAPIService.AuthControllerMe")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/auth/me"
@@ -839,28 +1010,42 @@ func (a *AuthAPIService) AuthControllerMeExecute(r ApiAuthControllerMeRequest) (
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -868,10 +1053,19 @@ func (a *AuthAPIService) AuthControllerMeExecute(r ApiAuthControllerMeRequest) (
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAuthControllerMicrosoftCallbackRequest struct {
@@ -896,7 +1090,11 @@ func (r ApiAuthControllerMicrosoftCallbackRequest) Execute() (*http.Response, er
 }
 
 /*
-AuthControllerMicrosoftCallback Method for AuthControllerMicrosoftCallback
+AuthControllerMicrosoftCallback Microsoft OAuth callback
+
+Browser redirect target for Microsoft. Completes the code flow and 302-redirects to the dashboard with `#sso=connected`, `#sso_token=<token>` or `#sso_error=microsoft`, same as the GitHub callback. Atlas-issued states are forwarded to Atlas.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAuthControllerMicrosoftCallbackRequest
@@ -997,12 +1195,16 @@ func (r ApiAuthControllerMicrosoftStartRequest) OauthStartDto(oauthStartDto Oaut
 	return r
 }
 
-func (r ApiAuthControllerMicrosoftStartRequest) Execute() (*http.Response, error) {
+func (r ApiAuthControllerMicrosoftStartRequest) Execute() (*AuthControllerGithubStart201Response, *http.Response, error) {
 	return r.ApiService.AuthControllerMicrosoftStartExecute(r)
 }
 
 /*
-AuthControllerMicrosoftStart Method for AuthControllerMicrosoftStart
+AuthControllerMicrosoftStart Start Microsoft sign-in
+
+Returns the Microsoft (Entra) authorize URL with a signed state, exactly like the GitHub start endpoint. An optional bearer token marks a connect intent; `type` sets the account type for a new signup. Returns 401 if Microsoft SSO is not configured.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAuthControllerMicrosoftStartRequest
@@ -1015,16 +1217,18 @@ func (a *AuthAPIService) AuthControllerMicrosoftStart(ctx context.Context) ApiAu
 }
 
 // Execute executes the request
-func (a *AuthAPIService) AuthControllerMicrosoftStartExecute(r ApiAuthControllerMicrosoftStartRequest) (*http.Response, error) {
+//  @return AuthControllerGithubStart201Response
+func (a *AuthAPIService) AuthControllerMicrosoftStartExecute(r ApiAuthControllerMicrosoftStartRequest) (*AuthControllerGithubStart201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AuthControllerGithubStart201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthAPIService.AuthControllerMicrosoftStart")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/auth/oauth/microsoft/start"
@@ -1033,10 +1237,10 @@ func (a *AuthAPIService) AuthControllerMicrosoftStartExecute(r ApiAuthController
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.authorization == nil {
-		return nil, reportError("authorization is required and must be specified")
+		return localVarReturnValue, nil, reportError("authorization is required and must be specified")
 	}
 	if r.oauthStartDto == nil {
-		return nil, reportError("oauthStartDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("oauthStartDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1049,7 +1253,7 @@ func (a *AuthAPIService) AuthControllerMicrosoftStartExecute(r ApiAuthController
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1061,19 +1265,19 @@ func (a *AuthAPIService) AuthControllerMicrosoftStartExecute(r ApiAuthController
 	localVarPostBody = r.oauthStartDto
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1081,10 +1285,19 @@ func (a *AuthAPIService) AuthControllerMicrosoftStartExecute(r ApiAuthController
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAuthControllerOauthDiscordRequest struct {
@@ -1104,12 +1317,16 @@ func (r ApiAuthControllerOauthDiscordRequest) OauthDiscordDto(oauthDiscordDto Oa
 	return r
 }
 
-func (r ApiAuthControllerOauthDiscordRequest) Execute() (*http.Response, error) {
+func (r ApiAuthControllerOauthDiscordRequest) Execute() (*AuthControllerOauthDiscord201Response, *http.Response, error) {
 	return r.ApiService.AuthControllerOauthDiscordExecute(r)
 }
 
 /*
-AuthControllerOauthDiscord Method for AuthControllerOauthDiscord
+AuthControllerOauthDiscord Sign in or connect with Discord
+
+Verifies a single-use RestoreHub widget `token` and resolves the Discord identity. Without a bearer token it logs in the account already connected to that identity, else attaches it to an account with the same provider-verified email, else creates a new passwordless account of `type`. With a valid bearer token the identity is linked to the current account instead and `{ linked: true }` is returned. Returns 400 when the email belongs to an existing account but is not verified by the provider, or no email is shared.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAuthControllerOauthDiscordRequest
@@ -1122,16 +1339,18 @@ func (a *AuthAPIService) AuthControllerOauthDiscord(ctx context.Context) ApiAuth
 }
 
 // Execute executes the request
-func (a *AuthAPIService) AuthControllerOauthDiscordExecute(r ApiAuthControllerOauthDiscordRequest) (*http.Response, error) {
+//  @return AuthControllerOauthDiscord201Response
+func (a *AuthAPIService) AuthControllerOauthDiscordExecute(r ApiAuthControllerOauthDiscordRequest) (*AuthControllerOauthDiscord201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AuthControllerOauthDiscord201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthAPIService.AuthControllerOauthDiscord")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/auth/oauth/discord"
@@ -1140,10 +1359,10 @@ func (a *AuthAPIService) AuthControllerOauthDiscordExecute(r ApiAuthControllerOa
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.authorization == nil {
-		return nil, reportError("authorization is required and must be specified")
+		return localVarReturnValue, nil, reportError("authorization is required and must be specified")
 	}
 	if r.oauthDiscordDto == nil {
-		return nil, reportError("oauthDiscordDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("oauthDiscordDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1156,7 +1375,7 @@ func (a *AuthAPIService) AuthControllerOauthDiscordExecute(r ApiAuthControllerOa
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1168,19 +1387,19 @@ func (a *AuthAPIService) AuthControllerOauthDiscordExecute(r ApiAuthControllerOa
 	localVarPostBody = r.oauthDiscordDto
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1188,10 +1407,19 @@ func (a *AuthAPIService) AuthControllerOauthDiscordExecute(r ApiAuthControllerOa
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAuthControllerOauthGoogleRequest struct {
@@ -1211,12 +1439,16 @@ func (r ApiAuthControllerOauthGoogleRequest) OauthGoogleDto(oauthGoogleDto Oauth
 	return r
 }
 
-func (r ApiAuthControllerOauthGoogleRequest) Execute() (*http.Response, error) {
+func (r ApiAuthControllerOauthGoogleRequest) Execute() (*AuthControllerOauthDiscord201Response, *http.Response, error) {
 	return r.ApiService.AuthControllerOauthGoogleExecute(r)
 }
 
 /*
-AuthControllerOauthGoogle Method for AuthControllerOauthGoogle
+AuthControllerOauthGoogle Sign in or connect with Google
+
+Validates a Google Identity Services ID token (`credential`) against Google tokeninfo, checking that the audience is the Adviverse client id and the issuer is Google. Login, auto-link and signup behave as for Discord; with a bearer token the Google identity is linked to the current account. Returns 401 `verification_failed` for an invalid token, or when Google SSO is not configured.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAuthControllerOauthGoogleRequest
@@ -1229,16 +1461,18 @@ func (a *AuthAPIService) AuthControllerOauthGoogle(ctx context.Context) ApiAuthC
 }
 
 // Execute executes the request
-func (a *AuthAPIService) AuthControllerOauthGoogleExecute(r ApiAuthControllerOauthGoogleRequest) (*http.Response, error) {
+//  @return AuthControllerOauthDiscord201Response
+func (a *AuthAPIService) AuthControllerOauthGoogleExecute(r ApiAuthControllerOauthGoogleRequest) (*AuthControllerOauthDiscord201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AuthControllerOauthDiscord201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthAPIService.AuthControllerOauthGoogle")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/auth/oauth/google"
@@ -1247,10 +1481,10 @@ func (a *AuthAPIService) AuthControllerOauthGoogleExecute(r ApiAuthControllerOau
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.authorization == nil {
-		return nil, reportError("authorization is required and must be specified")
+		return localVarReturnValue, nil, reportError("authorization is required and must be specified")
 	}
 	if r.oauthGoogleDto == nil {
-		return nil, reportError("oauthGoogleDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("oauthGoogleDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1263,7 +1497,7 @@ func (a *AuthAPIService) AuthControllerOauthGoogleExecute(r ApiAuthControllerOau
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1275,19 +1509,19 @@ func (a *AuthAPIService) AuthControllerOauthGoogleExecute(r ApiAuthControllerOau
 	localVarPostBody = r.oauthGoogleDto
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1295,10 +1529,19 @@ func (a *AuthAPIService) AuthControllerOauthGoogleExecute(r ApiAuthControllerOau
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAuthControllerResendVerificationRequest struct {
@@ -1312,12 +1555,16 @@ func (r ApiAuthControllerResendVerificationRequest) EmailDto(emailDto EmailDto) 
 	return r
 }
 
-func (r ApiAuthControllerResendVerificationRequest) Execute() (*http.Response, error) {
+func (r ApiAuthControllerResendVerificationRequest) Execute() (*AuthControllerResendVerification201Response, *http.Response, error) {
 	return r.ApiService.AuthControllerResendVerificationExecute(r)
 }
 
 /*
-AuthControllerResendVerification Method for AuthControllerResendVerification
+AuthControllerResendVerification Resend the verification email
+
+Sends a fresh verification link to `email` if an account exists and is not yet verified. Always returns `{ ok: true }` so the response does not reveal whether the email is registered. Rate-limited per IP.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAuthControllerResendVerificationRequest
@@ -1330,16 +1577,18 @@ func (a *AuthAPIService) AuthControllerResendVerification(ctx context.Context) A
 }
 
 // Execute executes the request
-func (a *AuthAPIService) AuthControllerResendVerificationExecute(r ApiAuthControllerResendVerificationRequest) (*http.Response, error) {
+//  @return AuthControllerResendVerification201Response
+func (a *AuthAPIService) AuthControllerResendVerificationExecute(r ApiAuthControllerResendVerificationRequest) (*AuthControllerResendVerification201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AuthControllerResendVerification201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthAPIService.AuthControllerResendVerification")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/auth/resend-verification"
@@ -1348,7 +1597,7 @@ func (a *AuthAPIService) AuthControllerResendVerificationExecute(r ApiAuthContro
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.emailDto == nil {
-		return nil, reportError("emailDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("emailDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1361,7 +1610,7 @@ func (a *AuthAPIService) AuthControllerResendVerificationExecute(r ApiAuthContro
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1372,19 +1621,19 @@ func (a *AuthAPIService) AuthControllerResendVerificationExecute(r ApiAuthContro
 	localVarPostBody = r.emailDto
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1392,10 +1641,19 @@ func (a *AuthAPIService) AuthControllerResendVerificationExecute(r ApiAuthContro
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAuthControllerResetPasswordRequest struct {
@@ -1409,12 +1667,16 @@ func (r ApiAuthControllerResetPasswordRequest) ResetPasswordDto(resetPasswordDto
 	return r
 }
 
-func (r ApiAuthControllerResetPasswordRequest) Execute() (*http.Response, error) {
+func (r ApiAuthControllerResetPasswordRequest) Execute() (*AuthControllerResendVerification201Response, *http.Response, error) {
 	return r.ApiService.AuthControllerResetPasswordExecute(r)
 }
 
 /*
-AuthControllerResetPassword Method for AuthControllerResetPassword
+AuthControllerResetPassword Complete a password reset
+
+Sets a new `password` (min 8 chars) using the single-use reset `token` from the email. On success the token is consumed and every active session of the account is revoked, so the user must log in again. Returns 400 for an invalid or expired token. Rate-limited per IP.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAuthControllerResetPasswordRequest
@@ -1427,16 +1689,18 @@ func (a *AuthAPIService) AuthControllerResetPassword(ctx context.Context) ApiAut
 }
 
 // Execute executes the request
-func (a *AuthAPIService) AuthControllerResetPasswordExecute(r ApiAuthControllerResetPasswordRequest) (*http.Response, error) {
+//  @return AuthControllerResendVerification201Response
+func (a *AuthAPIService) AuthControllerResetPasswordExecute(r ApiAuthControllerResetPasswordRequest) (*AuthControllerResendVerification201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AuthControllerResendVerification201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthAPIService.AuthControllerResetPassword")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/auth/reset-password"
@@ -1445,7 +1709,7 @@ func (a *AuthAPIService) AuthControllerResetPasswordExecute(r ApiAuthControllerR
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.resetPasswordDto == nil {
-		return nil, reportError("resetPasswordDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("resetPasswordDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1458,7 +1722,7 @@ func (a *AuthAPIService) AuthControllerResetPasswordExecute(r ApiAuthControllerR
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1469,19 +1733,19 @@ func (a *AuthAPIService) AuthControllerResetPasswordExecute(r ApiAuthControllerR
 	localVarPostBody = r.resetPasswordDto
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1489,10 +1753,19 @@ func (a *AuthAPIService) AuthControllerResetPasswordExecute(r ApiAuthControllerR
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAuthControllerSetPasswordRequest struct {
@@ -1506,12 +1779,16 @@ func (r ApiAuthControllerSetPasswordRequest) SetPasswordDto(setPasswordDto SetPa
 	return r
 }
 
-func (r ApiAuthControllerSetPasswordRequest) Execute() (*http.Response, error) {
+func (r ApiAuthControllerSetPasswordRequest) Execute() (*AuthControllerSetPassword201Response, *http.Response, error) {
 	return r.ApiService.AuthControllerSetPasswordExecute(r)
 }
 
 /*
-AuthControllerSetPassword Method for AuthControllerSetPassword
+AuthControllerSetPassword Set or change the password
+
+Sets `newPassword` (min 8 chars). If the account already has a password, `currentPassword` is required and must match (400 if missing, 401 if wrong); SSO-only accounts can set a first password without it, which enables email login. Team-member seats get 403. `hadPassword` tells whether this was a change or a first set.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAuthControllerSetPasswordRequest
@@ -1524,16 +1801,18 @@ func (a *AuthAPIService) AuthControllerSetPassword(ctx context.Context) ApiAuthC
 }
 
 // Execute executes the request
-func (a *AuthAPIService) AuthControllerSetPasswordExecute(r ApiAuthControllerSetPasswordRequest) (*http.Response, error) {
+//  @return AuthControllerSetPassword201Response
+func (a *AuthAPIService) AuthControllerSetPasswordExecute(r ApiAuthControllerSetPasswordRequest) (*AuthControllerSetPassword201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AuthControllerSetPassword201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthAPIService.AuthControllerSetPassword")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/auth/password"
@@ -1542,7 +1821,7 @@ func (a *AuthAPIService) AuthControllerSetPasswordExecute(r ApiAuthControllerSet
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.setPasswordDto == nil {
-		return nil, reportError("setPasswordDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("setPasswordDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1555,7 +1834,7 @@ func (a *AuthAPIService) AuthControllerSetPasswordExecute(r ApiAuthControllerSet
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1564,21 +1843,35 @@ func (a *AuthAPIService) AuthControllerSetPasswordExecute(r ApiAuthControllerSet
 	}
 	// body params
 	localVarPostBody = r.setPasswordDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1586,10 +1879,19 @@ func (a *AuthAPIService) AuthControllerSetPasswordExecute(r ApiAuthControllerSet
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAuthControllerSetup2faRequest struct {
@@ -1597,12 +1899,16 @@ type ApiAuthControllerSetup2faRequest struct {
 	ApiService *AuthAPIService
 }
 
-func (r ApiAuthControllerSetup2faRequest) Execute() (*http.Response, error) {
+func (r ApiAuthControllerSetup2faRequest) Execute() (*AuthControllerSetup2fa201Response, *http.Response, error) {
 	return r.ApiService.AuthControllerSetup2faExecute(r)
 }
 
 /*
-AuthControllerSetup2fa Method for AuthControllerSetup2fa
+AuthControllerSetup2fa Begin TOTP 2FA setup
+
+Generates a new TOTP secret, stores it on the account and returns it with an `otpauth://` URI for authenticator apps. 2FA is not active until confirmed with the enable endpoint. Calling again replaces any unconfirmed secret.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAuthControllerSetup2faRequest
@@ -1615,16 +1921,18 @@ func (a *AuthAPIService) AuthControllerSetup2fa(ctx context.Context) ApiAuthCont
 }
 
 // Execute executes the request
-func (a *AuthAPIService) AuthControllerSetup2faExecute(r ApiAuthControllerSetup2faRequest) (*http.Response, error) {
+//  @return AuthControllerSetup2fa201Response
+func (a *AuthAPIService) AuthControllerSetup2faExecute(r ApiAuthControllerSetup2faRequest) (*AuthControllerSetup2fa201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AuthControllerSetup2fa201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthAPIService.AuthControllerSetup2fa")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/auth/2fa/setup"
@@ -1643,28 +1951,42 @@ func (a *AuthAPIService) AuthControllerSetup2faExecute(r ApiAuthControllerSetup2
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1672,10 +1994,19 @@ func (a *AuthAPIService) AuthControllerSetup2faExecute(r ApiAuthControllerSetup2
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAuthControllerSignupRequest struct {
@@ -1689,12 +2020,16 @@ func (r ApiAuthControllerSignupRequest) SignupDto(signupDto SignupDto) ApiAuthCo
 	return r
 }
 
-func (r ApiAuthControllerSignupRequest) Execute() (*http.Response, error) {
+func (r ApiAuthControllerSignupRequest) Execute() (*AuthControllerSignup201Response, *http.Response, error) {
 	return r.ApiService.AuthControllerSignupExecute(r)
 }
 
 /*
-AuthControllerSignup Method for AuthControllerSignup
+AuthControllerSignup Create an account
+
+Registers a new account from `email` and `password` (min 8 chars), with optional `type` (advertiser|publisher, default advertiser; only the default landing side, every account is dual-sided), `companyName`, `country` and `referredByCode`. A Turnstile token (`turnstileToken`) is checked first when Turnstile is configured. Creates a zero balance, records the referral if the code matches, emails a 48-hour verification link and returns a session token so the client is logged in immediately. The account starts in `pending` status until the email is verified. Returns 400 if the email is already registered.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAuthControllerSignupRequest
@@ -1707,16 +2042,18 @@ func (a *AuthAPIService) AuthControllerSignup(ctx context.Context) ApiAuthContro
 }
 
 // Execute executes the request
-func (a *AuthAPIService) AuthControllerSignupExecute(r ApiAuthControllerSignupRequest) (*http.Response, error) {
+//  @return AuthControllerSignup201Response
+func (a *AuthAPIService) AuthControllerSignupExecute(r ApiAuthControllerSignupRequest) (*AuthControllerSignup201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AuthControllerSignup201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthAPIService.AuthControllerSignup")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/auth/signup"
@@ -1725,7 +2062,7 @@ func (a *AuthAPIService) AuthControllerSignupExecute(r ApiAuthControllerSignupRe
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.signupDto == nil {
-		return nil, reportError("signupDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("signupDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1738,7 +2075,7 @@ func (a *AuthAPIService) AuthControllerSignupExecute(r ApiAuthControllerSignupRe
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1749,19 +2086,19 @@ func (a *AuthAPIService) AuthControllerSignupExecute(r ApiAuthControllerSignupRe
 	localVarPostBody = r.signupDto
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1769,10 +2106,19 @@ func (a *AuthAPIService) AuthControllerSignupExecute(r ApiAuthControllerSignupRe
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAuthControllerSsoConfigRequest struct {
@@ -1780,12 +2126,16 @@ type ApiAuthControllerSsoConfigRequest struct {
 	ApiService *AuthAPIService
 }
 
-func (r ApiAuthControllerSsoConfigRequest) Execute() (*http.Response, error) {
+func (r ApiAuthControllerSsoConfigRequest) Execute() (*AuthControllerSsoConfig200Response, *http.Response, error) {
 	return r.ApiService.AuthControllerSsoConfigExecute(r)
 }
 
 /*
-AuthControllerSsoConfig Method for AuthControllerSsoConfig
+AuthControllerSsoConfig Get public SSO and Turnstile config
+
+Returns the public settings the login page needs to render SSO buttons and the Turnstile widget: the Google client id (or null), whether GitHub and Microsoft SSO are configured, and the Turnstile site key (or null). No secrets are returned.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAuthControllerSsoConfigRequest
@@ -1798,16 +2148,18 @@ func (a *AuthAPIService) AuthControllerSsoConfig(ctx context.Context) ApiAuthCon
 }
 
 // Execute executes the request
-func (a *AuthAPIService) AuthControllerSsoConfigExecute(r ApiAuthControllerSsoConfigRequest) (*http.Response, error) {
+//  @return AuthControllerSsoConfig200Response
+func (a *AuthAPIService) AuthControllerSsoConfigExecute(r ApiAuthControllerSsoConfigRequest) (*AuthControllerSsoConfig200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AuthControllerSsoConfig200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthAPIService.AuthControllerSsoConfig")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/auth/sso-config"
@@ -1826,7 +2178,7 @@ func (a *AuthAPIService) AuthControllerSsoConfigExecute(r ApiAuthControllerSsoCo
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1835,19 +2187,19 @@ func (a *AuthAPIService) AuthControllerSsoConfigExecute(r ApiAuthControllerSsoCo
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1855,10 +2207,19 @@ func (a *AuthAPIService) AuthControllerSsoConfigExecute(r ApiAuthControllerSsoCo
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAuthControllerVerifyRequest struct {
@@ -1866,12 +2227,16 @@ type ApiAuthControllerVerifyRequest struct {
 	ApiService *AuthAPIService
 }
 
-func (r ApiAuthControllerVerifyRequest) Execute() (*http.Response, error) {
+func (r ApiAuthControllerVerifyRequest) Execute() (*AuthControllerVerify201Response, *http.Response, error) {
 	return r.ApiService.AuthControllerVerifyExecute(r)
 }
 
 /*
-AuthControllerVerify Method for AuthControllerVerify
+AuthControllerVerify Verify an email address
+
+Consumes the single-use `token` from the verification email. Marks the account email as verified and moves a `pending` account to `active`. Returns 400 if the token is unknown, already used or expired (tokens live 48 hours).
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAuthControllerVerifyRequest
@@ -1884,16 +2249,18 @@ func (a *AuthAPIService) AuthControllerVerify(ctx context.Context) ApiAuthContro
 }
 
 // Execute executes the request
-func (a *AuthAPIService) AuthControllerVerifyExecute(r ApiAuthControllerVerifyRequest) (*http.Response, error) {
+//  @return AuthControllerVerify201Response
+func (a *AuthAPIService) AuthControllerVerifyExecute(r ApiAuthControllerVerifyRequest) (*AuthControllerVerify201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AuthControllerVerify201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthAPIService.AuthControllerVerify")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/auth/verify-email"
@@ -1912,7 +2279,7 @@ func (a *AuthAPIService) AuthControllerVerifyExecute(r ApiAuthControllerVerifyRe
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1921,19 +2288,19 @@ func (a *AuthAPIService) AuthControllerVerifyExecute(r ApiAuthControllerVerifyRe
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1941,8 +2308,17 @@ func (a *AuthAPIService) AuthControllerVerifyExecute(r ApiAuthControllerVerifyRe
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

@@ -33,12 +33,16 @@ func (r ApiCapiControllerEventsRequest) CapiEventsDto(capiEventsDto CapiEventsDt
 	return r
 }
 
-func (r ApiCapiControllerEventsRequest) Execute() (*http.Response, error) {
+func (r ApiCapiControllerEventsRequest) Execute() (*CapiControllerEvents201Response, *http.Response, error) {
 	return r.ApiService.CapiControllerEventsExecute(r)
 }
 
 /*
-CapiControllerEvents Method for CapiControllerEvents
+CapiControllerEvents Ingest server-side conversion events (CAPI)
+
+Server-to-server batch ingest authenticated by the advertiser's CAPI token in the `X-CAPI-Token` header, not a session; a missing or invalid token returns 401. Each item in `events` needs `eventId` and `eventName`, plus optional `value`, `currency`, `clickId`, hashed `identifiers` (emailHash, phoneHash, externalId), `eventTime` and `customData`. Events are deduplicated per advertiser on `eventId` and attributed by click id first, then by the identity graph's most recent eligible click or impression. Results are per event and a failing event never fails the batch.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiCapiControllerEventsRequest
@@ -51,16 +55,18 @@ func (a *CapiAPIService) CapiControllerEvents(ctx context.Context) ApiCapiContro
 }
 
 // Execute executes the request
-func (a *CapiAPIService) CapiControllerEventsExecute(r ApiCapiControllerEventsRequest) (*http.Response, error) {
+//  @return CapiControllerEvents201Response
+func (a *CapiAPIService) CapiControllerEventsExecute(r ApiCapiControllerEventsRequest) (*CapiControllerEvents201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *CapiControllerEvents201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "CapiAPIService.CapiControllerEvents")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/capi/events"
@@ -69,7 +75,7 @@ func (a *CapiAPIService) CapiControllerEventsExecute(r ApiCapiControllerEventsRe
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.capiEventsDto == nil {
-		return nil, reportError("capiEventsDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("capiEventsDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -82,7 +88,7 @@ func (a *CapiAPIService) CapiControllerEventsExecute(r ApiCapiControllerEventsRe
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -93,19 +99,19 @@ func (a *CapiAPIService) CapiControllerEventsExecute(r ApiCapiControllerEventsRe
 	localVarPostBody = r.capiEventsDto
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -113,10 +119,19 @@ func (a *CapiAPIService) CapiControllerEventsExecute(r ApiCapiControllerEventsRe
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiCapiControllerRecentRequest struct {
@@ -130,12 +145,16 @@ func (r ApiCapiControllerRecentRequest) Limit(limit string) ApiCapiControllerRec
 	return r
 }
 
-func (r ApiCapiControllerRecentRequest) Execute() (*http.Response, error) {
+func (r ApiCapiControllerRecentRequest) Execute() ([]CapiControllerRecent200ResponseInner, *http.Response, error) {
 	return r.ApiService.CapiControllerRecentExecute(r)
 }
 
 /*
-CapiControllerRecent Method for CapiControllerRecent
+CapiControllerRecent List recent CAPI events
+
+Returns the advertiser's most recent CAPI-sourced postback log rows, newest first. `limit` defaults to 100 and is capped at 500. `attributed` shows whether the event was matched to a campaign.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiCapiControllerRecentRequest
@@ -148,16 +167,18 @@ func (a *CapiAPIService) CapiControllerRecent(ctx context.Context) ApiCapiContro
 }
 
 // Execute executes the request
-func (a *CapiAPIService) CapiControllerRecentExecute(r ApiCapiControllerRecentRequest) (*http.Response, error) {
+//  @return []CapiControllerRecent200ResponseInner
+func (a *CapiAPIService) CapiControllerRecentExecute(r ApiCapiControllerRecentRequest) ([]CapiControllerRecent200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []CapiControllerRecent200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "CapiAPIService.CapiControllerRecent")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/capi/events"
@@ -166,7 +187,7 @@ func (a *CapiAPIService) CapiControllerRecentExecute(r ApiCapiControllerRecentRe
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.limit == nil {
-		return nil, reportError("limit is required and must be specified")
+		return localVarReturnValue, nil, reportError("limit is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "limit", r.limit, "form", "")
@@ -180,28 +201,42 @@ func (a *CapiAPIService) CapiControllerRecentExecute(r ApiCapiControllerRecentRe
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -209,10 +244,19 @@ func (a *CapiAPIService) CapiControllerRecentExecute(r ApiCapiControllerRecentRe
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiCapiControllerTokenRequest struct {
@@ -220,12 +264,16 @@ type ApiCapiControllerTokenRequest struct {
 	ApiService *CapiAPIService
 }
 
-func (r ApiCapiControllerTokenRequest) Execute() (*http.Response, error) {
+func (r ApiCapiControllerTokenRequest) Execute() (*CapiControllerToken201Response, *http.Response, error) {
 	return r.ApiService.CapiControllerTokenExecute(r)
 }
 
 /*
-CapiControllerToken Method for CapiControllerToken
+CapiControllerToken Rotate the CAPI access token
+
+Revokes any active CAPI token for the advertiser and issues a new one. The full token (`<prefix>.<secret>`) is returned only in this response; the server stores only its hash. Use it as the `X-CAPI-Token` header on POST /v1/capi/events.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiCapiControllerTokenRequest
@@ -238,16 +286,18 @@ func (a *CapiAPIService) CapiControllerToken(ctx context.Context) ApiCapiControl
 }
 
 // Execute executes the request
-func (a *CapiAPIService) CapiControllerTokenExecute(r ApiCapiControllerTokenRequest) (*http.Response, error) {
+//  @return CapiControllerToken201Response
+func (a *CapiAPIService) CapiControllerTokenExecute(r ApiCapiControllerTokenRequest) (*CapiControllerToken201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *CapiControllerToken201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "CapiAPIService.CapiControllerToken")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/capi/token"
@@ -266,28 +316,42 @@ func (a *CapiAPIService) CapiControllerTokenExecute(r ApiCapiControllerTokenRequ
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -295,8 +359,17 @@ func (a *CapiAPIService) CapiControllerTokenExecute(r ApiCapiControllerTokenRequ
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

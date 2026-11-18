@@ -34,12 +34,16 @@ func (r ApiIdentityControllerConsentRequest) ConsentDto(consentDto ConsentDto) A
 	return r
 }
 
-func (r ApiIdentityControllerConsentRequest) Execute() (*http.Response, error) {
+func (r ApiIdentityControllerConsentRequest) Execute() (*IdentityControllerConsent201Response, *http.Response, error) {
 	return r.ApiService.IdentityControllerConsentExecute(r)
 }
 
 /*
-IdentityControllerConsent Method for IdentityControllerConsent
+IdentityControllerConsent Set identity consent state
+
+Sets `state` (`granted` or `denied`) on the identity `canonicalId`. `denied` blocks future cross-identity merges and signal moves involving it. Returns 404 if the identity does not exist or the caller does not own it (admins bypass).
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiIdentityControllerConsentRequest
@@ -52,16 +56,18 @@ func (a *IdentityAPIService) IdentityControllerConsent(ctx context.Context) ApiI
 }
 
 // Execute executes the request
-func (a *IdentityAPIService) IdentityControllerConsentExecute(r ApiIdentityControllerConsentRequest) (*http.Response, error) {
+//  @return IdentityControllerConsent201Response
+func (a *IdentityAPIService) IdentityControllerConsentExecute(r ApiIdentityControllerConsentRequest) (*IdentityControllerConsent201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *IdentityControllerConsent201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "IdentityAPIService.IdentityControllerConsent")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/identity/consent"
@@ -70,7 +76,7 @@ func (a *IdentityAPIService) IdentityControllerConsentExecute(r ApiIdentityContr
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.consentDto == nil {
-		return nil, reportError("consentDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("consentDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -83,7 +89,7 @@ func (a *IdentityAPIService) IdentityControllerConsentExecute(r ApiIdentityContr
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -92,21 +98,35 @@ func (a *IdentityAPIService) IdentityControllerConsentExecute(r ApiIdentityContr
 	}
 	// body params
 	localVarPostBody = r.consentDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -114,10 +134,19 @@ func (a *IdentityAPIService) IdentityControllerConsentExecute(r ApiIdentityContr
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiIdentityControllerGetRequest struct {
@@ -126,12 +155,16 @@ type ApiIdentityControllerGetRequest struct {
 	canonicalId string
 }
 
-func (r ApiIdentityControllerGetRequest) Execute() (*http.Response, error) {
+func (r ApiIdentityControllerGetRequest) Execute() (*IdentityControllerGet200Response, *http.Response, error) {
 	return r.ApiService.IdentityControllerGetExecute(r)
 }
 
 /*
-IdentityControllerGet Method for IdentityControllerGet
+IdentityControllerGet Get an identity with its signals
+
+Returns the identity row, the signals on it that the caller supplied (oldest first; admins see all) and the raw cookie/device ids among them. Never returns signals supplied by other accounts. Returns 404 if `canonicalId` does not exist or the caller does not own it (owns none of its signals).
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param canonicalId
@@ -146,16 +179,18 @@ func (a *IdentityAPIService) IdentityControllerGet(ctx context.Context, canonica
 }
 
 // Execute executes the request
-func (a *IdentityAPIService) IdentityControllerGetExecute(r ApiIdentityControllerGetRequest) (*http.Response, error) {
+//  @return IdentityControllerGet200Response
+func (a *IdentityAPIService) IdentityControllerGetExecute(r ApiIdentityControllerGetRequest) (*IdentityControllerGet200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *IdentityControllerGet200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "IdentityAPIService.IdentityControllerGet")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/identity/{canonicalId}"
@@ -175,28 +210,42 @@ func (a *IdentityAPIService) IdentityControllerGetExecute(r ApiIdentityControlle
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -204,10 +253,19 @@ func (a *IdentityAPIService) IdentityControllerGetExecute(r ApiIdentityControlle
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiIdentityControllerLinkRequest struct {
@@ -221,12 +279,16 @@ func (r ApiIdentityControllerLinkRequest) LinkIdentityDto(linkIdentityDto LinkId
 	return r
 }
 
-func (r ApiIdentityControllerLinkRequest) Execute() (*http.Response, error) {
+func (r ApiIdentityControllerLinkRequest) Execute() (*IdentityControllerLink201Response, *http.Response, error) {
 	return r.ApiService.IdentityControllerLinkExecute(r)
 }
 
 /*
-IdentityControllerLink Method for IdentityControllerLink
+IdentityControllerLink Link signals to an identity
+
+Adds `signals` (each `{ type, value }`, type one of email/phone/cookie/device/ip_ua) to the identity `canonicalId` without merging identities. A signal owned by another identity is moved only if neither identity has denied consent; otherwise it is skipped. The caller becomes an owner of the linked signals. Returns 404 if the identity does not exist or the caller does not own it (has not resolved/linked any of its signals; admins bypass), and 400 for an empty list.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiIdentityControllerLinkRequest
@@ -239,16 +301,18 @@ func (a *IdentityAPIService) IdentityControllerLink(ctx context.Context) ApiIden
 }
 
 // Execute executes the request
-func (a *IdentityAPIService) IdentityControllerLinkExecute(r ApiIdentityControllerLinkRequest) (*http.Response, error) {
+//  @return IdentityControllerLink201Response
+func (a *IdentityAPIService) IdentityControllerLinkExecute(r ApiIdentityControllerLinkRequest) (*IdentityControllerLink201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *IdentityControllerLink201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "IdentityAPIService.IdentityControllerLink")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/identity/link"
@@ -257,7 +321,7 @@ func (a *IdentityAPIService) IdentityControllerLinkExecute(r ApiIdentityControll
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.linkIdentityDto == nil {
-		return nil, reportError("linkIdentityDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("linkIdentityDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -270,7 +334,7 @@ func (a *IdentityAPIService) IdentityControllerLinkExecute(r ApiIdentityControll
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -279,21 +343,35 @@ func (a *IdentityAPIService) IdentityControllerLinkExecute(r ApiIdentityControll
 	}
 	// body params
 	localVarPostBody = r.linkIdentityDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -301,10 +379,19 @@ func (a *IdentityAPIService) IdentityControllerLinkExecute(r ApiIdentityControll
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiIdentityControllerResolveRequest struct {
@@ -318,12 +405,16 @@ func (r ApiIdentityControllerResolveRequest) ResolveIdentityDto(resolveIdentityD
 	return r
 }
 
-func (r ApiIdentityControllerResolveRequest) Execute() (*http.Response, error) {
+func (r ApiIdentityControllerResolveRequest) Execute() (*IdentityControllerResolve201Response, *http.Response, error) {
 	return r.ApiService.IdentityControllerResolveExecute(r)
 }
 
 /*
-IdentityControllerResolve Method for IdentityControllerResolve
+IdentityControllerResolve Resolve signals to a canonical identity
+
+Resolves any of `email`, `phone`, `cookieId`, `deviceId` (at least one, else 400) to a canonical identity, creating one if none matches and linking all signals to it. If the signals already belong to different identities they are merged into the oldest one, unless any of them has consent `denied`, in which case no merge happens and their signals stay put. Email and phone are normalized and hashed; mappings are mirrored to Redis for the ad-engine. The graph is shared across accounts (the same person resolves to one `canonicalId`), but the caller is recorded as an owner of the signals it supplied and the response lists only those signals, never signals supplied by other accounts.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiIdentityControllerResolveRequest
@@ -336,16 +427,18 @@ func (a *IdentityAPIService) IdentityControllerResolve(ctx context.Context) ApiI
 }
 
 // Execute executes the request
-func (a *IdentityAPIService) IdentityControllerResolveExecute(r ApiIdentityControllerResolveRequest) (*http.Response, error) {
+//  @return IdentityControllerResolve201Response
+func (a *IdentityAPIService) IdentityControllerResolveExecute(r ApiIdentityControllerResolveRequest) (*IdentityControllerResolve201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *IdentityControllerResolve201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "IdentityAPIService.IdentityControllerResolve")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/identity/resolve"
@@ -354,7 +447,7 @@ func (a *IdentityAPIService) IdentityControllerResolveExecute(r ApiIdentityContr
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.resolveIdentityDto == nil {
-		return nil, reportError("resolveIdentityDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("resolveIdentityDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -367,7 +460,7 @@ func (a *IdentityAPIService) IdentityControllerResolveExecute(r ApiIdentityContr
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -376,21 +469,35 @@ func (a *IdentityAPIService) IdentityControllerResolveExecute(r ApiIdentityContr
 	}
 	// body params
 	localVarPostBody = r.resolveIdentityDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -398,10 +505,19 @@ func (a *IdentityAPIService) IdentityControllerResolveExecute(r ApiIdentityContr
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiIdentityControllerStatsRequest struct {
@@ -409,12 +525,16 @@ type ApiIdentityControllerStatsRequest struct {
 	ApiService *IdentityAPIService
 }
 
-func (r ApiIdentityControllerStatsRequest) Execute() (*http.Response, error) {
+func (r ApiIdentityControllerStatsRequest) Execute() (*IdentityControllerStats200Response, *http.Response, error) {
 	return r.ApiService.IdentityControllerStatsExecute(r)
 }
 
 /*
-IdentityControllerStats Method for IdentityControllerStats
+IdentityControllerStats Get identity graph counts
+
+Returns counts across the identity graph: identities, linked signals, distinct households and identities that belong to a household (merged). Scoped to the calling account: only identities it owns and signals it supplied (admins get graph-wide totals).
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiIdentityControllerStatsRequest
@@ -427,16 +547,18 @@ func (a *IdentityAPIService) IdentityControllerStats(ctx context.Context) ApiIde
 }
 
 // Execute executes the request
-func (a *IdentityAPIService) IdentityControllerStatsExecute(r ApiIdentityControllerStatsRequest) (*http.Response, error) {
+//  @return IdentityControllerStats200Response
+func (a *IdentityAPIService) IdentityControllerStatsExecute(r ApiIdentityControllerStatsRequest) (*IdentityControllerStats200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *IdentityControllerStats200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "IdentityAPIService.IdentityControllerStats")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/identity/stats"
@@ -455,28 +577,42 @@ func (a *IdentityAPIService) IdentityControllerStatsExecute(r ApiIdentityControl
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -484,8 +620,17 @@ func (a *IdentityAPIService) IdentityControllerStatsExecute(r ApiIdentityControl
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

@@ -27,12 +27,16 @@ type ApiFinanceControllerBalanceRequest struct {
 	ApiService *FinanceAPIService
 }
 
-func (r ApiFinanceControllerBalanceRequest) Execute() (*http.Response, error) {
+func (r ApiFinanceControllerBalanceRequest) Execute() (*FinBalance, *http.Response, error) {
 	return r.ApiService.FinanceControllerBalanceExecute(r)
 }
 
 /*
-FinanceControllerBalance Method for FinanceControllerBalance
+FinanceControllerBalance Get the caller's available and held balance
+
+Returns the materialized balance row for the caller's account: available funds, funds held (pending payouts and unmatured earnings) and the account currency. Returns zeros in USD when no ledger activity exists.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiFinanceControllerBalanceRequest
@@ -45,16 +49,18 @@ func (a *FinanceAPIService) FinanceControllerBalance(ctx context.Context) ApiFin
 }
 
 // Execute executes the request
-func (a *FinanceAPIService) FinanceControllerBalanceExecute(r ApiFinanceControllerBalanceRequest) (*http.Response, error) {
+//  @return FinBalance
+func (a *FinanceAPIService) FinanceControllerBalanceExecute(r ApiFinanceControllerBalanceRequest) (*FinBalance, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *FinBalance
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "FinanceAPIService.FinanceControllerBalance")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/finance/balance"
@@ -73,28 +79,42 @@ func (a *FinanceAPIService) FinanceControllerBalanceExecute(r ApiFinanceControll
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -102,10 +122,19 @@ func (a *FinanceAPIService) FinanceControllerBalanceExecute(r ApiFinanceControll
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiFinanceControllerCryptoWebhookRequest struct {
@@ -119,12 +148,16 @@ func (r ApiFinanceControllerCryptoWebhookRequest) Hmac(hmac string) ApiFinanceCo
 	return r
 }
 
-func (r ApiFinanceControllerCryptoWebhookRequest) Execute() (*http.Response, error) {
+func (r ApiFinanceControllerCryptoWebhookRequest) Execute() (string, *http.Response, error) {
 	return r.ApiService.FinanceControllerCryptoWebhookExecute(r)
 }
 
 /*
-FinanceControllerCryptoWebhook Method for FinanceControllerCryptoWebhook
+FinanceControllerCryptoWebhook Receive OxaPay crypto webhooks
+
+Called by OxaPay. Verifies the `hmac` header (HMAC-SHA512 of the raw body). Payment callbacks (merchant key) credit the deposit when status is 'Paid'; payout callbacks (payout key) settle the held funds as paid on 'Confirmed' or return them on 'Failed'/'Rejected'. Always answers 200 with the plain body 'ok' once verified so OxaPay stops retrying.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiFinanceControllerCryptoWebhookRequest
@@ -137,16 +170,18 @@ func (a *FinanceAPIService) FinanceControllerCryptoWebhook(ctx context.Context) 
 }
 
 // Execute executes the request
-func (a *FinanceAPIService) FinanceControllerCryptoWebhookExecute(r ApiFinanceControllerCryptoWebhookRequest) (*http.Response, error) {
+//  @return string
+func (a *FinanceAPIService) FinanceControllerCryptoWebhookExecute(r ApiFinanceControllerCryptoWebhookRequest) (string, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  string
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "FinanceAPIService.FinanceControllerCryptoWebhook")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/finance/webhook/crypto"
@@ -155,7 +190,7 @@ func (a *FinanceAPIService) FinanceControllerCryptoWebhookExecute(r ApiFinanceCo
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.hmac == nil {
-		return nil, reportError("hmac is required and must be specified")
+		return localVarReturnValue, nil, reportError("hmac is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -168,7 +203,7 @@ func (a *FinanceAPIService) FinanceControllerCryptoWebhookExecute(r ApiFinanceCo
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"text/plain"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -178,19 +213,19 @@ func (a *FinanceAPIService) FinanceControllerCryptoWebhookExecute(r ApiFinanceCo
 	parameterAddToHeaderOrQuery(localVarHeaderParams, "hmac", r.hmac, "simple", "")
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -198,10 +233,19 @@ func (a *FinanceAPIService) FinanceControllerCryptoWebhookExecute(r ApiFinanceCo
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiFinanceControllerCurrenciesRequest struct {
@@ -209,12 +253,16 @@ type ApiFinanceControllerCurrenciesRequest struct {
 	ApiService *FinanceAPIService
 }
 
-func (r ApiFinanceControllerCurrenciesRequest) Execute() (*http.Response, error) {
+func (r ApiFinanceControllerCurrenciesRequest) Execute() ([]FinCurrencyRate, *http.Response, error) {
 	return r.ApiService.FinanceControllerCurrenciesExecute(r)
 }
 
 /*
-FinanceControllerCurrencies Method for FinanceControllerCurrencies
+FinanceControllerCurrencies List registered currencies and token rates
+
+Returns every row of currency_rates (fiat codes and tenant-registered tokens) with its USD rate in micro-USD, optional live price feed and last update, ordered by most recently updated.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiFinanceControllerCurrenciesRequest
@@ -227,16 +275,18 @@ func (a *FinanceAPIService) FinanceControllerCurrencies(ctx context.Context) Api
 }
 
 // Execute executes the request
-func (a *FinanceAPIService) FinanceControllerCurrenciesExecute(r ApiFinanceControllerCurrenciesRequest) (*http.Response, error) {
+//  @return []FinCurrencyRate
+func (a *FinanceAPIService) FinanceControllerCurrenciesExecute(r ApiFinanceControllerCurrenciesRequest) ([]FinCurrencyRate, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []FinCurrencyRate
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "FinanceAPIService.FinanceControllerCurrencies")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/finance/currencies"
@@ -255,28 +305,42 @@ func (a *FinanceAPIService) FinanceControllerCurrenciesExecute(r ApiFinanceContr
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -284,10 +348,19 @@ func (a *FinanceAPIService) FinanceControllerCurrenciesExecute(r ApiFinanceContr
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiFinanceControllerDepositRequest struct {
@@ -301,12 +374,16 @@ func (r ApiFinanceControllerDepositRequest) DepositDto(depositDto DepositDto) Ap
 	return r
 }
 
-func (r ApiFinanceControllerDepositRequest) Execute() (*http.Response, error) {
+func (r ApiFinanceControllerDepositRequest) Execute() (*FinDepositResult, *http.Response, error) {
 	return r.ApiService.FinanceControllerDepositExecute(r)
 }
 
 /*
-FinanceControllerDeposit Method for FinanceControllerDeposit
+FinanceControllerDeposit Start a deposit
+
+Creates a pending deposit for `amount` (0.01..1,000,000, 2 dp) through `provider`: stripe (default) / card, paypal, crypto, wire, paxum, or mock (refused in production). The deposit is denominated in the account's currency; tokens not at USD par are charged to the provider in USD. Hosted-checkout providers return a redirectUrl and are credited later by webhook; wire/paxum return transfer instructions and are credited when ops confirm receipt; mock completes immediately. An unconfigured provider is refused.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiFinanceControllerDepositRequest
@@ -319,16 +396,18 @@ func (a *FinanceAPIService) FinanceControllerDeposit(ctx context.Context) ApiFin
 }
 
 // Execute executes the request
-func (a *FinanceAPIService) FinanceControllerDepositExecute(r ApiFinanceControllerDepositRequest) (*http.Response, error) {
+//  @return FinDepositResult
+func (a *FinanceAPIService) FinanceControllerDepositExecute(r ApiFinanceControllerDepositRequest) (*FinDepositResult, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *FinDepositResult
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "FinanceAPIService.FinanceControllerDeposit")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/finance/deposit"
@@ -337,7 +416,7 @@ func (a *FinanceAPIService) FinanceControllerDepositExecute(r ApiFinanceControll
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.depositDto == nil {
-		return nil, reportError("depositDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("depositDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -350,7 +429,7 @@ func (a *FinanceAPIService) FinanceControllerDepositExecute(r ApiFinanceControll
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -359,21 +438,35 @@ func (a *FinanceAPIService) FinanceControllerDepositExecute(r ApiFinanceControll
 	}
 	// body params
 	localVarPostBody = r.depositDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -381,10 +474,19 @@ func (a *FinanceAPIService) FinanceControllerDepositExecute(r ApiFinanceControll
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiFinanceControllerDepositsRequest struct {
@@ -392,12 +494,16 @@ type ApiFinanceControllerDepositsRequest struct {
 	ApiService *FinanceAPIService
 }
 
-func (r ApiFinanceControllerDepositsRequest) Execute() (*http.Response, error) {
+func (r ApiFinanceControllerDepositsRequest) Execute() ([]FinDeposit, *http.Response, error) {
 	return r.ApiService.FinanceControllerDepositsExecute(r)
 }
 
 /*
-FinanceControllerDeposits Method for FinanceControllerDeposits
+FinanceControllerDeposits List the caller's deposits
+
+Returns the caller's 100 most recent deposits (all statuses), newest first.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiFinanceControllerDepositsRequest
@@ -410,16 +516,18 @@ func (a *FinanceAPIService) FinanceControllerDeposits(ctx context.Context) ApiFi
 }
 
 // Execute executes the request
-func (a *FinanceAPIService) FinanceControllerDepositsExecute(r ApiFinanceControllerDepositsRequest) (*http.Response, error) {
+//  @return []FinDeposit
+func (a *FinanceAPIService) FinanceControllerDepositsExecute(r ApiFinanceControllerDepositsRequest) ([]FinDeposit, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []FinDeposit
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "FinanceAPIService.FinanceControllerDeposits")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/finance/deposits"
@@ -438,28 +546,42 @@ func (a *FinanceAPIService) FinanceControllerDepositsExecute(r ApiFinanceControl
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -467,10 +589,19 @@ func (a *FinanceAPIService) FinanceControllerDepositsExecute(r ApiFinanceControl
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiFinanceControllerHistoryRequest struct {
@@ -478,12 +609,16 @@ type ApiFinanceControllerHistoryRequest struct {
 	ApiService *FinanceAPIService
 }
 
-func (r ApiFinanceControllerHistoryRequest) Execute() (*http.Response, error) {
+func (r ApiFinanceControllerHistoryRequest) Execute() ([]FinLedgerEntry, *http.Response, error) {
 	return r.ApiService.FinanceControllerHistoryExecute(r)
 }
 
 /*
-FinanceControllerHistory Method for FinanceControllerHistory
+FinanceControllerHistory List the caller's ledger entries
+
+Returns the caller's 100 most recent ledger entries, newest first. Every money movement is one immutable, signed entry with a running balance_after and a unique idempotency key.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiFinanceControllerHistoryRequest
@@ -496,16 +631,18 @@ func (a *FinanceAPIService) FinanceControllerHistory(ctx context.Context) ApiFin
 }
 
 // Execute executes the request
-func (a *FinanceAPIService) FinanceControllerHistoryExecute(r ApiFinanceControllerHistoryRequest) (*http.Response, error) {
+//  @return []FinLedgerEntry
+func (a *FinanceAPIService) FinanceControllerHistoryExecute(r ApiFinanceControllerHistoryRequest) ([]FinLedgerEntry, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []FinLedgerEntry
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "FinanceAPIService.FinanceControllerHistory")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/finance/ledger"
@@ -524,28 +661,42 @@ func (a *FinanceAPIService) FinanceControllerHistoryExecute(r ApiFinanceControll
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -553,10 +704,19 @@ func (a *FinanceAPIService) FinanceControllerHistoryExecute(r ApiFinanceControll
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiFinanceControllerMethodsRequest struct {
@@ -564,12 +724,16 @@ type ApiFinanceControllerMethodsRequest struct {
 	ApiService *FinanceAPIService
 }
 
-func (r ApiFinanceControllerMethodsRequest) Execute() (*http.Response, error) {
+func (r ApiFinanceControllerMethodsRequest) Execute() (*FinanceControllerMethods200Response, *http.Response, error) {
 	return r.ApiService.FinanceControllerMethodsExecute(r)
 }
 
 /*
-FinanceControllerMethods Method for FinanceControllerMethods
+FinanceControllerMethods List configured deposit and payout rails
+
+Returns the payment rails usable in this environment, derived from configured provider credentials. Deposit rails can include card, crypto, paypal, wire, paxum (and mock outside production); payout rails crypto, paxum and wire (wire payout is always offered as a manual bank transfer).
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiFinanceControllerMethodsRequest
@@ -582,16 +746,18 @@ func (a *FinanceAPIService) FinanceControllerMethods(ctx context.Context) ApiFin
 }
 
 // Execute executes the request
-func (a *FinanceAPIService) FinanceControllerMethodsExecute(r ApiFinanceControllerMethodsRequest) (*http.Response, error) {
+//  @return FinanceControllerMethods200Response
+func (a *FinanceAPIService) FinanceControllerMethodsExecute(r ApiFinanceControllerMethodsRequest) (*FinanceControllerMethods200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *FinanceControllerMethods200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "FinanceAPIService.FinanceControllerMethods")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/finance/methods"
@@ -610,28 +776,42 @@ func (a *FinanceAPIService) FinanceControllerMethodsExecute(r ApiFinanceControll
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -639,10 +819,19 @@ func (a *FinanceAPIService) FinanceControllerMethodsExecute(r ApiFinanceControll
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiFinanceControllerPayoutRequest struct {
@@ -656,12 +845,16 @@ func (r ApiFinanceControllerPayoutRequest) PayoutDto(payoutDto PayoutDto) ApiFin
 	return r
 }
 
-func (r ApiFinanceControllerPayoutRequest) Execute() (*http.Response, error) {
+func (r ApiFinanceControllerPayoutRequest) Execute() (*FinanceControllerPayout201Response, *http.Response, error) {
 	return r.ApiService.FinanceControllerPayoutExecute(r)
 }
 
 /*
-FinanceControllerPayout Method for FinanceControllerPayout
+FinanceControllerPayout Request a payout
+
+Requests a withdrawal of `amount` via `method` (crypto, paxum or wire) to `destination` (method-specific object). Enforces the minimum payout and, when configured, a tax form on file. Inside one transaction the balance row is locked, available funds are re-checked (400 'insufficient available balance'), and the amount is moved from available to held. Dispatch to the provider happens later; the payout starts in status 'requested'.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiFinanceControllerPayoutRequest
@@ -674,16 +867,18 @@ func (a *FinanceAPIService) FinanceControllerPayout(ctx context.Context) ApiFina
 }
 
 // Execute executes the request
-func (a *FinanceAPIService) FinanceControllerPayoutExecute(r ApiFinanceControllerPayoutRequest) (*http.Response, error) {
+//  @return FinanceControllerPayout201Response
+func (a *FinanceAPIService) FinanceControllerPayoutExecute(r ApiFinanceControllerPayoutRequest) (*FinanceControllerPayout201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *FinanceControllerPayout201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "FinanceAPIService.FinanceControllerPayout")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/finance/payout"
@@ -692,7 +887,7 @@ func (a *FinanceAPIService) FinanceControllerPayoutExecute(r ApiFinanceControlle
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.payoutDto == nil {
-		return nil, reportError("payoutDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("payoutDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -705,7 +900,7 @@ func (a *FinanceAPIService) FinanceControllerPayoutExecute(r ApiFinanceControlle
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -714,21 +909,35 @@ func (a *FinanceAPIService) FinanceControllerPayoutExecute(r ApiFinanceControlle
 	}
 	// body params
 	localVarPostBody = r.payoutDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -736,10 +945,19 @@ func (a *FinanceAPIService) FinanceControllerPayoutExecute(r ApiFinanceControlle
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiFinanceControllerPayoutsRequest struct {
@@ -747,12 +965,16 @@ type ApiFinanceControllerPayoutsRequest struct {
 	ApiService *FinanceAPIService
 }
 
-func (r ApiFinanceControllerPayoutsRequest) Execute() (*http.Response, error) {
+func (r ApiFinanceControllerPayoutsRequest) Execute() ([]FinPayout, *http.Response, error) {
 	return r.ApiService.FinanceControllerPayoutsExecute(r)
 }
 
 /*
-FinanceControllerPayouts Method for FinanceControllerPayouts
+FinanceControllerPayouts List the caller's payouts
+
+Returns the publisher's 100 most recent payout requests, newest first, with status, method, destination and provider reference.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiFinanceControllerPayoutsRequest
@@ -765,16 +987,18 @@ func (a *FinanceAPIService) FinanceControllerPayouts(ctx context.Context) ApiFin
 }
 
 // Execute executes the request
-func (a *FinanceAPIService) FinanceControllerPayoutsExecute(r ApiFinanceControllerPayoutsRequest) (*http.Response, error) {
+//  @return []FinPayout
+func (a *FinanceAPIService) FinanceControllerPayoutsExecute(r ApiFinanceControllerPayoutsRequest) ([]FinPayout, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []FinPayout
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "FinanceAPIService.FinanceControllerPayouts")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/finance/payouts"
@@ -793,28 +1017,42 @@ func (a *FinanceAPIService) FinanceControllerPayoutsExecute(r ApiFinanceControll
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -822,10 +1060,19 @@ func (a *FinanceAPIService) FinanceControllerPayoutsExecute(r ApiFinanceControll
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiFinanceControllerPaypalWebhookRequest struct {
@@ -863,12 +1110,16 @@ func (r ApiFinanceControllerPaypalWebhookRequest) PaypalTransmissionSig(paypalTr
 	return r
 }
 
-func (r ApiFinanceControllerPaypalWebhookRequest) Execute() (*http.Response, error) {
+func (r ApiFinanceControllerPaypalWebhookRequest) Execute() (*FinanceControllerPaypalWebhook201Response, *http.Response, error) {
 	return r.ApiService.FinanceControllerPaypalWebhookExecute(r)
 }
 
 /*
-FinanceControllerPaypalWebhook Method for FinanceControllerPaypalWebhook
+FinanceControllerPaypalWebhook Receive PayPal order webhooks
+
+Called by PayPal. Verifies the PayPal-Transmission-* headers via PayPal's verify-webhook-signature API before any crediting (400 if unverifiable or PayPal is not configured). CHECKOUT.ORDER.APPROVED captures the order and credits the matching deposit; PAYMENT.CAPTURE.COMPLETED credits directly. Crediting is idempotent; other events are ignored.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiFinanceControllerPaypalWebhookRequest
@@ -881,16 +1132,18 @@ func (a *FinanceAPIService) FinanceControllerPaypalWebhook(ctx context.Context) 
 }
 
 // Execute executes the request
-func (a *FinanceAPIService) FinanceControllerPaypalWebhookExecute(r ApiFinanceControllerPaypalWebhookRequest) (*http.Response, error) {
+//  @return FinanceControllerPaypalWebhook201Response
+func (a *FinanceAPIService) FinanceControllerPaypalWebhookExecute(r ApiFinanceControllerPaypalWebhookRequest) (*FinanceControllerPaypalWebhook201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *FinanceControllerPaypalWebhook201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "FinanceAPIService.FinanceControllerPaypalWebhook")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/finance/webhook/paypal"
@@ -899,19 +1152,19 @@ func (a *FinanceAPIService) FinanceControllerPaypalWebhookExecute(r ApiFinanceCo
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.paypalTransmissionId == nil {
-		return nil, reportError("paypalTransmissionId is required and must be specified")
+		return localVarReturnValue, nil, reportError("paypalTransmissionId is required and must be specified")
 	}
 	if r.paypalTransmissionTime == nil {
-		return nil, reportError("paypalTransmissionTime is required and must be specified")
+		return localVarReturnValue, nil, reportError("paypalTransmissionTime is required and must be specified")
 	}
 	if r.paypalCertUrl == nil {
-		return nil, reportError("paypalCertUrl is required and must be specified")
+		return localVarReturnValue, nil, reportError("paypalCertUrl is required and must be specified")
 	}
 	if r.paypalAuthAlgo == nil {
-		return nil, reportError("paypalAuthAlgo is required and must be specified")
+		return localVarReturnValue, nil, reportError("paypalAuthAlgo is required and must be specified")
 	}
 	if r.paypalTransmissionSig == nil {
-		return nil, reportError("paypalTransmissionSig is required and must be specified")
+		return localVarReturnValue, nil, reportError("paypalTransmissionSig is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -924,7 +1177,7 @@ func (a *FinanceAPIService) FinanceControllerPaypalWebhookExecute(r ApiFinanceCo
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -938,19 +1191,19 @@ func (a *FinanceAPIService) FinanceControllerPaypalWebhookExecute(r ApiFinanceCo
 	parameterAddToHeaderOrQuery(localVarHeaderParams, "paypal-transmission-sig", r.paypalTransmissionSig, "simple", "")
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -958,10 +1211,19 @@ func (a *FinanceAPIService) FinanceControllerPaypalWebhookExecute(r ApiFinanceCo
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiFinanceControllerStripeWebhookRequest struct {
@@ -975,12 +1237,16 @@ func (r ApiFinanceControllerStripeWebhookRequest) StripeSignature(stripeSignatur
 	return r
 }
 
-func (r ApiFinanceControllerStripeWebhookRequest) Execute() (*http.Response, error) {
+func (r ApiFinanceControllerStripeWebhookRequest) Execute() (*FinanceControllerStripeWebhook201Response, *http.Response, error) {
 	return r.ApiService.FinanceControllerStripeWebhookExecute(r)
 }
 
 /*
-FinanceControllerStripeWebhook Method for FinanceControllerStripeWebhook
+FinanceControllerStripeWebhook Receive Stripe payment webhooks
+
+Called by Stripe, not by API clients. Verifies the `stripe-signature` header against the raw body (400 on failure or if Stripe is not configured). On checkout.session.completed (paid) or payment_intent.succeeded it resolves the deposit from metadata or provider_ref and credits it to the ledger idempotently; other event types are acknowledged and ignored.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiFinanceControllerStripeWebhookRequest
@@ -993,16 +1259,18 @@ func (a *FinanceAPIService) FinanceControllerStripeWebhook(ctx context.Context) 
 }
 
 // Execute executes the request
-func (a *FinanceAPIService) FinanceControllerStripeWebhookExecute(r ApiFinanceControllerStripeWebhookRequest) (*http.Response, error) {
+//  @return FinanceControllerStripeWebhook201Response
+func (a *FinanceAPIService) FinanceControllerStripeWebhookExecute(r ApiFinanceControllerStripeWebhookRequest) (*FinanceControllerStripeWebhook201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *FinanceControllerStripeWebhook201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "FinanceAPIService.FinanceControllerStripeWebhook")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/finance/webhook/stripe"
@@ -1011,7 +1279,7 @@ func (a *FinanceAPIService) FinanceControllerStripeWebhookExecute(r ApiFinanceCo
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.stripeSignature == nil {
-		return nil, reportError("stripeSignature is required and must be specified")
+		return localVarReturnValue, nil, reportError("stripeSignature is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1024,7 +1292,7 @@ func (a *FinanceAPIService) FinanceControllerStripeWebhookExecute(r ApiFinanceCo
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1034,19 +1302,19 @@ func (a *FinanceAPIService) FinanceControllerStripeWebhookExecute(r ApiFinanceCo
 	parameterAddToHeaderOrQuery(localVarHeaderParams, "stripe-signature", r.stripeSignature, "simple", "")
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1054,10 +1322,19 @@ func (a *FinanceAPIService) FinanceControllerStripeWebhookExecute(r ApiFinanceCo
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiFinanceControllerSubmitTaxFormRequest struct {
@@ -1071,12 +1348,16 @@ func (r ApiFinanceControllerSubmitTaxFormRequest) TaxFormDto(taxFormDto TaxFormD
 	return r
 }
 
-func (r ApiFinanceControllerSubmitTaxFormRequest) Execute() (*http.Response, error) {
+func (r ApiFinanceControllerSubmitTaxFormRequest) Execute() (*FinTaxForm, *http.Response, error) {
 	return r.ApiService.FinanceControllerSubmitTaxFormExecute(r)
 }
 
 /*
-FinanceControllerSubmitTaxForm Method for FinanceControllerSubmitTaxForm
+FinanceControllerSubmitTaxForm Submit or replace the tax form
+
+Upserts the publisher's tax form. Body: `formType` (w9|w8ben), `legalName`, optional `taxClassification`, `taxId` (SSN/EIN/TIN, encrypted at rest; only the last 4 digits are kept in clear), `address`, 2-letter `country` and `certified` (must be true). Status resets to 'submitted'. Returns the masked view.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiFinanceControllerSubmitTaxFormRequest
@@ -1089,16 +1370,18 @@ func (a *FinanceAPIService) FinanceControllerSubmitTaxForm(ctx context.Context) 
 }
 
 // Execute executes the request
-func (a *FinanceAPIService) FinanceControllerSubmitTaxFormExecute(r ApiFinanceControllerSubmitTaxFormRequest) (*http.Response, error) {
+//  @return FinTaxForm
+func (a *FinanceAPIService) FinanceControllerSubmitTaxFormExecute(r ApiFinanceControllerSubmitTaxFormRequest) (*FinTaxForm, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *FinTaxForm
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "FinanceAPIService.FinanceControllerSubmitTaxForm")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/finance/tax-form"
@@ -1107,7 +1390,7 @@ func (a *FinanceAPIService) FinanceControllerSubmitTaxFormExecute(r ApiFinanceCo
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.taxFormDto == nil {
-		return nil, reportError("taxFormDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("taxFormDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1120,7 +1403,7 @@ func (a *FinanceAPIService) FinanceControllerSubmitTaxFormExecute(r ApiFinanceCo
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1129,21 +1412,35 @@ func (a *FinanceAPIService) FinanceControllerSubmitTaxFormExecute(r ApiFinanceCo
 	}
 	// body params
 	localVarPostBody = r.taxFormDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1151,10 +1448,19 @@ func (a *FinanceAPIService) FinanceControllerSubmitTaxFormExecute(r ApiFinanceCo
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiFinanceControllerTaxFormRequest struct {
@@ -1162,12 +1468,16 @@ type ApiFinanceControllerTaxFormRequest struct {
 	ApiService *FinanceAPIService
 }
 
-func (r ApiFinanceControllerTaxFormRequest) Execute() (*http.Response, error) {
+func (r ApiFinanceControllerTaxFormRequest) Execute() (*FinTaxForm, *http.Response, error) {
 	return r.ApiService.FinanceControllerTaxFormExecute(r)
 }
 
 /*
-FinanceControllerTaxForm Method for FinanceControllerTaxForm
+FinanceControllerTaxForm Get the caller's tax form (masked)
+
+Returns the publisher's W-9 / W-8BEN on file with the tax id masked to its last 4 digits, or `{ onFile: false }` if none has been submitted.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiFinanceControllerTaxFormRequest
@@ -1180,16 +1490,18 @@ func (a *FinanceAPIService) FinanceControllerTaxForm(ctx context.Context) ApiFin
 }
 
 // Execute executes the request
-func (a *FinanceAPIService) FinanceControllerTaxFormExecute(r ApiFinanceControllerTaxFormRequest) (*http.Response, error) {
+//  @return FinTaxForm
+func (a *FinanceAPIService) FinanceControllerTaxFormExecute(r ApiFinanceControllerTaxFormRequest) (*FinTaxForm, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *FinTaxForm
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "FinanceAPIService.FinanceControllerTaxForm")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/finance/tax-form"
@@ -1208,28 +1520,42 @@ func (a *FinanceAPIService) FinanceControllerTaxFormExecute(r ApiFinanceControll
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1237,10 +1563,19 @@ func (a *FinanceAPIService) FinanceControllerTaxFormExecute(r ApiFinanceControll
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiFinanceControllerUpsertCurrencyRequest struct {
@@ -1254,12 +1589,16 @@ func (r ApiFinanceControllerUpsertCurrencyRequest) CurrencyDto(currencyDto Curre
 	return r
 }
 
-func (r ApiFinanceControllerUpsertCurrencyRequest) Execute() (*http.Response, error) {
+func (r ApiFinanceControllerUpsertCurrencyRequest) Execute() (*FinCurrencyRate, *http.Response, error) {
 	return r.ApiService.FinanceControllerUpsertCurrencyExecute(r)
 }
 
 /*
-FinanceControllerUpsertCurrency Method for FinanceControllerUpsertCurrency
+FinanceControllerUpsertCurrency Register or update the caller's token rate
+
+Creates or updates a currency code (2-12 uppercase alphanumerics) owned by the caller. Body: `code`, `name`, and either `usdMicro` (micro-USD per unit) or `rateUrl` (a price API polled to keep the rate current, SSRF-guarded) with optional `rateJsonPath` (dot-path to the price). When rateUrl is given it is fetched once to seed the rate. Fails with 400 if the code belongs to another account or no positive rate can be determined.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiFinanceControllerUpsertCurrencyRequest
@@ -1272,16 +1611,18 @@ func (a *FinanceAPIService) FinanceControllerUpsertCurrency(ctx context.Context)
 }
 
 // Execute executes the request
-func (a *FinanceAPIService) FinanceControllerUpsertCurrencyExecute(r ApiFinanceControllerUpsertCurrencyRequest) (*http.Response, error) {
+//  @return FinCurrencyRate
+func (a *FinanceAPIService) FinanceControllerUpsertCurrencyExecute(r ApiFinanceControllerUpsertCurrencyRequest) (*FinCurrencyRate, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *FinCurrencyRate
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "FinanceAPIService.FinanceControllerUpsertCurrency")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/finance/currencies"
@@ -1290,7 +1631,7 @@ func (a *FinanceAPIService) FinanceControllerUpsertCurrencyExecute(r ApiFinanceC
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.currencyDto == nil {
-		return nil, reportError("currencyDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("currencyDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1303,7 +1644,7 @@ func (a *FinanceAPIService) FinanceControllerUpsertCurrencyExecute(r ApiFinanceC
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1312,21 +1653,35 @@ func (a *FinanceAPIService) FinanceControllerUpsertCurrencyExecute(r ApiFinanceC
 	}
 	// body params
 	localVarPostBody = r.currencyDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1334,8 +1689,17 @@ func (a *FinanceAPIService) FinanceControllerUpsertCurrencyExecute(r ApiFinanceC
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

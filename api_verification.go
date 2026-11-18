@@ -27,12 +27,16 @@ type ApiVerificationControllerCategoriesRequest struct {
 	ApiService *VerificationAPIService
 }
 
-func (r ApiVerificationControllerCategoriesRequest) Execute() (*http.Response, error) {
+func (r ApiVerificationControllerCategoriesRequest) Execute() ([]VerificationControllerCategories200ResponseInner, *http.Response, error) {
 	return r.ApiService.VerificationControllerCategoriesExecute(r)
 }
 
 /*
-VerificationControllerCategories Method for VerificationControllerCategories
+VerificationControllerCategories List brand-safety categories
+
+Returns the static brand-safety category catalog (ids such as `adult`, `violence`, `hate`) accepted in verification settings.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiVerificationControllerCategoriesRequest
@@ -45,16 +49,18 @@ func (a *VerificationAPIService) VerificationControllerCategories(ctx context.Co
 }
 
 // Execute executes the request
-func (a *VerificationAPIService) VerificationControllerCategoriesExecute(r ApiVerificationControllerCategoriesRequest) (*http.Response, error) {
+//  @return []VerificationControllerCategories200ResponseInner
+func (a *VerificationAPIService) VerificationControllerCategoriesExecute(r ApiVerificationControllerCategoriesRequest) ([]VerificationControllerCategories200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []VerificationControllerCategories200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "VerificationAPIService.VerificationControllerCategories")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/verification/categories"
@@ -73,28 +79,42 @@ func (a *VerificationAPIService) VerificationControllerCategoriesExecute(r ApiVe
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -102,10 +122,19 @@ func (a *VerificationAPIService) VerificationControllerCategoriesExecute(r ApiVe
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiVerificationControllerGetSettingsRequest struct {
@@ -113,12 +142,16 @@ type ApiVerificationControllerGetSettingsRequest struct {
 	ApiService *VerificationAPIService
 }
 
-func (r ApiVerificationControllerGetSettingsRequest) Execute() (*http.Response, error) {
+func (r ApiVerificationControllerGetSettingsRequest) Execute() (*RewVerificationSettings, *http.Response, error) {
 	return r.ApiService.VerificationControllerGetSettingsExecute(r)
 }
 
 /*
-VerificationControllerGetSettings Method for VerificationControllerGetSettings
+VerificationControllerGetSettings Get your verification and brand-safety settings
+
+Returns your measurement vendor, viewability target, blocked brand-safety categories, blocked domains and keywords, falling back to the global defaults when you have not saved settings. The vendor API key is never returned, only `apiKeySet`.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiVerificationControllerGetSettingsRequest
@@ -131,16 +164,18 @@ func (a *VerificationAPIService) VerificationControllerGetSettings(ctx context.C
 }
 
 // Execute executes the request
-func (a *VerificationAPIService) VerificationControllerGetSettingsExecute(r ApiVerificationControllerGetSettingsRequest) (*http.Response, error) {
+//  @return RewVerificationSettings
+func (a *VerificationAPIService) VerificationControllerGetSettingsExecute(r ApiVerificationControllerGetSettingsRequest) (*RewVerificationSettings, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *RewVerificationSettings
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "VerificationAPIService.VerificationControllerGetSettings")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/verification/settings"
@@ -159,28 +194,42 @@ func (a *VerificationAPIService) VerificationControllerGetSettingsExecute(r ApiV
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -188,10 +237,19 @@ func (a *VerificationAPIService) VerificationControllerGetSettingsExecute(r ApiV
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiVerificationControllerPutSettingsRequest struct {
@@ -205,12 +263,16 @@ func (r ApiVerificationControllerPutSettingsRequest) PutSettingsDto(putSettingsD
 	return r
 }
 
-func (r ApiVerificationControllerPutSettingsRequest) Execute() (*http.Response, error) {
+func (r ApiVerificationControllerPutSettingsRequest) Execute() (*RewVerificationSettings, *http.Response, error) {
 	return r.ApiService.VerificationControllerPutSettingsExecute(r)
 }
 
 /*
-VerificationControllerPutSettings Method for VerificationControllerPutSettings
+VerificationControllerPutSettings Save your verification and brand-safety settings
+
+Replaces your settings: `vendor` (none, ias, doubleverify, moat; default none), `measurementEnabled`, `viewabilityTarget` (0-1, default 0.7), `brandSafetyCategories` (unknown ids dropped), `blockedDomains` (normalized to bare hosts) and `blockedKeywords` (lowercased tokens), all enforced at serve time. `apiKey` is encrypted at rest; omit it to keep the stored key, send an empty string to clear it.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiVerificationControllerPutSettingsRequest
@@ -223,16 +285,18 @@ func (a *VerificationAPIService) VerificationControllerPutSettings(ctx context.C
 }
 
 // Execute executes the request
-func (a *VerificationAPIService) VerificationControllerPutSettingsExecute(r ApiVerificationControllerPutSettingsRequest) (*http.Response, error) {
+//  @return RewVerificationSettings
+func (a *VerificationAPIService) VerificationControllerPutSettingsExecute(r ApiVerificationControllerPutSettingsRequest) (*RewVerificationSettings, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPut
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *RewVerificationSettings
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "VerificationAPIService.VerificationControllerPutSettings")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/verification/settings"
@@ -241,7 +305,7 @@ func (a *VerificationAPIService) VerificationControllerPutSettingsExecute(r ApiV
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.putSettingsDto == nil {
-		return nil, reportError("putSettingsDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("putSettingsDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -254,7 +318,7 @@ func (a *VerificationAPIService) VerificationControllerPutSettingsExecute(r ApiV
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -263,21 +327,35 @@ func (a *VerificationAPIService) VerificationControllerPutSettingsExecute(r ApiV
 	}
 	// body params
 	localVarPostBody = r.putSettingsDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -285,8 +363,17 @@ func (a *VerificationAPIService) VerificationControllerPutSettingsExecute(r ApiV
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

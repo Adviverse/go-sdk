@@ -28,12 +28,16 @@ type ApiMembersControllerAcceptRequest struct {
 	ApiService *MembersAPIService
 }
 
-func (r ApiMembersControllerAcceptRequest) Execute() (*http.Response, error) {
+func (r ApiMembersControllerAcceptRequest) Execute() (*MembersControllerAccept201Response, *http.Response, error) {
 	return r.ApiService.MembersControllerAcceptExecute(r)
 }
 
 /*
-MembersControllerAccept Method for MembersControllerAccept
+MembersControllerAccept Accept a team invitation
+
+Public endpoint. Sets the member's password (minimum 8 characters) and optional `name`, activates the seat, consumes the invite token, and returns a new session token so the dashboard can log in straight away. Responds 400 for a short password or an invalid or expired token.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiMembersControllerAcceptRequest
@@ -46,16 +50,18 @@ func (a *MembersAPIService) MembersControllerAccept(ctx context.Context) ApiMemb
 }
 
 // Execute executes the request
-func (a *MembersAPIService) MembersControllerAcceptExecute(r ApiMembersControllerAcceptRequest) (*http.Response, error) {
+//  @return MembersControllerAccept201Response
+func (a *MembersAPIService) MembersControllerAcceptExecute(r ApiMembersControllerAcceptRequest) (*MembersControllerAccept201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *MembersControllerAccept201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MembersAPIService.MembersControllerAccept")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/team/accept"
@@ -74,7 +80,7 @@ func (a *MembersAPIService) MembersControllerAcceptExecute(r ApiMembersControlle
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -83,19 +89,19 @@ func (a *MembersAPIService) MembersControllerAcceptExecute(r ApiMembersControlle
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -103,10 +109,19 @@ func (a *MembersAPIService) MembersControllerAcceptExecute(r ApiMembersControlle
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiMembersControllerInviteRequest struct {
@@ -114,12 +129,16 @@ type ApiMembersControllerInviteRequest struct {
 	ApiService *MembersAPIService
 }
 
-func (r ApiMembersControllerInviteRequest) Execute() (*http.Response, error) {
+func (r ApiMembersControllerInviteRequest) Execute() (*AdvTeamMember, *http.Response, error) {
 	return r.ApiService.MembersControllerInviteExecute(r)
 }
 
 /*
-MembersControllerInvite Method for MembersControllerInvite
+MembersControllerInvite Invite a team member
+
+Creates (or refreshes) an invited seat and emails a single-use accept link valid for 7 days. Body: `email`, `name`, `role` (admin, manager or analyst; anything else becomes analyst), `allPixels` and `pixelIds`. Admins always get all pixels. Responds 400 for an invalid email, an email that already has an Adviverse account or a seat on another account, or a pixel id the account does not own.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiMembersControllerInviteRequest
@@ -132,16 +151,18 @@ func (a *MembersAPIService) MembersControllerInvite(ctx context.Context) ApiMemb
 }
 
 // Execute executes the request
-func (a *MembersAPIService) MembersControllerInviteExecute(r ApiMembersControllerInviteRequest) (*http.Response, error) {
+//  @return AdvTeamMember
+func (a *MembersAPIService) MembersControllerInviteExecute(r ApiMembersControllerInviteRequest) (*AdvTeamMember, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvTeamMember
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MembersAPIService.MembersControllerInvite")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/team"
@@ -160,28 +181,42 @@ func (a *MembersAPIService) MembersControllerInviteExecute(r ApiMembersControlle
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -189,10 +224,19 @@ func (a *MembersAPIService) MembersControllerInviteExecute(r ApiMembersControlle
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiMembersControllerInviteInfoRequest struct {
@@ -206,12 +250,16 @@ func (r ApiMembersControllerInviteInfoRequest) Token(token string) ApiMembersCon
 	return r
 }
 
-func (r ApiMembersControllerInviteInfoRequest) Execute() (*http.Response, error) {
+func (r ApiMembersControllerInviteInfoRequest) Execute() (*MembersControllerInviteInfo200Response, *http.Response, error) {
 	return r.ApiService.MembersControllerInviteInfoExecute(r)
 }
 
 /*
-MembersControllerInviteInfo Method for MembersControllerInviteInfo
+MembersControllerInviteInfo Look up an invitation by token
+
+Public endpoint for the accept-invite page. Returns the invited email, role and agency name for the `token` query parameter. Responds 404 when the token is invalid or expired.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiMembersControllerInviteInfoRequest
@@ -224,16 +272,18 @@ func (a *MembersAPIService) MembersControllerInviteInfo(ctx context.Context) Api
 }
 
 // Execute executes the request
-func (a *MembersAPIService) MembersControllerInviteInfoExecute(r ApiMembersControllerInviteInfoRequest) (*http.Response, error) {
+//  @return MembersControllerInviteInfo200Response
+func (a *MembersAPIService) MembersControllerInviteInfoExecute(r ApiMembersControllerInviteInfoRequest) (*MembersControllerInviteInfo200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *MembersControllerInviteInfo200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MembersAPIService.MembersControllerInviteInfo")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/team/invite"
@@ -242,7 +292,7 @@ func (a *MembersAPIService) MembersControllerInviteInfoExecute(r ApiMembersContr
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.token == nil {
-		return nil, reportError("token is required and must be specified")
+		return localVarReturnValue, nil, reportError("token is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "token", r.token, "form", "")
@@ -256,7 +306,7 @@ func (a *MembersAPIService) MembersControllerInviteInfoExecute(r ApiMembersContr
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -265,19 +315,19 @@ func (a *MembersAPIService) MembersControllerInviteInfoExecute(r ApiMembersContr
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -285,10 +335,19 @@ func (a *MembersAPIService) MembersControllerInviteInfoExecute(r ApiMembersContr
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiMembersControllerListRequest struct {
@@ -296,12 +355,16 @@ type ApiMembersControllerListRequest struct {
 	ApiService *MembersAPIService
 }
 
-func (r ApiMembersControllerListRequest) Execute() (*http.Response, error) {
+func (r ApiMembersControllerListRequest) Execute() ([]AdvTeamMember, *http.Response, error) {
 	return r.ApiService.MembersControllerListExecute(r)
 }
 
 /*
-MembersControllerList Method for MembersControllerList
+MembersControllerList List team members
+
+Returns every seat on the agency account with role, status and pixel grants. Team-management routes are for the account owner and admin seats only; manager and analyst seats cannot reach them.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiMembersControllerListRequest
@@ -314,16 +377,18 @@ func (a *MembersAPIService) MembersControllerList(ctx context.Context) ApiMember
 }
 
 // Execute executes the request
-func (a *MembersAPIService) MembersControllerListExecute(r ApiMembersControllerListRequest) (*http.Response, error) {
+//  @return []AdvTeamMember
+func (a *MembersAPIService) MembersControllerListExecute(r ApiMembersControllerListRequest) ([]AdvTeamMember, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []AdvTeamMember
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MembersAPIService.MembersControllerList")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/team"
@@ -342,28 +407,42 @@ func (a *MembersAPIService) MembersControllerListExecute(r ApiMembersControllerL
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -371,10 +450,19 @@ func (a *MembersAPIService) MembersControllerListExecute(r ApiMembersControllerL
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiMembersControllerRemoveRequest struct {
@@ -383,12 +471,16 @@ type ApiMembersControllerRemoveRequest struct {
 	id string
 }
 
-func (r ApiMembersControllerRemoveRequest) Execute() (*http.Response, error) {
+func (r ApiMembersControllerRemoveRequest) Execute() (*AdvDeleted, *http.Response, error) {
 	return r.ApiService.MembersControllerRemoveExecute(r)
 }
 
 /*
-MembersControllerRemove Method for MembersControllerRemove
+MembersControllerRemove Remove a team member
+
+Deletes the seat. Always returns `deleted: true`, even if no seat matched.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -403,16 +495,18 @@ func (a *MembersAPIService) MembersControllerRemove(ctx context.Context, id stri
 }
 
 // Execute executes the request
-func (a *MembersAPIService) MembersControllerRemoveExecute(r ApiMembersControllerRemoveRequest) (*http.Response, error) {
+//  @return AdvDeleted
+func (a *MembersAPIService) MembersControllerRemoveExecute(r ApiMembersControllerRemoveRequest) (*AdvDeleted, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvDeleted
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MembersAPIService.MembersControllerRemove")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/team/{id}"
@@ -432,28 +526,42 @@ func (a *MembersAPIService) MembersControllerRemoveExecute(r ApiMembersControlle
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -461,10 +569,19 @@ func (a *MembersAPIService) MembersControllerRemoveExecute(r ApiMembersControlle
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiMembersControllerResendRequest struct {
@@ -473,12 +590,16 @@ type ApiMembersControllerResendRequest struct {
 	id string
 }
 
-func (r ApiMembersControllerResendRequest) Execute() (*http.Response, error) {
+func (r ApiMembersControllerResendRequest) Execute() (*AuthControllerResendVerification201Response, *http.Response, error) {
 	return r.ApiService.MembersControllerResendExecute(r)
 }
 
 /*
-MembersControllerResend Method for MembersControllerResend
+MembersControllerResend Resend a team invitation
+
+Issues a new invite token (invalidating the previous link), resets the 7-day expiry and emails it again. Responds 404 for an unknown member and 400 when the member is already active.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -493,16 +614,18 @@ func (a *MembersAPIService) MembersControllerResend(ctx context.Context, id stri
 }
 
 // Execute executes the request
-func (a *MembersAPIService) MembersControllerResendExecute(r ApiMembersControllerResendRequest) (*http.Response, error) {
+//  @return AuthControllerResendVerification201Response
+func (a *MembersAPIService) MembersControllerResendExecute(r ApiMembersControllerResendRequest) (*AuthControllerResendVerification201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AuthControllerResendVerification201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MembersAPIService.MembersControllerResend")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/team/{id}/resend"
@@ -522,28 +645,42 @@ func (a *MembersAPIService) MembersControllerResendExecute(r ApiMembersControlle
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -551,10 +688,19 @@ func (a *MembersAPIService) MembersControllerResendExecute(r ApiMembersControlle
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiMembersControllerUpdateRequest struct {
@@ -563,12 +709,16 @@ type ApiMembersControllerUpdateRequest struct {
 	id string
 }
 
-func (r ApiMembersControllerUpdateRequest) Execute() (*http.Response, error) {
+func (r ApiMembersControllerUpdateRequest) Execute() (*AdvTeamMember, *http.Response, error) {
 	return r.ApiService.MembersControllerUpdateExecute(r)
 }
 
 /*
-MembersControllerUpdate Method for MembersControllerUpdate
+MembersControllerUpdate Update a team member
+
+Changes a seat's `role`, `allPixels`, `pixelIds` (replaces the grants), `status` (active, disabled or invited) and/or `name`. Disabling a member revokes their live sessions immediately. Responds 404 for an unknown member and 400 for a pixel the account does not own.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -583,16 +733,18 @@ func (a *MembersAPIService) MembersControllerUpdate(ctx context.Context, id stri
 }
 
 // Execute executes the request
-func (a *MembersAPIService) MembersControllerUpdateExecute(r ApiMembersControllerUpdateRequest) (*http.Response, error) {
+//  @return AdvTeamMember
+func (a *MembersAPIService) MembersControllerUpdateExecute(r ApiMembersControllerUpdateRequest) (*AdvTeamMember, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvTeamMember
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MembersAPIService.MembersControllerUpdate")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/team/{id}"
@@ -612,28 +764,42 @@ func (a *MembersAPIService) MembersControllerUpdateExecute(r ApiMembersControlle
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -641,8 +807,17 @@ func (a *MembersAPIService) MembersControllerUpdateExecute(r ApiMembersControlle
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

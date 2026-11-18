@@ -28,12 +28,16 @@ type ApiComplianceControllerAdsTxtRequest struct {
 	ApiService *ComplianceAPIService
 }
 
-func (r ApiComplianceControllerAdsTxtRequest) Execute() (*http.Response, error) {
+func (r ApiComplianceControllerAdsTxtRequest) Execute() (string, *http.Response, error) {
 	return r.ApiService.ComplianceControllerAdsTxtExecute(r)
 }
 
 /*
-ComplianceControllerAdsTxt Method for ComplianceControllerAdsTxt
+ComplianceControllerAdsTxt Get the ads.txt line
+
+Public. Returns the single ads.txt line (`<domain>, <seller id>, DIRECT`) publishers add to their own ads.txt to authorize Adviverse to sell their inventory.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiComplianceControllerAdsTxtRequest
@@ -46,16 +50,18 @@ func (a *ComplianceAPIService) ComplianceControllerAdsTxt(ctx context.Context) A
 }
 
 // Execute executes the request
-func (a *ComplianceAPIService) ComplianceControllerAdsTxtExecute(r ApiComplianceControllerAdsTxtRequest) (*http.Response, error) {
+//  @return string
+func (a *ComplianceAPIService) ComplianceControllerAdsTxtExecute(r ApiComplianceControllerAdsTxtRequest) (string, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  string
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ComplianceAPIService.ComplianceControllerAdsTxt")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/ads.txt"
@@ -74,7 +80,7 @@ func (a *ComplianceAPIService) ComplianceControllerAdsTxtExecute(r ApiCompliance
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"text/plain"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -83,19 +89,19 @@ func (a *ComplianceAPIService) ComplianceControllerAdsTxtExecute(r ApiCompliance
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -103,10 +109,19 @@ func (a *ComplianceAPIService) ComplianceControllerAdsTxtExecute(r ApiCompliance
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiComplianceControllerCompleteRequest struct {
@@ -115,12 +130,16 @@ type ApiComplianceControllerCompleteRequest struct {
 	id string
 }
 
-func (r ApiComplianceControllerCompleteRequest) Execute() (*http.Response, error) {
+func (r ApiComplianceControllerCompleteRequest) Execute() (*AdminControllerSetStatus201Response, *http.Response, error) {
 	return r.ApiService.ComplianceControllerCompleteExecute(r)
 }
 
 /*
-ComplianceControllerComplete Method for ComplianceControllerComplete
+ComplianceControllerComplete Complete a data-subject request
+
+Marks a DSAR completed. For delete requests it also deletes consent-log rows matching the subject hash. Returns `{ ok: false }` for an unknown id.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -135,16 +154,18 @@ func (a *ComplianceAPIService) ComplianceControllerComplete(ctx context.Context,
 }
 
 // Execute executes the request
-func (a *ComplianceAPIService) ComplianceControllerCompleteExecute(r ApiComplianceControllerCompleteRequest) (*http.Response, error) {
+//  @return AdminControllerSetStatus201Response
+func (a *ComplianceAPIService) ComplianceControllerCompleteExecute(r ApiComplianceControllerCompleteRequest) (*AdminControllerSetStatus201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdminControllerSetStatus201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ComplianceAPIService.ComplianceControllerComplete")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/dsar/{id}/complete"
@@ -164,28 +185,42 @@ func (a *ComplianceAPIService) ComplianceControllerCompleteExecute(r ApiComplian
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -193,10 +228,19 @@ func (a *ComplianceAPIService) ComplianceControllerCompleteExecute(r ApiComplian
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiComplianceControllerConsentRequest struct {
@@ -210,12 +254,16 @@ func (r ApiComplianceControllerConsentRequest) ConsentDto(consentDto ConsentDto)
 	return r
 }
 
-func (r ApiComplianceControllerConsentRequest) Execute() (*http.Response, error) {
+func (r ApiComplianceControllerConsentRequest) Execute() (*ComplianceControllerConsent201Response, *http.Response, error) {
 	return r.ApiService.ComplianceControllerConsentExecute(r)
 }
 
 /*
-ComplianceControllerConsent Method for ComplianceControllerConsent
+ComplianceControllerConsent Log a consent signal
+
+Public, rate-limited; called by the SDK/CMP bridge. Stores a consent record with a SHA-256 hash of `userId`, plus optional `tcf`, `gpp`, `gpc`, `purposes` and `mode`. `publisherId` and `propertyId` attribute the record and are kept only when they are well-formed UUIDs.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiComplianceControllerConsentRequest
@@ -228,16 +276,18 @@ func (a *ComplianceAPIService) ComplianceControllerConsent(ctx context.Context) 
 }
 
 // Execute executes the request
-func (a *ComplianceAPIService) ComplianceControllerConsentExecute(r ApiComplianceControllerConsentRequest) (*http.Response, error) {
+//  @return ComplianceControllerConsent201Response
+func (a *ComplianceAPIService) ComplianceControllerConsentExecute(r ApiComplianceControllerConsentRequest) (*ComplianceControllerConsent201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ComplianceControllerConsent201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ComplianceAPIService.ComplianceControllerConsent")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/consent"
@@ -246,7 +296,7 @@ func (a *ComplianceAPIService) ComplianceControllerConsentExecute(r ApiComplianc
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.consentDto == nil {
-		return nil, reportError("consentDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("consentDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -259,7 +309,7 @@ func (a *ComplianceAPIService) ComplianceControllerConsentExecute(r ApiComplianc
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -270,19 +320,19 @@ func (a *ComplianceAPIService) ComplianceControllerConsentExecute(r ApiComplianc
 	localVarPostBody = r.consentDto
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -290,10 +340,19 @@ func (a *ComplianceAPIService) ComplianceControllerConsentExecute(r ApiComplianc
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiComplianceControllerConsentLogRequest struct {
@@ -301,12 +360,16 @@ type ApiComplianceControllerConsentLogRequest struct {
 	ApiService *ComplianceAPIService
 }
 
-func (r ApiComplianceControllerConsentLogRequest) Execute() (*http.Response, error) {
+func (r ApiComplianceControllerConsentLogRequest) Execute() ([]ComplianceControllerConsentLog200ResponseInner, *http.Response, error) {
 	return r.ApiService.ComplianceControllerConsentLogExecute(r)
 }
 
 /*
-ComplianceControllerConsentLog Method for ComplianceControllerConsentLog
+ComplianceControllerConsentLog List recent consent records
+
+Returns the 100 most recent consent-log entries forwarded by this publisher's snippet.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiComplianceControllerConsentLogRequest
@@ -319,16 +382,18 @@ func (a *ComplianceAPIService) ComplianceControllerConsentLog(ctx context.Contex
 }
 
 // Execute executes the request
-func (a *ComplianceAPIService) ComplianceControllerConsentLogExecute(r ApiComplianceControllerConsentLogRequest) (*http.Response, error) {
+//  @return []ComplianceControllerConsentLog200ResponseInner
+func (a *ComplianceAPIService) ComplianceControllerConsentLogExecute(r ApiComplianceControllerConsentLogRequest) ([]ComplianceControllerConsentLog200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []ComplianceControllerConsentLog200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ComplianceAPIService.ComplianceControllerConsentLog")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/consent-log"
@@ -347,28 +412,42 @@ func (a *ComplianceAPIService) ComplianceControllerConsentLogExecute(r ApiCompli
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -376,10 +455,19 @@ func (a *ComplianceAPIService) ComplianceControllerConsentLogExecute(r ApiCompli
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiComplianceControllerDomainConnectTemplateRequest struct {
@@ -394,7 +482,11 @@ func (r ApiComplianceControllerDomainConnectTemplateRequest) Execute() (*http.Re
 }
 
 /*
-ComplianceControllerDomainConnectTemplate Method for ComplianceControllerDomainConnectTemplate
+ComplianceControllerDomainConnectTemplate Get the DomainConnect verification template
+
+Public. Serves the DomainConnect template for publisher domain verification at the standard service-provider path. The template applies one TXT record at the verification host carrying the `%txt%` token. Any other provider/service id returns 404.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param providerId
@@ -487,12 +579,16 @@ func (r ApiComplianceControllerDsarRequest) DsarDto(dsarDto DsarDto) ApiComplian
 	return r
 }
 
-func (r ApiComplianceControllerDsarRequest) Execute() (*http.Response, error) {
+func (r ApiComplianceControllerDsarRequest) Execute() (*ComplianceDsar, *http.Response, error) {
 	return r.ApiService.ComplianceControllerDsarExecute(r)
 }
 
 /*
-ComplianceControllerDsar Method for ComplianceControllerDsar
+ComplianceControllerDsar Submit a data-subject request
+
+Public, rate-limited. Files an `access` or `delete` request for `email`; only a hash of the subject is stored. A delete request starts erasing the subject from identity maps, CDP traits, segment memberships and event history and suppresses re-collection (fail-soft, in the background). An access request returns the stored request plus an `export` of the data held on the subject.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiComplianceControllerDsarRequest
@@ -505,16 +601,18 @@ func (a *ComplianceAPIService) ComplianceControllerDsar(ctx context.Context) Api
 }
 
 // Execute executes the request
-func (a *ComplianceAPIService) ComplianceControllerDsarExecute(r ApiComplianceControllerDsarRequest) (*http.Response, error) {
+//  @return ComplianceDsar
+func (a *ComplianceAPIService) ComplianceControllerDsarExecute(r ApiComplianceControllerDsarRequest) (*ComplianceDsar, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ComplianceDsar
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ComplianceAPIService.ComplianceControllerDsar")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/privacy/dsar"
@@ -523,7 +621,7 @@ func (a *ComplianceAPIService) ComplianceControllerDsarExecute(r ApiComplianceCo
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.dsarDto == nil {
-		return nil, reportError("dsarDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("dsarDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -536,7 +634,7 @@ func (a *ComplianceAPIService) ComplianceControllerDsarExecute(r ApiComplianceCo
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -547,19 +645,19 @@ func (a *ComplianceAPIService) ComplianceControllerDsarExecute(r ApiComplianceCo
 	localVarPostBody = r.dsarDto
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -567,10 +665,19 @@ func (a *ComplianceAPIService) ComplianceControllerDsarExecute(r ApiComplianceCo
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiComplianceControllerGetConsentConfigRequest struct {
@@ -584,12 +691,16 @@ func (r ApiComplianceControllerGetConsentConfigRequest) PropertyId(propertyId st
 	return r
 }
 
-func (r ApiComplianceControllerGetConsentConfigRequest) Execute() (*http.Response, error) {
+func (r ApiComplianceControllerGetConsentConfigRequest) Execute() (*ComplianceConsentConfig, *http.Response, error) {
 	return r.ApiService.ComplianceControllerGetConsentConfigExecute(r)
 }
 
 /*
-ComplianceControllerGetConsentConfig Method for ComplianceControllerGetConsentConfig
+ComplianceControllerGetConsentConfig Get consent configuration
+
+Returns the consent config for `propertyId`, falling back to the account-wide default and then to built-in defaults (TCF v2, no default consent, all collection on). Without `propertyId` the account default is returned. The property must belong to the caller (400).
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiComplianceControllerGetConsentConfigRequest
@@ -602,16 +713,18 @@ func (a *ComplianceAPIService) ComplianceControllerGetConsentConfig(ctx context.
 }
 
 // Execute executes the request
-func (a *ComplianceAPIService) ComplianceControllerGetConsentConfigExecute(r ApiComplianceControllerGetConsentConfigRequest) (*http.Response, error) {
+//  @return ComplianceConsentConfig
+func (a *ComplianceAPIService) ComplianceControllerGetConsentConfigExecute(r ApiComplianceControllerGetConsentConfigRequest) (*ComplianceConsentConfig, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ComplianceConsentConfig
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ComplianceAPIService.ComplianceControllerGetConsentConfig")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/consent-config"
@@ -620,7 +733,7 @@ func (a *ComplianceAPIService) ComplianceControllerGetConsentConfigExecute(r Api
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.propertyId == nil {
-		return nil, reportError("propertyId is required and must be specified")
+		return localVarReturnValue, nil, reportError("propertyId is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "propertyId", r.propertyId, "form", "")
@@ -634,28 +747,42 @@ func (a *ComplianceAPIService) ComplianceControllerGetConsentConfigExecute(r Api
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -663,10 +790,19 @@ func (a *ComplianceAPIService) ComplianceControllerGetConsentConfigExecute(r Api
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiComplianceControllerGetSellerListingRequest struct {
@@ -674,12 +810,16 @@ type ApiComplianceControllerGetSellerListingRequest struct {
 	ApiService *ComplianceAPIService
 }
 
-func (r ApiComplianceControllerGetSellerListingRequest) Execute() (*http.Response, error) {
+func (r ApiComplianceControllerGetSellerListingRequest) Execute() (*ComplianceSellerListing, *http.Response, error) {
 	return r.ApiService.ComplianceControllerGetSellerListingExecute(r)
 }
 
 /*
-ComplianceControllerGetSellerListing Method for ComplianceControllerGetSellerListing
+ComplianceControllerGetSellerListing Get sellers.json listing preference
+
+Returns whether the publisher is listed publicly in sellers.json and its declared seller domain. Defaults to confidential.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiComplianceControllerGetSellerListingRequest
@@ -692,16 +832,18 @@ func (a *ComplianceAPIService) ComplianceControllerGetSellerListing(ctx context.
 }
 
 // Execute executes the request
-func (a *ComplianceAPIService) ComplianceControllerGetSellerListingExecute(r ApiComplianceControllerGetSellerListingRequest) (*http.Response, error) {
+//  @return ComplianceSellerListing
+func (a *ComplianceAPIService) ComplianceControllerGetSellerListingExecute(r ApiComplianceControllerGetSellerListingRequest) (*ComplianceSellerListing, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ComplianceSellerListing
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ComplianceAPIService.ComplianceControllerGetSellerListing")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/seller-listing"
@@ -720,28 +862,42 @@ func (a *ComplianceAPIService) ComplianceControllerGetSellerListingExecute(r Api
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -749,10 +905,19 @@ func (a *ComplianceAPIService) ComplianceControllerGetSellerListingExecute(r Api
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiComplianceControllerListDsarRequest struct {
@@ -760,12 +925,16 @@ type ApiComplianceControllerListDsarRequest struct {
 	ApiService *ComplianceAPIService
 }
 
-func (r ApiComplianceControllerListDsarRequest) Execute() (*http.Response, error) {
+func (r ApiComplianceControllerListDsarRequest) Execute() ([]ComplianceDsar, *http.Response, error) {
 	return r.ApiService.ComplianceControllerListDsarExecute(r)
 }
 
 /*
-ComplianceControllerListDsar Method for ComplianceControllerListDsar
+ComplianceControllerListDsar List data-subject requests
+
+Returns the 200 most recent DSAR requests, newest first.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiComplianceControllerListDsarRequest
@@ -778,16 +947,18 @@ func (a *ComplianceAPIService) ComplianceControllerListDsar(ctx context.Context)
 }
 
 // Execute executes the request
-func (a *ComplianceAPIService) ComplianceControllerListDsarExecute(r ApiComplianceControllerListDsarRequest) (*http.Response, error) {
+//  @return []ComplianceDsar
+func (a *ComplianceAPIService) ComplianceControllerListDsarExecute(r ApiComplianceControllerListDsarRequest) ([]ComplianceDsar, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []ComplianceDsar
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ComplianceAPIService.ComplianceControllerListDsar")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/dsar"
@@ -806,28 +977,42 @@ func (a *ComplianceAPIService) ComplianceControllerListDsarExecute(r ApiComplian
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -835,10 +1020,19 @@ func (a *ComplianceAPIService) ComplianceControllerListDsarExecute(r ApiComplian
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiComplianceControllerSaveConsentConfigRequest struct {
@@ -852,12 +1046,16 @@ func (r ApiComplianceControllerSaveConsentConfigRequest) ConsentConfigDto(consen
 	return r
 }
 
-func (r ApiComplianceControllerSaveConsentConfigRequest) Execute() (*http.Response, error) {
+func (r ApiComplianceControllerSaveConsentConfigRequest) Execute() (*ComplianceConsentConfig, *http.Response, error) {
 	return r.ApiService.ComplianceControllerSaveConsentConfigExecute(r)
 }
 
 /*
-ComplianceControllerSaveConsentConfig Method for ComplianceControllerSaveConsentConfig
+ComplianceControllerSaveConsentConfig Save consent configuration
+
+Upserts the consent config for `propertyId`, or the account default when omitted. Requires `mode` (`tcf_v2`, `gpp`, `custom`) and `defaultConsent`; snippet controls default to true. For a custom CMP, `consentSource` `cookie` or `global` requires `consentKey` (cookie name or JS global path), and `consentGrantValue` defaults to `true`. `tcfPurpose` (1-11, default 1) and `tcfVendorId` are range-checked. Invalid mode, source or key returns 400.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiComplianceControllerSaveConsentConfigRequest
@@ -870,16 +1068,18 @@ func (a *ComplianceAPIService) ComplianceControllerSaveConsentConfig(ctx context
 }
 
 // Execute executes the request
-func (a *ComplianceAPIService) ComplianceControllerSaveConsentConfigExecute(r ApiComplianceControllerSaveConsentConfigRequest) (*http.Response, error) {
+//  @return ComplianceConsentConfig
+func (a *ComplianceAPIService) ComplianceControllerSaveConsentConfigExecute(r ApiComplianceControllerSaveConsentConfigRequest) (*ComplianceConsentConfig, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ComplianceConsentConfig
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ComplianceAPIService.ComplianceControllerSaveConsentConfig")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/consent-config"
@@ -888,7 +1088,7 @@ func (a *ComplianceAPIService) ComplianceControllerSaveConsentConfigExecute(r Ap
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.consentConfigDto == nil {
-		return nil, reportError("consentConfigDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("consentConfigDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -901,7 +1101,7 @@ func (a *ComplianceAPIService) ComplianceControllerSaveConsentConfigExecute(r Ap
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -910,21 +1110,35 @@ func (a *ComplianceAPIService) ComplianceControllerSaveConsentConfigExecute(r Ap
 	}
 	// body params
 	localVarPostBody = r.consentConfigDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -932,10 +1146,19 @@ func (a *ComplianceAPIService) ComplianceControllerSaveConsentConfigExecute(r Ap
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiComplianceControllerSaveSellerListingRequest struct {
@@ -949,12 +1172,16 @@ func (r ApiComplianceControllerSaveSellerListingRequest) SellerListingDto(seller
 	return r
 }
 
-func (r ApiComplianceControllerSaveSellerListingRequest) Execute() (*http.Response, error) {
+func (r ApiComplianceControllerSaveSellerListingRequest) Execute() (*ComplianceSellerListing, *http.Response, error) {
 	return r.ApiService.ComplianceControllerSaveSellerListingExecute(r)
 }
 
 /*
-ComplianceControllerSaveSellerListing Method for ComplianceControllerSaveSellerListing
+ComplianceControllerSaveSellerListing Set sellers.json listing preference
+
+Sets `sellerPublic` and an optional `sellerDomain`. The domain is normalized (scheme, path and `www.` stripped, lowercased) and must be a valid hostname (400 otherwise). A public listing exposes the company name and domain in sellers.json.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiComplianceControllerSaveSellerListingRequest
@@ -967,16 +1194,18 @@ func (a *ComplianceAPIService) ComplianceControllerSaveSellerListing(ctx context
 }
 
 // Execute executes the request
-func (a *ComplianceAPIService) ComplianceControllerSaveSellerListingExecute(r ApiComplianceControllerSaveSellerListingRequest) (*http.Response, error) {
+//  @return ComplianceSellerListing
+func (a *ComplianceAPIService) ComplianceControllerSaveSellerListingExecute(r ApiComplianceControllerSaveSellerListingRequest) (*ComplianceSellerListing, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPut
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ComplianceSellerListing
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ComplianceAPIService.ComplianceControllerSaveSellerListing")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/seller-listing"
@@ -985,7 +1214,7 @@ func (a *ComplianceAPIService) ComplianceControllerSaveSellerListingExecute(r Ap
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.sellerListingDto == nil {
-		return nil, reportError("sellerListingDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("sellerListingDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -998,7 +1227,7 @@ func (a *ComplianceAPIService) ComplianceControllerSaveSellerListingExecute(r Ap
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1007,21 +1236,35 @@ func (a *ComplianceAPIService) ComplianceControllerSaveSellerListingExecute(r Ap
 	}
 	// body params
 	localVarPostBody = r.sellerListingDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1029,10 +1272,19 @@ func (a *ComplianceAPIService) ComplianceControllerSaveSellerListingExecute(r Ap
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiComplianceControllerSellersRequest struct {
@@ -1040,12 +1292,16 @@ type ApiComplianceControllerSellersRequest struct {
 	ApiService *ComplianceAPIService
 }
 
-func (r ApiComplianceControllerSellersRequest) Execute() (*http.Response, error) {
+func (r ApiComplianceControllerSellersRequest) Execute() (*ComplianceControllerSellers200Response, *http.Response, error) {
 	return r.ApiService.ComplianceControllerSellersExecute(r)
 }
 
 /*
-ComplianceControllerSellers Method for ComplianceControllerSellers
+ComplianceControllerSellers Get sellers.json
+
+Public IAB sellers.json listing active publisher accounts as PUBLISHER sellers. Advertisers are not listed. Sellers are confidential (`is_confidential: 1`, no name/domain) unless the publisher opted into a public listing, which exposes their company name and seller domain.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiComplianceControllerSellersRequest
@@ -1058,16 +1314,18 @@ func (a *ComplianceAPIService) ComplianceControllerSellers(ctx context.Context) 
 }
 
 // Execute executes the request
-func (a *ComplianceAPIService) ComplianceControllerSellersExecute(r ApiComplianceControllerSellersRequest) (*http.Response, error) {
+//  @return ComplianceControllerSellers200Response
+func (a *ComplianceAPIService) ComplianceControllerSellersExecute(r ApiComplianceControllerSellersRequest) (*ComplianceControllerSellers200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ComplianceControllerSellers200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ComplianceAPIService.ComplianceControllerSellers")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/sellers.json"
@@ -1086,7 +1344,7 @@ func (a *ComplianceAPIService) ComplianceControllerSellersExecute(r ApiComplianc
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1095,19 +1353,19 @@ func (a *ComplianceAPIService) ComplianceControllerSellersExecute(r ApiComplianc
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1115,8 +1373,17 @@ func (a *ComplianceAPIService) ComplianceControllerSellersExecute(r ApiComplianc
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

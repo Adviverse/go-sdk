@@ -45,12 +45,16 @@ func (r ApiInsightsControllerBidSimulatorRequest) Bid(bid float32) ApiInsightsCo
 	return r
 }
 
-func (r ApiInsightsControllerBidSimulatorRequest) Execute() (*http.Response, error) {
+func (r ApiInsightsControllerBidSimulatorRequest) Execute() (*InsightsControllerBidSimulator200Response, *http.Response, error) {
 	return r.ApiService.InsightsControllerBidSimulatorExecute(r)
 }
 
 /*
-InsightsControllerBidSimulator Method for InsightsControllerBidSimulator
+InsightsControllerBidSimulator Simulate win rate, reach and spend across bids
+
+For the required `format` and optional `geo`, takes about 10 candidate bids spanning the advertiser's recent clearing-price range, plus the caller's own `bid` if given. Each bid gets an estimated win rate from the empirical CDF of the advertiser's last-30-day clearing prices, and projected impressions and spend per day. Prices are per impression (CPM = price x 1000). With no auction history for the slice, `points` is empty and `note` explains why.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiInsightsControllerBidSimulatorRequest
@@ -63,16 +67,18 @@ func (a *AdvertiserInsightsAPIService) InsightsControllerBidSimulator(ctx contex
 }
 
 // Execute executes the request
-func (a *AdvertiserInsightsAPIService) InsightsControllerBidSimulatorExecute(r ApiInsightsControllerBidSimulatorRequest) (*http.Response, error) {
+//  @return InsightsControllerBidSimulator200Response
+func (a *AdvertiserInsightsAPIService) InsightsControllerBidSimulatorExecute(r ApiInsightsControllerBidSimulatorRequest) (*InsightsControllerBidSimulator200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *InsightsControllerBidSimulator200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserInsightsAPIService.InsightsControllerBidSimulator")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/insights/bid-simulator"
@@ -81,7 +87,7 @@ func (a *AdvertiserInsightsAPIService) InsightsControllerBidSimulatorExecute(r A
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.format == nil {
-		return nil, reportError("format is required and must be specified")
+		return localVarReturnValue, nil, reportError("format is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "format", r.format, "form", "")
@@ -101,28 +107,42 @@ func (a *AdvertiserInsightsAPIService) InsightsControllerBidSimulatorExecute(r A
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -130,10 +150,19 @@ func (a *AdvertiserInsightsAPIService) InsightsControllerBidSimulatorExecute(r A
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiInsightsControllerCompetitivenessRequest struct {
@@ -153,12 +182,16 @@ func (r ApiInsightsControllerCompetitivenessRequest) Geo(geo string) ApiInsights
 	return r
 }
 
-func (r ApiInsightsControllerCompetitivenessRequest) Execute() (*http.Response, error) {
+func (r ApiInsightsControllerCompetitivenessRequest) Execute() (*InsightsControllerCompetitiveness200Response, *http.Response, error) {
 	return r.ApiService.InsightsControllerCompetitivenessExecute(r)
 }
 
 /*
-InsightsControllerCompetitiveness Method for InsightsControllerCompetitiveness
+InsightsControllerCompetitiveness Score how competitive a targeting slice is
+
+Reads the market-wide clearing-price distribution over the last 30 days for `format` (required) and optional `geo`, and returns p50, p90, the sample size and a low/moderate/high score based on the price spread. The score is "low" when there is no data. Uses market data only, not the caller's own history.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiInsightsControllerCompetitivenessRequest
@@ -171,16 +204,18 @@ func (a *AdvertiserInsightsAPIService) InsightsControllerCompetitiveness(ctx con
 }
 
 // Execute executes the request
-func (a *AdvertiserInsightsAPIService) InsightsControllerCompetitivenessExecute(r ApiInsightsControllerCompetitivenessRequest) (*http.Response, error) {
+//  @return InsightsControllerCompetitiveness200Response
+func (a *AdvertiserInsightsAPIService) InsightsControllerCompetitivenessExecute(r ApiInsightsControllerCompetitivenessRequest) (*InsightsControllerCompetitiveness200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *InsightsControllerCompetitiveness200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserInsightsAPIService.InsightsControllerCompetitiveness")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/insights/competitiveness"
@@ -189,7 +224,7 @@ func (a *AdvertiserInsightsAPIService) InsightsControllerCompetitivenessExecute(
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.format == nil {
-		return nil, reportError("format is required and must be specified")
+		return localVarReturnValue, nil, reportError("format is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "format", r.format, "form", "")
@@ -206,28 +241,42 @@ func (a *AdvertiserInsightsAPIService) InsightsControllerCompetitivenessExecute(
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -235,10 +284,19 @@ func (a *AdvertiserInsightsAPIService) InsightsControllerCompetitivenessExecute(
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiInsightsControllerCreativePerformanceRequest struct {
@@ -252,12 +310,16 @@ func (r ApiInsightsControllerCreativePerformanceRequest) CampaignId(campaignId s
 	return r
 }
 
-func (r ApiInsightsControllerCreativePerformanceRequest) Execute() (*http.Response, error) {
+func (r ApiInsightsControllerCreativePerformanceRequest) Execute() (*InsightsControllerCreativePerformance200Response, *http.Response, error) {
 	return r.ApiService.InsightsControllerCreativePerformanceExecute(r)
 }
 
 /*
-InsightsControllerCreativePerformance Method for InsightsControllerCreativePerformance
+InsightsControllerCreativePerformance Per-creative performance for a campaign
+
+Rolls up the last 30 days of valid impressions and spend, clicks and click-attributed conversions by creative for `campaignId` (required). Creative names come from Postgres. Rows include CTR and CVR as percentages and eCPM, sorted by spend. A campaign the advertiser does not own returns an empty list, not an error.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiInsightsControllerCreativePerformanceRequest
@@ -270,16 +332,18 @@ func (a *AdvertiserInsightsAPIService) InsightsControllerCreativePerformance(ctx
 }
 
 // Execute executes the request
-func (a *AdvertiserInsightsAPIService) InsightsControllerCreativePerformanceExecute(r ApiInsightsControllerCreativePerformanceRequest) (*http.Response, error) {
+//  @return InsightsControllerCreativePerformance200Response
+func (a *AdvertiserInsightsAPIService) InsightsControllerCreativePerformanceExecute(r ApiInsightsControllerCreativePerformanceRequest) (*InsightsControllerCreativePerformance200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *InsightsControllerCreativePerformance200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserInsightsAPIService.InsightsControllerCreativePerformance")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/insights/creative-performance"
@@ -288,7 +352,7 @@ func (a *AdvertiserInsightsAPIService) InsightsControllerCreativePerformanceExec
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.campaignId == nil {
-		return nil, reportError("campaignId is required and must be specified")
+		return localVarReturnValue, nil, reportError("campaignId is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "campaignId", r.campaignId, "form", "")
@@ -302,28 +366,42 @@ func (a *AdvertiserInsightsAPIService) InsightsControllerCreativePerformanceExec
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -331,10 +409,19 @@ func (a *AdvertiserInsightsAPIService) InsightsControllerCreativePerformanceExec
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiInsightsControllerPacingRequest struct {
@@ -342,12 +429,16 @@ type ApiInsightsControllerPacingRequest struct {
 	ApiService *AdvertiserInsightsAPIService
 }
 
-func (r ApiInsightsControllerPacingRequest) Execute() (*http.Response, error) {
+func (r ApiInsightsControllerPacingRequest) Execute() (*InsightsControllerPacing200Response, *http.Response, error) {
 	return r.ApiService.InsightsControllerPacingExecute(r)
 }
 
 /*
-InsightsControllerPacing Method for InsightsControllerPacing
+InsightsControllerPacing Delivery pacing per campaign
+
+For each of the advertiser's campaigns, compares the percentage of the delivery goal reached with the percentage of the flight that has elapsed, and flags whether the campaign is on pace. Reuses the billing-reports pacing calculation.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiInsightsControllerPacingRequest
@@ -360,16 +451,18 @@ func (a *AdvertiserInsightsAPIService) InsightsControllerPacing(ctx context.Cont
 }
 
 // Execute executes the request
-func (a *AdvertiserInsightsAPIService) InsightsControllerPacingExecute(r ApiInsightsControllerPacingRequest) (*http.Response, error) {
+//  @return InsightsControllerPacing200Response
+func (a *AdvertiserInsightsAPIService) InsightsControllerPacingExecute(r ApiInsightsControllerPacingRequest) (*InsightsControllerPacing200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *InsightsControllerPacing200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserInsightsAPIService.InsightsControllerPacing")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/insights/pacing"
@@ -388,28 +481,42 @@ func (a *AdvertiserInsightsAPIService) InsightsControllerPacingExecute(r ApiInsi
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -417,10 +524,19 @@ func (a *AdvertiserInsightsAPIService) InsightsControllerPacingExecute(r ApiInsi
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiInsightsControllerShadingSavingsRequest struct {
@@ -434,12 +550,16 @@ func (r ApiInsightsControllerShadingSavingsRequest) CampaignId(campaignId string
 	return r
 }
 
-func (r ApiInsightsControllerShadingSavingsRequest) Execute() (*http.Response, error) {
+func (r ApiInsightsControllerShadingSavingsRequest) Execute() (*InsightsControllerShadingSavings200Response, *http.Response, error) {
 	return r.ApiService.InsightsControllerShadingSavingsExecute(r)
 }
 
 /*
-InsightsControllerShadingSavings Method for InsightsControllerShadingSavings
+InsightsControllerShadingSavings Estimate savings from bid shading
+
+Combines the bid-shading factors the engine publishes for this advertiser with its last-30-day spend (optionally only `campaignId`) to estimate overpay avoided: roughly spend x (1/avgFactor - 1), with the factor floored at 0.5. If shading is not active for the advertiser yet, all values are zero and a note says so. The figures are directional estimates.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiInsightsControllerShadingSavingsRequest
@@ -452,16 +572,18 @@ func (a *AdvertiserInsightsAPIService) InsightsControllerShadingSavings(ctx cont
 }
 
 // Execute executes the request
-func (a *AdvertiserInsightsAPIService) InsightsControllerShadingSavingsExecute(r ApiInsightsControllerShadingSavingsRequest) (*http.Response, error) {
+//  @return InsightsControllerShadingSavings200Response
+func (a *AdvertiserInsightsAPIService) InsightsControllerShadingSavingsExecute(r ApiInsightsControllerShadingSavingsRequest) (*InsightsControllerShadingSavings200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *InsightsControllerShadingSavings200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserInsightsAPIService.InsightsControllerShadingSavings")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/insights/shading-savings"
@@ -483,28 +605,42 @@ func (a *AdvertiserInsightsAPIService) InsightsControllerShadingSavingsExecute(r
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -512,8 +648,17 @@ func (a *AdvertiserInsightsAPIService) InsightsControllerShadingSavingsExecute(r
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

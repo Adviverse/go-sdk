@@ -27,12 +27,16 @@ type ApiHealthControllerHealthRequest struct {
 	ApiService *HealthAPIService
 }
 
-func (r ApiHealthControllerHealthRequest) Execute() (*http.Response, error) {
+func (r ApiHealthControllerHealthRequest) Execute() (*HealthControllerHealth200Response, *http.Response, error) {
 	return r.ApiService.HealthControllerHealthExecute(r)
 }
 
 /*
-HealthControllerHealth Method for HealthControllerHealth
+HealthControllerHealth Control-plane health check
+
+Liveness check that also runs `SELECT 1` against Postgres. Returns `status: "ok"` when the database answers, otherwise `degraded` with `db: false` (still HTTP 200). No authentication.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiHealthControllerHealthRequest
@@ -45,16 +49,18 @@ func (a *HealthAPIService) HealthControllerHealth(ctx context.Context) ApiHealth
 }
 
 // Execute executes the request
-func (a *HealthAPIService) HealthControllerHealthExecute(r ApiHealthControllerHealthRequest) (*http.Response, error) {
+//  @return HealthControllerHealth200Response
+func (a *HealthAPIService) HealthControllerHealthExecute(r ApiHealthControllerHealthRequest) (*HealthControllerHealth200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *HealthControllerHealth200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "HealthAPIService.HealthControllerHealth")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/healthz"
@@ -73,7 +79,7 @@ func (a *HealthAPIService) HealthControllerHealthExecute(r ApiHealthControllerHe
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -82,19 +88,19 @@ func (a *HealthAPIService) HealthControllerHealthExecute(r ApiHealthControllerHe
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -102,10 +108,19 @@ func (a *HealthAPIService) HealthControllerHealthExecute(r ApiHealthControllerHe
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiHealthControllerMetricsRequest struct {
@@ -113,12 +128,16 @@ type ApiHealthControllerMetricsRequest struct {
 	ApiService *HealthAPIService
 }
 
-func (r ApiHealthControllerMetricsRequest) Execute() (*http.Response, error) {
+func (r ApiHealthControllerMetricsRequest) Execute() (string, *http.Response, error) {
 	return r.ApiService.HealthControllerMetricsExecute(r)
 }
 
 /*
-HealthControllerMetrics Method for HealthControllerMetrics
+HealthControllerMetrics Prometheus metrics
+
+Prometheus text exposition of control-plane process metrics (prefixed `control_plane_`). When the server has a metrics token configured it must be sent as a Bearer token or `?token=`, otherwise 403; without one the endpoint is open.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiHealthControllerMetricsRequest
@@ -131,16 +150,18 @@ func (a *HealthAPIService) HealthControllerMetrics(ctx context.Context) ApiHealt
 }
 
 // Execute executes the request
-func (a *HealthAPIService) HealthControllerMetricsExecute(r ApiHealthControllerMetricsRequest) (*http.Response, error) {
+//  @return string
+func (a *HealthAPIService) HealthControllerMetricsExecute(r ApiHealthControllerMetricsRequest) (string, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  string
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "HealthAPIService.HealthControllerMetrics")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/metrics"
@@ -159,7 +180,7 @@ func (a *HealthAPIService) HealthControllerMetricsExecute(r ApiHealthControllerM
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"text/plain"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -168,19 +189,19 @@ func (a *HealthAPIService) HealthControllerMetricsExecute(r ApiHealthControllerM
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -188,8 +209,17 @@ func (a *HealthAPIService) HealthControllerMetricsExecute(r ApiHealthControllerM
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

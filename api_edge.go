@@ -33,12 +33,16 @@ func (r ApiEdgeControllerDomainAllowedRequest) Domain(domain string) ApiEdgeCont
 	return r
 }
 
-func (r ApiEdgeControllerDomainAllowedRequest) Execute() (*http.Response, error) {
+func (r ApiEdgeControllerDomainAllowedRequest) Execute() (string, *http.Response, error) {
 	return r.ApiService.EdgeControllerDomainAllowedExecute(r)
 }
 
 /*
-EdgeControllerDomainAllowed Method for EdgeControllerDomainAllowed
+EdgeControllerDomainAllowed Check whether the edge may issue TLS for a domain
+
+Public, unauthenticated endpoint called by the TLS edge's on-demand certificate check, not by users. Returns 200 with body `ok` only if `?domain=` is a verified publisher serving domain on a live property; otherwise 403.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiEdgeControllerDomainAllowedRequest
@@ -51,16 +55,18 @@ func (a *EdgeAPIService) EdgeControllerDomainAllowed(ctx context.Context) ApiEdg
 }
 
 // Execute executes the request
-func (a *EdgeAPIService) EdgeControllerDomainAllowedExecute(r ApiEdgeControllerDomainAllowedRequest) (*http.Response, error) {
+//  @return string
+func (a *EdgeAPIService) EdgeControllerDomainAllowedExecute(r ApiEdgeControllerDomainAllowedRequest) (string, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  string
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "EdgeAPIService.EdgeControllerDomainAllowed")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/edge/domain-allowed"
@@ -69,7 +75,7 @@ func (a *EdgeAPIService) EdgeControllerDomainAllowedExecute(r ApiEdgeControllerD
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.domain == nil {
-		return nil, reportError("domain is required and must be specified")
+		return localVarReturnValue, nil, reportError("domain is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "domain", r.domain, "form", "")
@@ -83,7 +89,7 @@ func (a *EdgeAPIService) EdgeControllerDomainAllowedExecute(r ApiEdgeControllerD
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"text/html"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -92,19 +98,19 @@ func (a *EdgeAPIService) EdgeControllerDomainAllowedExecute(r ApiEdgeControllerD
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -112,8 +118,17 @@ func (a *EdgeAPIService) EdgeControllerDomainAllowedExecute(r ApiEdgeControllerD
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

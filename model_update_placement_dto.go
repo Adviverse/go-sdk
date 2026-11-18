@@ -31,6 +31,7 @@ type UpdatePlacementDto struct {
 	FloorFallback *bool `json:"floorFallback,omitempty"`
 	FloorAuto *bool `json:"floorAuto,omitempty"`
 	FloorSoft *float32 `json:"floorSoft,omitempty"`
+	AutoAds map[string]interface{} `json:"autoAds,omitempty"`
 }
 
 // NewUpdatePlacementDto instantiates a new UpdatePlacementDto object
@@ -434,6 +435,39 @@ func (o *UpdatePlacementDto) SetFloorSoft(v float32) {
 	o.FloorSoft = &v
 }
 
+// GetAutoAds returns the AutoAds field value if set, zero value otherwise (both if not set or set to explicit null).
+func (o *UpdatePlacementDto) GetAutoAds() map[string]interface{} {
+	if o == nil {
+		var ret map[string]interface{}
+		return ret
+	}
+	return o.AutoAds
+}
+
+// GetAutoAdsOk returns a tuple with the AutoAds field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+// NOTE: If the value is an explicit nil, `nil, true` will be returned
+func (o *UpdatePlacementDto) GetAutoAdsOk() (map[string]interface{}, bool) {
+	if o == nil || IsNil(o.AutoAds) {
+		return map[string]interface{}{}, false
+	}
+	return o.AutoAds, true
+}
+
+// HasAutoAds returns a boolean if a field has been set.
+func (o *UpdatePlacementDto) HasAutoAds() bool {
+	if o != nil && !IsNil(o.AutoAds) {
+		return true
+	}
+
+	return false
+}
+
+// SetAutoAds gets a reference to the given map[string]interface{} and assigns it to the AutoAds field.
+func (o *UpdatePlacementDto) SetAutoAds(v map[string]interface{}) {
+	o.AutoAds = v
+}
+
 func (o UpdatePlacementDto) MarshalJSON() ([]byte, error) {
 	toSerialize,err := o.ToMap()
 	if err != nil {
@@ -479,6 +513,9 @@ func (o UpdatePlacementDto) ToMap() (map[string]interface{}, error) {
 	}
 	if !IsNil(o.FloorSoft) {
 		toSerialize["floorSoft"] = o.FloorSoft
+	}
+	if o.AutoAds != nil {
+		toSerialize["autoAds"] = o.AutoAds
 	}
 	return toSerialize, nil
 }

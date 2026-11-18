@@ -28,12 +28,16 @@ type ApiAgencyControllerAcceptTransferRequest struct {
 	ApiService *AgencyAPIService
 }
 
-func (r ApiAgencyControllerAcceptTransferRequest) Execute() (*http.Response, error) {
+func (r ApiAgencyControllerAcceptTransferRequest) Execute() (*AgencyControllerAcceptTransfer201Response, *http.Response, error) {
 	return r.ApiService.AgencyControllerAcceptTransferExecute(r)
 }
 
 /*
-AgencyControllerAcceptTransfer Method for AgencyControllerAcceptTransfer
+AgencyControllerAcceptTransfer Accept a pixel transfer
+
+The recipient, signed in to their own account, accepts with `token`. In one transaction the pixel, its pixel-scoped audiences and their sync destinations move to the accepting account, and the sender's campaigns tagged to a client linked to that pixel are untagged. Audience membership keys are unchanged, so serving continues; historical analytics stay with the sender. Returns 400 if the transfer is not pending, has expired, is your own, or the pixel is gone.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAgencyControllerAcceptTransferRequest
@@ -46,16 +50,18 @@ func (a *AgencyAPIService) AgencyControllerAcceptTransfer(ctx context.Context) A
 }
 
 // Execute executes the request
-func (a *AgencyAPIService) AgencyControllerAcceptTransferExecute(r ApiAgencyControllerAcceptTransferRequest) (*http.Response, error) {
+//  @return AgencyControllerAcceptTransfer201Response
+func (a *AgencyAPIService) AgencyControllerAcceptTransferExecute(r ApiAgencyControllerAcceptTransferRequest) (*AgencyControllerAcceptTransfer201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AgencyControllerAcceptTransfer201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgencyAPIService.AgencyControllerAcceptTransfer")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/transfers/accept"
@@ -74,28 +80,42 @@ func (a *AgencyAPIService) AgencyControllerAcceptTransferExecute(r ApiAgencyCont
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -103,10 +123,19 @@ func (a *AgencyAPIService) AgencyControllerAcceptTransferExecute(r ApiAgencyCont
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAgencyControllerAddItemRequest struct {
@@ -115,12 +144,16 @@ type ApiAgencyControllerAddItemRequest struct {
 	id string
 }
 
-func (r ApiAgencyControllerAddItemRequest) Execute() (*http.Response, error) {
+func (r ApiAgencyControllerAddItemRequest) Execute() (*AgencyInvoice, *http.Response, error) {
 	return r.ApiService.AgencyControllerAddItemExecute(r)
 }
 
 /*
-AgencyControllerAddItem Method for AgencyControllerAddItem
+AgencyControllerAddItem Add a line item to a draft invoice
+
+Appends a line with `description` (required), optional `kind` (default `fee`), `quantity` (default 1) and `unitAmount`. `amount` defaults to quantity x unitAmount, rounded to cents. Draft invoices only (400 otherwise); totals are recomputed.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -135,16 +168,18 @@ func (a *AgencyAPIService) AgencyControllerAddItem(ctx context.Context, id strin
 }
 
 // Execute executes the request
-func (a *AgencyAPIService) AgencyControllerAddItemExecute(r ApiAgencyControllerAddItemRequest) (*http.Response, error) {
+//  @return AgencyInvoice
+func (a *AgencyAPIService) AgencyControllerAddItemExecute(r ApiAgencyControllerAddItemRequest) (*AgencyInvoice, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AgencyInvoice
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgencyAPIService.AgencyControllerAddItem")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/invoices/{id}/items"
@@ -164,28 +199,42 @@ func (a *AgencyAPIService) AgencyControllerAddItemExecute(r ApiAgencyControllerA
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -193,10 +242,19 @@ func (a *AgencyAPIService) AgencyControllerAddItemExecute(r ApiAgencyControllerA
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAgencyControllerCancelTransferRequest struct {
@@ -205,12 +263,16 @@ type ApiAgencyControllerCancelTransferRequest struct {
 	id string
 }
 
-func (r ApiAgencyControllerCancelTransferRequest) Execute() (*http.Response, error) {
+func (r ApiAgencyControllerCancelTransferRequest) Execute() (*AgencyControllerCancelTransfer201Response, *http.Response, error) {
 	return r.ApiService.AgencyControllerCancelTransferExecute(r)
 }
 
 /*
-AgencyControllerCancelTransfer Method for AgencyControllerCancelTransfer
+AgencyControllerCancelTransfer Cancel a pending pixel transfer
+
+Cancels a transfer this account started. Only `pending` transfers can be cancelled (400 otherwise); 404 if unknown.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -225,16 +287,18 @@ func (a *AgencyAPIService) AgencyControllerCancelTransfer(ctx context.Context, i
 }
 
 // Execute executes the request
-func (a *AgencyAPIService) AgencyControllerCancelTransferExecute(r ApiAgencyControllerCancelTransferRequest) (*http.Response, error) {
+//  @return AgencyControllerCancelTransfer201Response
+func (a *AgencyAPIService) AgencyControllerCancelTransferExecute(r ApiAgencyControllerCancelTransferRequest) (*AgencyControllerCancelTransfer201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AgencyControllerCancelTransfer201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgencyAPIService.AgencyControllerCancelTransfer")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/transfers/{id}/cancel"
@@ -254,28 +318,42 @@ func (a *AgencyAPIService) AgencyControllerCancelTransferExecute(r ApiAgencyCont
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -283,10 +361,19 @@ func (a *AgencyAPIService) AgencyControllerCancelTransferExecute(r ApiAgencyCont
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAgencyControllerClientSpendRequest struct {
@@ -307,12 +394,16 @@ func (r ApiAgencyControllerClientSpendRequest) To(to string) ApiAgencyController
 	return r
 }
 
-func (r ApiAgencyControllerClientSpendRequest) Execute() (*http.Response, error) {
+func (r ApiAgencyControllerClientSpendRequest) Execute() (*AgencyControllerClientSpend200Response, *http.Response, error) {
 	return r.ApiService.AgencyControllerClientSpendExecute(r)
 }
 
 /*
-AgencyControllerClientSpend Method for AgencyControllerClientSpend
+AgencyControllerClientSpend Get spend and delivery for a client
+
+Sums spend, impressions, clicks and conversions from the ClickHouse hourly rollup across the client's tagged campaigns for the inclusive date range `from`..`to` (YYYY-MM-DD). Defaults to the last 30 days. Returns zeros when no campaigns are tagged. 404 for an unknown client.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -327,16 +418,18 @@ func (a *AgencyAPIService) AgencyControllerClientSpend(ctx context.Context, id s
 }
 
 // Execute executes the request
-func (a *AgencyAPIService) AgencyControllerClientSpendExecute(r ApiAgencyControllerClientSpendRequest) (*http.Response, error) {
+//  @return AgencyControllerClientSpend200Response
+func (a *AgencyAPIService) AgencyControllerClientSpendExecute(r ApiAgencyControllerClientSpendRequest) (*AgencyControllerClientSpend200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AgencyControllerClientSpend200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgencyAPIService.AgencyControllerClientSpend")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/clients/{id}/spend"
@@ -346,10 +439,10 @@ func (a *AgencyAPIService) AgencyControllerClientSpendExecute(r ApiAgencyControl
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.from == nil {
-		return nil, reportError("from is required and must be specified")
+		return localVarReturnValue, nil, reportError("from is required and must be specified")
 	}
 	if r.to == nil {
-		return nil, reportError("to is required and must be specified")
+		return localVarReturnValue, nil, reportError("to is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "from", r.from, "form", "")
@@ -364,28 +457,42 @@ func (a *AgencyAPIService) AgencyControllerClientSpendExecute(r ApiAgencyControl
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -393,10 +500,19 @@ func (a *AgencyAPIService) AgencyControllerClientSpendExecute(r ApiAgencyControl
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAgencyControllerCreateClientRequest struct {
@@ -404,12 +520,16 @@ type ApiAgencyControllerCreateClientRequest struct {
 	ApiService *AgencyAPIService
 }
 
-func (r ApiAgencyControllerCreateClientRequest) Execute() (*http.Response, error) {
+func (r ApiAgencyControllerCreateClientRequest) Execute() (*AgencyClient, *http.Response, error) {
 	return r.ApiService.AgencyControllerCreateClientExecute(r)
 }
 
 /*
-AgencyControllerCreateClient Method for AgencyControllerCreateClient
+AgencyControllerCreateClient Create an agency client
+
+Creates a client with `name` (required, truncated to 160 chars), optional `billingEmail` (lowercased; used when sending invoices), `pixelId` and `notes` (truncated to 2000 chars). A supplied `pixelId` must belong to the calling account, otherwise 400. A missing name also returns 400.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAgencyControllerCreateClientRequest
@@ -422,16 +542,18 @@ func (a *AgencyAPIService) AgencyControllerCreateClient(ctx context.Context) Api
 }
 
 // Execute executes the request
-func (a *AgencyAPIService) AgencyControllerCreateClientExecute(r ApiAgencyControllerCreateClientRequest) (*http.Response, error) {
+//  @return AgencyClient
+func (a *AgencyAPIService) AgencyControllerCreateClientExecute(r ApiAgencyControllerCreateClientRequest) (*AgencyClient, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AgencyClient
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgencyAPIService.AgencyControllerCreateClient")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/clients"
@@ -450,28 +572,42 @@ func (a *AgencyAPIService) AgencyControllerCreateClientExecute(r ApiAgencyContro
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -479,10 +615,19 @@ func (a *AgencyAPIService) AgencyControllerCreateClientExecute(r ApiAgencyContro
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAgencyControllerCreateInvoiceRequest struct {
@@ -490,12 +635,16 @@ type ApiAgencyControllerCreateInvoiceRequest struct {
 	ApiService *AgencyAPIService
 }
 
-func (r ApiAgencyControllerCreateInvoiceRequest) Execute() (*http.Response, error) {
+func (r ApiAgencyControllerCreateInvoiceRequest) Execute() (*AgencyInvoice, *http.Response, error) {
 	return r.ApiService.AgencyControllerCreateInvoiceExecute(r)
 }
 
 /*
-AgencyControllerCreateInvoice Method for AgencyControllerCreateInvoice
+AgencyControllerCreateInvoice Create a draft invoice for a client
+
+Creates a draft invoice numbered `INV-NNNN` for `clientId` (required, must be owned). When `periodStart` and `periodEnd` are set and `includeSpend` is not false, an "Ad spend" line is added from the client's tagged-campaign spend, plus an agency fee line of `markupPct` percent of it. Optional `items` (description, kind, quantity, unitAmount, amount) are appended; `currency` defaults to USD. Totals are recomputed from the lines.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAgencyControllerCreateInvoiceRequest
@@ -508,16 +657,18 @@ func (a *AgencyAPIService) AgencyControllerCreateInvoice(ctx context.Context) Ap
 }
 
 // Execute executes the request
-func (a *AgencyAPIService) AgencyControllerCreateInvoiceExecute(r ApiAgencyControllerCreateInvoiceRequest) (*http.Response, error) {
+//  @return AgencyInvoice
+func (a *AgencyAPIService) AgencyControllerCreateInvoiceExecute(r ApiAgencyControllerCreateInvoiceRequest) (*AgencyInvoice, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AgencyInvoice
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgencyAPIService.AgencyControllerCreateInvoice")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/invoices"
@@ -536,28 +687,42 @@ func (a *AgencyAPIService) AgencyControllerCreateInvoiceExecute(r ApiAgencyContr
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -565,10 +730,19 @@ func (a *AgencyAPIService) AgencyControllerCreateInvoiceExecute(r ApiAgencyContr
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAgencyControllerGetClientRequest struct {
@@ -577,12 +751,16 @@ type ApiAgencyControllerGetClientRequest struct {
 	id string
 }
 
-func (r ApiAgencyControllerGetClientRequest) Execute() (*http.Response, error) {
+func (r ApiAgencyControllerGetClientRequest) Execute() (*AgencyClient, *http.Response, error) {
 	return r.ApiService.AgencyControllerGetClientExecute(r)
 }
 
 /*
-AgencyControllerGetClient Method for AgencyControllerGetClient
+AgencyControllerGetClient Get an agency client
+
+Returns one client owned by the calling account. 404 if it does not exist or belongs to another account. The single-client view reports `taggedCampaigns` as 0; use the list endpoint for counts.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -597,16 +775,18 @@ func (a *AgencyAPIService) AgencyControllerGetClient(ctx context.Context, id str
 }
 
 // Execute executes the request
-func (a *AgencyAPIService) AgencyControllerGetClientExecute(r ApiAgencyControllerGetClientRequest) (*http.Response, error) {
+//  @return AgencyClient
+func (a *AgencyAPIService) AgencyControllerGetClientExecute(r ApiAgencyControllerGetClientRequest) (*AgencyClient, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AgencyClient
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgencyAPIService.AgencyControllerGetClient")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/clients/{id}"
@@ -626,28 +806,42 @@ func (a *AgencyAPIService) AgencyControllerGetClientExecute(r ApiAgencyControlle
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -655,10 +849,19 @@ func (a *AgencyAPIService) AgencyControllerGetClientExecute(r ApiAgencyControlle
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAgencyControllerGetInvoiceRequest struct {
@@ -667,12 +870,16 @@ type ApiAgencyControllerGetInvoiceRequest struct {
 	id string
 }
 
-func (r ApiAgencyControllerGetInvoiceRequest) Execute() (*http.Response, error) {
+func (r ApiAgencyControllerGetInvoiceRequest) Execute() (*AgencyInvoice, *http.Response, error) {
 	return r.ApiService.AgencyControllerGetInvoiceExecute(r)
 }
 
 /*
-AgencyControllerGetInvoice Method for AgencyControllerGetInvoice
+AgencyControllerGetInvoice Get an invoice with line items
+
+Returns one invoice owned by the calling account, including its line items ordered by sort position. 404 if unknown.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -687,16 +894,18 @@ func (a *AgencyAPIService) AgencyControllerGetInvoice(ctx context.Context, id st
 }
 
 // Execute executes the request
-func (a *AgencyAPIService) AgencyControllerGetInvoiceExecute(r ApiAgencyControllerGetInvoiceRequest) (*http.Response, error) {
+//  @return AgencyInvoice
+func (a *AgencyAPIService) AgencyControllerGetInvoiceExecute(r ApiAgencyControllerGetInvoiceRequest) (*AgencyInvoice, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AgencyInvoice
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgencyAPIService.AgencyControllerGetInvoice")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/invoices/{id}"
@@ -716,28 +925,42 @@ func (a *AgencyAPIService) AgencyControllerGetInvoiceExecute(r ApiAgencyControll
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -745,10 +968,19 @@ func (a *AgencyAPIService) AgencyControllerGetInvoiceExecute(r ApiAgencyControll
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAgencyControllerInitiateTransferRequest struct {
@@ -756,12 +988,16 @@ type ApiAgencyControllerInitiateTransferRequest struct {
 	ApiService *AgencyAPIService
 }
 
-func (r ApiAgencyControllerInitiateTransferRequest) Execute() (*http.Response, error) {
+func (r ApiAgencyControllerInitiateTransferRequest) Execute() (*AgencyTransfer, *http.Response, error) {
 	return r.ApiService.AgencyControllerInitiateTransferExecute(r)
 }
 
 /*
-AgencyControllerInitiateTransfer Method for AgencyControllerInitiateTransfer
+AgencyControllerInitiateTransfer Start a pixel ownership transfer
+
+Offers one of the account's pixels (`pixelId`), with its pixel-scoped audiences, to the account at `email`. The recipient is emailed a link that expires in 14 days. Returns 400 for an invalid email, a transfer to yourself, or a pixel that already has a pending transfer, and 404 for an unknown pixel. Not available to manager/analyst team seats.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAgencyControllerInitiateTransferRequest
@@ -774,16 +1010,18 @@ func (a *AgencyAPIService) AgencyControllerInitiateTransfer(ctx context.Context)
 }
 
 // Execute executes the request
-func (a *AgencyAPIService) AgencyControllerInitiateTransferExecute(r ApiAgencyControllerInitiateTransferRequest) (*http.Response, error) {
+//  @return AgencyTransfer
+func (a *AgencyAPIService) AgencyControllerInitiateTransferExecute(r ApiAgencyControllerInitiateTransferRequest) (*AgencyTransfer, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AgencyTransfer
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgencyAPIService.AgencyControllerInitiateTransfer")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/transfers"
@@ -802,28 +1040,42 @@ func (a *AgencyAPIService) AgencyControllerInitiateTransferExecute(r ApiAgencyCo
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -831,10 +1083,19 @@ func (a *AgencyAPIService) AgencyControllerInitiateTransferExecute(r ApiAgencyCo
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAgencyControllerListClientsRequest struct {
@@ -842,12 +1103,16 @@ type ApiAgencyControllerListClientsRequest struct {
 	ApiService *AgencyAPIService
 }
 
-func (r ApiAgencyControllerListClientsRequest) Execute() (*http.Response, error) {
+func (r ApiAgencyControllerListClientsRequest) Execute() ([]AgencyClient, *http.Response, error) {
 	return r.ApiService.AgencyControllerListClientsExecute(r)
 }
 
 /*
-AgencyControllerListClients Method for AgencyControllerListClients
+AgencyControllerListClients List agency clients
+
+Returns the billable clients this agency account runs campaigns and pixels for, newest first. Each client includes `taggedCampaigns`, the number of non-deleted campaigns currently tagged to it.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAgencyControllerListClientsRequest
@@ -860,16 +1125,18 @@ func (a *AgencyAPIService) AgencyControllerListClients(ctx context.Context) ApiA
 }
 
 // Execute executes the request
-func (a *AgencyAPIService) AgencyControllerListClientsExecute(r ApiAgencyControllerListClientsRequest) (*http.Response, error) {
+//  @return []AgencyClient
+func (a *AgencyAPIService) AgencyControllerListClientsExecute(r ApiAgencyControllerListClientsRequest) ([]AgencyClient, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []AgencyClient
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgencyAPIService.AgencyControllerListClients")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/clients"
@@ -888,28 +1155,42 @@ func (a *AgencyAPIService) AgencyControllerListClientsExecute(r ApiAgencyControl
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -917,10 +1198,19 @@ func (a *AgencyAPIService) AgencyControllerListClientsExecute(r ApiAgencyControl
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAgencyControllerListInvoicesRequest struct {
@@ -934,12 +1224,16 @@ func (r ApiAgencyControllerListInvoicesRequest) ClientId(clientId string) ApiAge
 	return r
 }
 
-func (r ApiAgencyControllerListInvoicesRequest) Execute() (*http.Response, error) {
+func (r ApiAgencyControllerListInvoicesRequest) Execute() ([]AgencyInvoice, *http.Response, error) {
 	return r.ApiService.AgencyControllerListInvoicesExecute(r)
 }
 
 /*
-AgencyControllerListInvoices Method for AgencyControllerListInvoices
+AgencyControllerListInvoices List agency invoices
+
+Returns the account's client invoices, newest first, optionally filtered by `clientId`. List entries carry an empty `items` array; fetch a single invoice for its line items.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAgencyControllerListInvoicesRequest
@@ -952,16 +1246,18 @@ func (a *AgencyAPIService) AgencyControllerListInvoices(ctx context.Context) Api
 }
 
 // Execute executes the request
-func (a *AgencyAPIService) AgencyControllerListInvoicesExecute(r ApiAgencyControllerListInvoicesRequest) (*http.Response, error) {
+//  @return []AgencyInvoice
+func (a *AgencyAPIService) AgencyControllerListInvoicesExecute(r ApiAgencyControllerListInvoicesRequest) ([]AgencyInvoice, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []AgencyInvoice
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgencyAPIService.AgencyControllerListInvoices")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/invoices"
@@ -970,7 +1266,7 @@ func (a *AgencyAPIService) AgencyControllerListInvoicesExecute(r ApiAgencyContro
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.clientId == nil {
-		return nil, reportError("clientId is required and must be specified")
+		return localVarReturnValue, nil, reportError("clientId is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "clientId", r.clientId, "form", "")
@@ -984,28 +1280,42 @@ func (a *AgencyAPIService) AgencyControllerListInvoicesExecute(r ApiAgencyContro
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1013,10 +1323,19 @@ func (a *AgencyAPIService) AgencyControllerListInvoicesExecute(r ApiAgencyContro
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAgencyControllerListTransfersRequest struct {
@@ -1024,12 +1343,16 @@ type ApiAgencyControllerListTransfersRequest struct {
 	ApiService *AgencyAPIService
 }
 
-func (r ApiAgencyControllerListTransfersRequest) Execute() (*http.Response, error) {
+func (r ApiAgencyControllerListTransfersRequest) Execute() ([]AgencyTransfer, *http.Response, error) {
 	return r.ApiService.AgencyControllerListTransfersExecute(r)
 }
 
 /*
-AgencyControllerListTransfers Method for AgencyControllerListTransfers
+AgencyControllerListTransfers List outgoing pixel transfers
+
+Returns up to 100 transfers this account has started, newest first, with pixel names and current status.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAgencyControllerListTransfersRequest
@@ -1042,16 +1365,18 @@ func (a *AgencyAPIService) AgencyControllerListTransfers(ctx context.Context) Ap
 }
 
 // Execute executes the request
-func (a *AgencyAPIService) AgencyControllerListTransfersExecute(r ApiAgencyControllerListTransfersRequest) (*http.Response, error) {
+//  @return []AgencyTransfer
+func (a *AgencyAPIService) AgencyControllerListTransfersExecute(r ApiAgencyControllerListTransfersRequest) ([]AgencyTransfer, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []AgencyTransfer
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgencyAPIService.AgencyControllerListTransfers")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/transfers"
@@ -1070,28 +1395,42 @@ func (a *AgencyAPIService) AgencyControllerListTransfersExecute(r ApiAgencyContr
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1099,10 +1438,19 @@ func (a *AgencyAPIService) AgencyControllerListTransfersExecute(r ApiAgencyContr
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAgencyControllerMarkPaidRequest struct {
@@ -1111,12 +1459,16 @@ type ApiAgencyControllerMarkPaidRequest struct {
 	id string
 }
 
-func (r ApiAgencyControllerMarkPaidRequest) Execute() (*http.Response, error) {
+func (r ApiAgencyControllerMarkPaidRequest) Execute() (*AgencyInvoice, *http.Response, error) {
 	return r.ApiService.AgencyControllerMarkPaidExecute(r)
 }
 
 /*
-AgencyControllerMarkPaid Method for AgencyControllerMarkPaid
+AgencyControllerMarkPaid Mark an invoice paid manually
+
+Records an offline payment by setting the status to `paid` and stamping `paidAt`. No ledger entry is posted. Void invoices return 400.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1131,16 +1483,18 @@ func (a *AgencyAPIService) AgencyControllerMarkPaid(ctx context.Context, id stri
 }
 
 // Execute executes the request
-func (a *AgencyAPIService) AgencyControllerMarkPaidExecute(r ApiAgencyControllerMarkPaidRequest) (*http.Response, error) {
+//  @return AgencyInvoice
+func (a *AgencyAPIService) AgencyControllerMarkPaidExecute(r ApiAgencyControllerMarkPaidRequest) (*AgencyInvoice, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AgencyInvoice
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgencyAPIService.AgencyControllerMarkPaid")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/invoices/{id}/mark-paid"
@@ -1160,28 +1514,42 @@ func (a *AgencyAPIService) AgencyControllerMarkPaidExecute(r ApiAgencyController
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1189,10 +1557,19 @@ func (a *AgencyAPIService) AgencyControllerMarkPaidExecute(r ApiAgencyController
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAgencyControllerPayInfoRequest struct {
@@ -1201,12 +1578,16 @@ type ApiAgencyControllerPayInfoRequest struct {
 	token string
 }
 
-func (r ApiAgencyControllerPayInfoRequest) Execute() (*http.Response, error) {
+func (r ApiAgencyControllerPayInfoRequest) Execute() (*AgencyControllerPayInfo200Response, *http.Response, error) {
 	return r.ApiService.AgencyControllerPayInfoExecute(r)
 }
 
 /*
-AgencyControllerPayInfo Method for AgencyControllerPayInfo
+AgencyControllerPayInfo Get the public view of an invoice
+
+Unauthenticated: the pay token in the path grants access. Returns what the client needs to review an invoice: number, status, total, agency and client names, period, notes, due/paid dates and line descriptions with amounts. 404 for an unknown token.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param token
@@ -1221,16 +1602,18 @@ func (a *AgencyAPIService) AgencyControllerPayInfo(ctx context.Context, token st
 }
 
 // Execute executes the request
-func (a *AgencyAPIService) AgencyControllerPayInfoExecute(r ApiAgencyControllerPayInfoRequest) (*http.Response, error) {
+//  @return AgencyControllerPayInfo200Response
+func (a *AgencyAPIService) AgencyControllerPayInfoExecute(r ApiAgencyControllerPayInfoRequest) (*AgencyControllerPayInfo200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AgencyControllerPayInfo200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgencyAPIService.AgencyControllerPayInfo")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/pay/{token}"
@@ -1250,7 +1633,7 @@ func (a *AgencyAPIService) AgencyControllerPayInfoExecute(r ApiAgencyControllerP
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1259,19 +1642,19 @@ func (a *AgencyAPIService) AgencyControllerPayInfoExecute(r ApiAgencyControllerP
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1279,10 +1662,19 @@ func (a *AgencyAPIService) AgencyControllerPayInfoExecute(r ApiAgencyControllerP
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAgencyControllerRemoveClientRequest struct {
@@ -1291,12 +1683,16 @@ type ApiAgencyControllerRemoveClientRequest struct {
 	id string
 }
 
-func (r ApiAgencyControllerRemoveClientRequest) Execute() (*http.Response, error) {
+func (r ApiAgencyControllerRemoveClientRequest) Execute() (*PixelControllerDeletePixel200Response, *http.Response, error) {
 	return r.ApiService.AgencyControllerRemoveClientExecute(r)
 }
 
 /*
-AgencyControllerRemoveClient Method for AgencyControllerRemoveClient
+AgencyControllerRemoveClient Delete an agency client
+
+Deletes the client if it belongs to the calling account. Campaigns tagged to it are untagged by the database (ON DELETE SET NULL). Returns `{ deleted: true }` even when no matching client existed.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1311,16 +1707,18 @@ func (a *AgencyAPIService) AgencyControllerRemoveClient(ctx context.Context, id 
 }
 
 // Execute executes the request
-func (a *AgencyAPIService) AgencyControllerRemoveClientExecute(r ApiAgencyControllerRemoveClientRequest) (*http.Response, error) {
+//  @return PixelControllerDeletePixel200Response
+func (a *AgencyAPIService) AgencyControllerRemoveClientExecute(r ApiAgencyControllerRemoveClientRequest) (*PixelControllerDeletePixel200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PixelControllerDeletePixel200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgencyAPIService.AgencyControllerRemoveClient")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/clients/{id}"
@@ -1340,28 +1738,42 @@ func (a *AgencyAPIService) AgencyControllerRemoveClientExecute(r ApiAgencyContro
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1369,10 +1781,19 @@ func (a *AgencyAPIService) AgencyControllerRemoveClientExecute(r ApiAgencyContro
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAgencyControllerRemoveItemRequest struct {
@@ -1382,12 +1803,16 @@ type ApiAgencyControllerRemoveItemRequest struct {
 	itemId string
 }
 
-func (r ApiAgencyControllerRemoveItemRequest) Execute() (*http.Response, error) {
+func (r ApiAgencyControllerRemoveItemRequest) Execute() (*AgencyInvoice, *http.Response, error) {
 	return r.ApiService.AgencyControllerRemoveItemExecute(r)
 }
 
 /*
-AgencyControllerRemoveItem Method for AgencyControllerRemoveItem
+AgencyControllerRemoveItem Remove a line item from a draft invoice
+
+Deletes the line item `itemId` from a draft invoice and recomputes the totals. Returns 400 if the invoice is not a draft.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1404,16 +1829,18 @@ func (a *AgencyAPIService) AgencyControllerRemoveItem(ctx context.Context, id st
 }
 
 // Execute executes the request
-func (a *AgencyAPIService) AgencyControllerRemoveItemExecute(r ApiAgencyControllerRemoveItemRequest) (*http.Response, error) {
+//  @return AgencyInvoice
+func (a *AgencyAPIService) AgencyControllerRemoveItemExecute(r ApiAgencyControllerRemoveItemRequest) (*AgencyInvoice, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AgencyInvoice
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgencyAPIService.AgencyControllerRemoveItem")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/invoices/{id}/items/{itemId}"
@@ -1434,28 +1861,42 @@ func (a *AgencyAPIService) AgencyControllerRemoveItemExecute(r ApiAgencyControll
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1463,10 +1904,19 @@ func (a *AgencyAPIService) AgencyControllerRemoveItemExecute(r ApiAgencyControll
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAgencyControllerSendInvoiceRequest struct {
@@ -1475,12 +1925,16 @@ type ApiAgencyControllerSendInvoiceRequest struct {
 	id string
 }
 
-func (r ApiAgencyControllerSendInvoiceRequest) Execute() (*http.Response, error) {
+func (r ApiAgencyControllerSendInvoiceRequest) Execute() (*AgencyInvoice, *http.Response, error) {
 	return r.ApiService.AgencyControllerSendInvoiceExecute(r)
 }
 
 /*
-AgencyControllerSendInvoice Method for AgencyControllerSendInvoice
+AgencyControllerSendInvoice Send an invoice and mint its pay link
+
+Moves the invoice to `sent`, mints a public pay token (reused if already set) and stamps `issuedAt`. If the client has a billing email, it is emailed a link to the hosted pay page. Fails with 400 for paid or void invoices or a non-positive total. The response adds `payLink`.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1495,16 +1949,18 @@ func (a *AgencyAPIService) AgencyControllerSendInvoice(ctx context.Context, id s
 }
 
 // Execute executes the request
-func (a *AgencyAPIService) AgencyControllerSendInvoiceExecute(r ApiAgencyControllerSendInvoiceRequest) (*http.Response, error) {
+//  @return AgencyInvoice
+func (a *AgencyAPIService) AgencyControllerSendInvoiceExecute(r ApiAgencyControllerSendInvoiceRequest) (*AgencyInvoice, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AgencyInvoice
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgencyAPIService.AgencyControllerSendInvoice")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/invoices/{id}/send"
@@ -1524,28 +1980,42 @@ func (a *AgencyAPIService) AgencyControllerSendInvoiceExecute(r ApiAgencyControl
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1553,10 +2023,19 @@ func (a *AgencyAPIService) AgencyControllerSendInvoiceExecute(r ApiAgencyControl
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAgencyControllerStartPaymentRequest struct {
@@ -1565,12 +2044,16 @@ type ApiAgencyControllerStartPaymentRequest struct {
 	token string
 }
 
-func (r ApiAgencyControllerStartPaymentRequest) Execute() (*http.Response, error) {
+func (r ApiAgencyControllerStartPaymentRequest) Execute() (*AgencyControllerStartPayment201Response, *http.Response, error) {
 	return r.ApiService.AgencyControllerStartPaymentExecute(r)
 }
 
 /*
-AgencyControllerStartPayment Method for AgencyControllerStartPayment
+AgencyControllerStartPayment Start paying an invoice
+
+Unauthenticated (pay token in the path). Creates a pending deposit on the agency's account linked to the invoice and starts checkout with `provider` (`crypto`, anything else means Stripe). When the provider confirms, the deposit credits the agency balance and marks the invoice paid. Only `sent` invoices can be paid (400 otherwise).
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param token
@@ -1585,16 +2068,18 @@ func (a *AgencyAPIService) AgencyControllerStartPayment(ctx context.Context, tok
 }
 
 // Execute executes the request
-func (a *AgencyAPIService) AgencyControllerStartPaymentExecute(r ApiAgencyControllerStartPaymentRequest) (*http.Response, error) {
+//  @return AgencyControllerStartPayment201Response
+func (a *AgencyAPIService) AgencyControllerStartPaymentExecute(r ApiAgencyControllerStartPaymentRequest) (*AgencyControllerStartPayment201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AgencyControllerStartPayment201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgencyAPIService.AgencyControllerStartPayment")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/pay/{token}"
@@ -1614,7 +2099,7 @@ func (a *AgencyAPIService) AgencyControllerStartPaymentExecute(r ApiAgencyContro
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1623,19 +2108,19 @@ func (a *AgencyAPIService) AgencyControllerStartPaymentExecute(r ApiAgencyContro
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1643,10 +2128,19 @@ func (a *AgencyAPIService) AgencyControllerStartPaymentExecute(r ApiAgencyContro
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAgencyControllerTagCampaignRequest struct {
@@ -1654,12 +2148,16 @@ type ApiAgencyControllerTagCampaignRequest struct {
 	ApiService *AgencyAPIService
 }
 
-func (r ApiAgencyControllerTagCampaignRequest) Execute() (*http.Response, error) {
+func (r ApiAgencyControllerTagCampaignRequest) Execute() (*AgencyControllerTagCampaign201Response, *http.Response, error) {
 	return r.ApiService.AgencyControllerTagCampaignExecute(r)
 }
 
 /*
-AgencyControllerTagCampaign Method for AgencyControllerTagCampaign
+AgencyControllerTagCampaign Tag or untag a campaign to a client
+
+Sets `campaignId`'s client tag to `clientId`, or clears it when `clientId` is null. Both the campaign and the client must belong to the calling account (404 otherwise). Tagged campaigns' spend is what client spend reports and auto-generated invoices bill.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAgencyControllerTagCampaignRequest
@@ -1672,16 +2170,18 @@ func (a *AgencyAPIService) AgencyControllerTagCampaign(ctx context.Context) ApiA
 }
 
 // Execute executes the request
-func (a *AgencyAPIService) AgencyControllerTagCampaignExecute(r ApiAgencyControllerTagCampaignRequest) (*http.Response, error) {
+//  @return AgencyControllerTagCampaign201Response
+func (a *AgencyAPIService) AgencyControllerTagCampaignExecute(r ApiAgencyControllerTagCampaignRequest) (*AgencyControllerTagCampaign201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AgencyControllerTagCampaign201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgencyAPIService.AgencyControllerTagCampaign")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/clients/tag"
@@ -1700,28 +2200,42 @@ func (a *AgencyAPIService) AgencyControllerTagCampaignExecute(r ApiAgencyControl
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1729,10 +2243,19 @@ func (a *AgencyAPIService) AgencyControllerTagCampaignExecute(r ApiAgencyControl
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAgencyControllerTaggableRequest struct {
@@ -1740,12 +2263,16 @@ type ApiAgencyControllerTaggableRequest struct {
 	ApiService *AgencyAPIService
 }
 
-func (r ApiAgencyControllerTaggableRequest) Execute() (*http.Response, error) {
+func (r ApiAgencyControllerTaggableRequest) Execute() ([]AgencyControllerTaggable200ResponseInner, *http.Response, error) {
 	return r.ApiService.AgencyControllerTaggableExecute(r)
 }
 
 /*
-AgencyControllerTaggable Method for AgencyControllerTaggable
+AgencyControllerTaggable List campaigns available for client tagging
+
+Returns up to 500 of the account's non-deleted campaigns (ad sets) with their current `client_id` tag, newest first. Used by the tagging UI to assign campaign spend to a client.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAgencyControllerTaggableRequest
@@ -1758,16 +2285,18 @@ func (a *AgencyAPIService) AgencyControllerTaggable(ctx context.Context) ApiAgen
 }
 
 // Execute executes the request
-func (a *AgencyAPIService) AgencyControllerTaggableExecute(r ApiAgencyControllerTaggableRequest) (*http.Response, error) {
+//  @return []AgencyControllerTaggable200ResponseInner
+func (a *AgencyAPIService) AgencyControllerTaggableExecute(r ApiAgencyControllerTaggableRequest) ([]AgencyControllerTaggable200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []AgencyControllerTaggable200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgencyAPIService.AgencyControllerTaggable")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/clients/campaigns"
@@ -1786,28 +2315,42 @@ func (a *AgencyAPIService) AgencyControllerTaggableExecute(r ApiAgencyController
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1815,10 +2358,19 @@ func (a *AgencyAPIService) AgencyControllerTaggableExecute(r ApiAgencyController
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAgencyControllerTransferInfoRequest struct {
@@ -1832,12 +2384,16 @@ func (r ApiAgencyControllerTransferInfoRequest) Token(token string) ApiAgencyCon
 	return r
 }
 
-func (r ApiAgencyControllerTransferInfoRequest) Execute() (*http.Response, error) {
+func (r ApiAgencyControllerTransferInfoRequest) Execute() (*AgencyControllerTransferInfo200Response, *http.Response, error) {
 	return r.ApiService.AgencyControllerTransferInfoExecute(r)
 }
 
 /*
-AgencyControllerTransferInfo Method for AgencyControllerTransferInfo
+AgencyControllerTransferInfo Preview a pixel transfer by token
+
+Looks up a transfer by the `token` query parameter from the email link, so the recipient can review it before accepting. A pending transfer past its expiry is reported as `expired`. 404 for an unknown token.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAgencyControllerTransferInfoRequest
@@ -1850,16 +2406,18 @@ func (a *AgencyAPIService) AgencyControllerTransferInfo(ctx context.Context) Api
 }
 
 // Execute executes the request
-func (a *AgencyAPIService) AgencyControllerTransferInfoExecute(r ApiAgencyControllerTransferInfoRequest) (*http.Response, error) {
+//  @return AgencyControllerTransferInfo200Response
+func (a *AgencyAPIService) AgencyControllerTransferInfoExecute(r ApiAgencyControllerTransferInfoRequest) (*AgencyControllerTransferInfo200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AgencyControllerTransferInfo200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgencyAPIService.AgencyControllerTransferInfo")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/transfers/info"
@@ -1868,7 +2426,7 @@ func (a *AgencyAPIService) AgencyControllerTransferInfoExecute(r ApiAgencyContro
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.token == nil {
-		return nil, reportError("token is required and must be specified")
+		return localVarReturnValue, nil, reportError("token is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "token", r.token, "form", "")
@@ -1882,28 +2440,42 @@ func (a *AgencyAPIService) AgencyControllerTransferInfoExecute(r ApiAgencyContro
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1911,10 +2483,19 @@ func (a *AgencyAPIService) AgencyControllerTransferInfoExecute(r ApiAgencyContro
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAgencyControllerUpdateClientRequest struct {
@@ -1923,12 +2504,16 @@ type ApiAgencyControllerUpdateClientRequest struct {
 	id string
 }
 
-func (r ApiAgencyControllerUpdateClientRequest) Execute() (*http.Response, error) {
+func (r ApiAgencyControllerUpdateClientRequest) Execute() (*AgencyClient, *http.Response, error) {
 	return r.ApiService.AgencyControllerUpdateClientExecute(r)
 }
 
 /*
-AgencyControllerUpdateClient Method for AgencyControllerUpdateClient
+AgencyControllerUpdateClient Update an agency client
+
+Partially updates `name`, `billingEmail`, `pixelId`, `notes` and `status`. Only fields present are changed; `status` is applied only when it is `active` or `archived`. A new `pixelId` must belong to the account (400 otherwise); an empty string clears it. Returns the updated client.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1943,16 +2528,18 @@ func (a *AgencyAPIService) AgencyControllerUpdateClient(ctx context.Context, id 
 }
 
 // Execute executes the request
-func (a *AgencyAPIService) AgencyControllerUpdateClientExecute(r ApiAgencyControllerUpdateClientRequest) (*http.Response, error) {
+//  @return AgencyClient
+func (a *AgencyAPIService) AgencyControllerUpdateClientExecute(r ApiAgencyControllerUpdateClientRequest) (*AgencyClient, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AgencyClient
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgencyAPIService.AgencyControllerUpdateClient")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/clients/{id}"
@@ -1972,28 +2559,42 @@ func (a *AgencyAPIService) AgencyControllerUpdateClientExecute(r ApiAgencyContro
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2001,10 +2602,19 @@ func (a *AgencyAPIService) AgencyControllerUpdateClientExecute(r ApiAgencyContro
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAgencyControllerUpdateInvoiceRequest struct {
@@ -2013,12 +2623,16 @@ type ApiAgencyControllerUpdateInvoiceRequest struct {
 	id string
 }
 
-func (r ApiAgencyControllerUpdateInvoiceRequest) Execute() (*http.Response, error) {
+func (r ApiAgencyControllerUpdateInvoiceRequest) Execute() (*AgencyInvoice, *http.Response, error) {
 	return r.ApiService.AgencyControllerUpdateInvoiceExecute(r)
 }
 
 /*
-AgencyControllerUpdateInvoice Method for AgencyControllerUpdateInvoice
+AgencyControllerUpdateInvoice Update a draft invoice
+
+Updates `notes` (truncated to 4000 chars) and/or `dueAt` on a draft invoice. Returns 400 if the invoice is no longer a draft and 404 if unknown.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -2033,16 +2647,18 @@ func (a *AgencyAPIService) AgencyControllerUpdateInvoice(ctx context.Context, id
 }
 
 // Execute executes the request
-func (a *AgencyAPIService) AgencyControllerUpdateInvoiceExecute(r ApiAgencyControllerUpdateInvoiceRequest) (*http.Response, error) {
+//  @return AgencyInvoice
+func (a *AgencyAPIService) AgencyControllerUpdateInvoiceExecute(r ApiAgencyControllerUpdateInvoiceRequest) (*AgencyInvoice, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AgencyInvoice
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgencyAPIService.AgencyControllerUpdateInvoice")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/invoices/{id}"
@@ -2062,28 +2678,42 @@ func (a *AgencyAPIService) AgencyControllerUpdateInvoiceExecute(r ApiAgencyContr
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2091,10 +2721,19 @@ func (a *AgencyAPIService) AgencyControllerUpdateInvoiceExecute(r ApiAgencyContr
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAgencyControllerVoidInvoiceRequest struct {
@@ -2103,12 +2742,16 @@ type ApiAgencyControllerVoidInvoiceRequest struct {
 	id string
 }
 
-func (r ApiAgencyControllerVoidInvoiceRequest) Execute() (*http.Response, error) {
+func (r ApiAgencyControllerVoidInvoiceRequest) Execute() (*AgencyInvoice, *http.Response, error) {
 	return r.ApiService.AgencyControllerVoidInvoiceExecute(r)
 }
 
 /*
-AgencyControllerVoidInvoice Method for AgencyControllerVoidInvoice
+AgencyControllerVoidInvoice Void an invoice
+
+Sets the invoice status to `void`; its pay link stops accepting payments. Paid invoices cannot be voided (400).
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -2123,16 +2766,18 @@ func (a *AgencyAPIService) AgencyControllerVoidInvoice(ctx context.Context, id s
 }
 
 // Execute executes the request
-func (a *AgencyAPIService) AgencyControllerVoidInvoiceExecute(r ApiAgencyControllerVoidInvoiceRequest) (*http.Response, error) {
+//  @return AgencyInvoice
+func (a *AgencyAPIService) AgencyControllerVoidInvoiceExecute(r ApiAgencyControllerVoidInvoiceRequest) (*AgencyInvoice, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AgencyInvoice
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AgencyAPIService.AgencyControllerVoidInvoice")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/invoices/{id}/void"
@@ -2152,28 +2797,42 @@ func (a *AgencyAPIService) AgencyControllerVoidInvoiceExecute(r ApiAgencyControl
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2181,8 +2840,17 @@ func (a *AgencyAPIService) AgencyControllerVoidInvoiceExecute(r ApiAgencyControl
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

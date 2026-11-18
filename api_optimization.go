@@ -29,12 +29,16 @@ type ApiOptimizationControllerAckAlertRequest struct {
 	id string
 }
 
-func (r ApiOptimizationControllerAckAlertRequest) Execute() (*http.Response, error) {
+func (r ApiOptimizationControllerAckAlertRequest) Execute() (*OptimizationControllerAckAlert201Response, *http.Response, error) {
 	return r.ApiService.OptimizationControllerAckAlertExecute(r)
 }
 
 /*
-OptimizationControllerAckAlert Method for OptimizationControllerAckAlert
+OptimizationControllerAckAlert Acknowledge an alert
+
+Marks alert `id` as acknowledged. Ids not owned by the account are silently ignored, and the response is the same either way.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -49,16 +53,18 @@ func (a *OptimizationAPIService) OptimizationControllerAckAlert(ctx context.Cont
 }
 
 // Execute executes the request
-func (a *OptimizationAPIService) OptimizationControllerAckAlertExecute(r ApiOptimizationControllerAckAlertRequest) (*http.Response, error) {
+//  @return OptimizationControllerAckAlert201Response
+func (a *OptimizationAPIService) OptimizationControllerAckAlertExecute(r ApiOptimizationControllerAckAlertRequest) (*OptimizationControllerAckAlert201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *OptimizationControllerAckAlert201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OptimizationAPIService.OptimizationControllerAckAlert")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/alerts/{id}/ack"
@@ -78,28 +84,42 @@ func (a *OptimizationAPIService) OptimizationControllerAckAlertExecute(r ApiOpti
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -107,10 +127,19 @@ func (a *OptimizationAPIService) OptimizationControllerAckAlertExecute(r ApiOpti
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiOptimizationControllerCreateRuleRequest struct {
@@ -124,12 +153,16 @@ func (r ApiOptimizationControllerCreateRuleRequest) CreateAutomationRuleDto(crea
 	return r
 }
 
-func (r ApiOptimizationControllerCreateRuleRequest) Execute() (*http.Response, error) {
+func (r ApiOptimizationControllerCreateRuleRequest) Execute() (*AudienceAutomationRule, *http.Response, error) {
 	return r.ApiService.OptimizationControllerCreateRuleExecute(r)
 }
 
 /*
-OptimizationControllerCreateRule Method for OptimizationControllerCreateRule
+OptimizationControllerCreateRule Create an automation rule
+
+Creates a rule of the form "when `metric` (cpa, ctr, spend, conversions, fill_rate) is `operator` (gt or lt) `threshold` over `windowHours`, apply `action`" (pause, resume, notify or adjust_bid). `name`, `metric`, `operator`, `threshold` and `action` are required. `scope` is campaign (the default, which requires `targetId`) or all. `windowHours` defaults to 24 and is clamped to 1-720. `actionValue` is kept only for adjust_bid. Invalid input returns 400.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiOptimizationControllerCreateRuleRequest
@@ -142,16 +175,18 @@ func (a *OptimizationAPIService) OptimizationControllerCreateRule(ctx context.Co
 }
 
 // Execute executes the request
-func (a *OptimizationAPIService) OptimizationControllerCreateRuleExecute(r ApiOptimizationControllerCreateRuleRequest) (*http.Response, error) {
+//  @return AudienceAutomationRule
+func (a *OptimizationAPIService) OptimizationControllerCreateRuleExecute(r ApiOptimizationControllerCreateRuleRequest) (*AudienceAutomationRule, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AudienceAutomationRule
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OptimizationAPIService.OptimizationControllerCreateRule")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/automation/rules"
@@ -160,7 +195,7 @@ func (a *OptimizationAPIService) OptimizationControllerCreateRuleExecute(r ApiOp
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.createAutomationRuleDto == nil {
-		return nil, reportError("createAutomationRuleDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("createAutomationRuleDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -173,7 +208,7 @@ func (a *OptimizationAPIService) OptimizationControllerCreateRuleExecute(r ApiOp
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -182,21 +217,35 @@ func (a *OptimizationAPIService) OptimizationControllerCreateRuleExecute(r ApiOp
 	}
 	// body params
 	localVarPostBody = r.createAutomationRuleDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -204,10 +253,19 @@ func (a *OptimizationAPIService) OptimizationControllerCreateRuleExecute(r ApiOp
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiOptimizationControllerListAlertsRequest struct {
@@ -215,12 +273,16 @@ type ApiOptimizationControllerListAlertsRequest struct {
 	ApiService *OptimizationAPIService
 }
 
-func (r ApiOptimizationControllerListAlertsRequest) Execute() (*http.Response, error) {
+func (r ApiOptimizationControllerListAlertsRequest) Execute() ([]OptimizationControllerListAlerts200ResponseInner, *http.Response, error) {
 	return r.ApiService.OptimizationControllerListAlertsExecute(r)
 }
 
 /*
-OptimizationControllerListAlerts Method for OptimizationControllerListAlerts
+OptimizationControllerListAlerts List anomaly alerts
+
+Returns up to 200 of the account's anomaly alerts, newest first. Alerts are raised by the hourly anomaly detector. Kinds include spend and CPA spikes, CTR and CVR drops, fill-rate drops and no-fill spikes.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiOptimizationControllerListAlertsRequest
@@ -233,16 +295,18 @@ func (a *OptimizationAPIService) OptimizationControllerListAlerts(ctx context.Co
 }
 
 // Execute executes the request
-func (a *OptimizationAPIService) OptimizationControllerListAlertsExecute(r ApiOptimizationControllerListAlertsRequest) (*http.Response, error) {
+//  @return []OptimizationControllerListAlerts200ResponseInner
+func (a *OptimizationAPIService) OptimizationControllerListAlertsExecute(r ApiOptimizationControllerListAlertsRequest) ([]OptimizationControllerListAlerts200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []OptimizationControllerListAlerts200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OptimizationAPIService.OptimizationControllerListAlerts")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/alerts"
@@ -261,28 +325,42 @@ func (a *OptimizationAPIService) OptimizationControllerListAlertsExecute(r ApiOp
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -290,10 +368,19 @@ func (a *OptimizationAPIService) OptimizationControllerListAlertsExecute(r ApiOp
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiOptimizationControllerListRulesRequest struct {
@@ -301,12 +388,16 @@ type ApiOptimizationControllerListRulesRequest struct {
 	ApiService *OptimizationAPIService
 }
 
-func (r ApiOptimizationControllerListRulesRequest) Execute() (*http.Response, error) {
+func (r ApiOptimizationControllerListRulesRequest) Execute() ([]AudienceAutomationRule, *http.Response, error) {
 	return r.ApiService.OptimizationControllerListRulesExecute(r)
 }
 
 /*
-OptimizationControllerListRules Method for OptimizationControllerListRules
+OptimizationControllerListRules List automation rules
+
+Returns the account's automation rules, newest first. A background job evaluates each enabled rule's metric over its window and applies the action when the condition holds.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiOptimizationControllerListRulesRequest
@@ -319,16 +410,18 @@ func (a *OptimizationAPIService) OptimizationControllerListRules(ctx context.Con
 }
 
 // Execute executes the request
-func (a *OptimizationAPIService) OptimizationControllerListRulesExecute(r ApiOptimizationControllerListRulesRequest) (*http.Response, error) {
+//  @return []AudienceAutomationRule
+func (a *OptimizationAPIService) OptimizationControllerListRulesExecute(r ApiOptimizationControllerListRulesRequest) ([]AudienceAutomationRule, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []AudienceAutomationRule
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OptimizationAPIService.OptimizationControllerListRules")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/automation/rules"
@@ -347,28 +440,42 @@ func (a *OptimizationAPIService) OptimizationControllerListRulesExecute(r ApiOpt
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -376,10 +483,19 @@ func (a *OptimizationAPIService) OptimizationControllerListRulesExecute(r ApiOpt
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiOptimizationControllerOptimizerLogRequest struct {
@@ -393,12 +509,16 @@ func (r ApiOptimizationControllerOptimizerLogRequest) Limit(limit string) ApiOpt
 	return r
 }
 
-func (r ApiOptimizationControllerOptimizerLogRequest) Execute() (*http.Response, error) {
+func (r ApiOptimizationControllerOptimizerLogRequest) Execute() ([]OptimizationControllerOptimizerLog200ResponseInner, *http.Response, error) {
 	return r.ApiService.OptimizationControllerOptimizerLogExecute(r)
 }
 
 /*
-OptimizationControllerOptimizerLog Method for OptimizationControllerOptimizerLog
+OptimizationControllerOptimizerLog List budget-optimizer reallocations
+
+Audit log of the automatic budget reallocator. For auto-strategy campaigns it moves daily budget toward lower-CPA performers, keeps the advertiser's total budget unchanged and limits how far each campaign can move. Each row records the old and new budget and the CPA, conversions and spend that drove the change. `limit` defaults to 100 and is clamped to 1-500; newest first.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiOptimizationControllerOptimizerLogRequest
@@ -411,16 +531,18 @@ func (a *OptimizationAPIService) OptimizationControllerOptimizerLog(ctx context.
 }
 
 // Execute executes the request
-func (a *OptimizationAPIService) OptimizationControllerOptimizerLogExecute(r ApiOptimizationControllerOptimizerLogRequest) (*http.Response, error) {
+//  @return []OptimizationControllerOptimizerLog200ResponseInner
+func (a *OptimizationAPIService) OptimizationControllerOptimizerLogExecute(r ApiOptimizationControllerOptimizerLogRequest) ([]OptimizationControllerOptimizerLog200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []OptimizationControllerOptimizerLog200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OptimizationAPIService.OptimizationControllerOptimizerLog")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/optimizer/log"
@@ -429,7 +551,7 @@ func (a *OptimizationAPIService) OptimizationControllerOptimizerLogExecute(r Api
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.limit == nil {
-		return nil, reportError("limit is required and must be specified")
+		return localVarReturnValue, nil, reportError("limit is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "limit", r.limit, "form", "")
@@ -443,28 +565,42 @@ func (a *OptimizationAPIService) OptimizationControllerOptimizerLogExecute(r Api
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -472,10 +608,19 @@ func (a *OptimizationAPIService) OptimizationControllerOptimizerLogExecute(r Api
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiOptimizationControllerRemoveRuleRequest struct {
@@ -484,12 +629,16 @@ type ApiOptimizationControllerRemoveRuleRequest struct {
 	id string
 }
 
-func (r ApiOptimizationControllerRemoveRuleRequest) Execute() (*http.Response, error) {
+func (r ApiOptimizationControllerRemoveRuleRequest) Execute() (*PixelControllerDeletePixel200Response, *http.Response, error) {
 	return r.ApiService.OptimizationControllerRemoveRuleExecute(r)
 }
 
 /*
-OptimizationControllerRemoveRule Method for OptimizationControllerRemoveRule
+OptimizationControllerRemoveRule Delete an automation rule
+
+Deletes rule `id` if it belongs to the account. Deleting an id the account does not own is a silent no-op that still returns `{deleted:true}`.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -504,16 +653,18 @@ func (a *OptimizationAPIService) OptimizationControllerRemoveRule(ctx context.Co
 }
 
 // Execute executes the request
-func (a *OptimizationAPIService) OptimizationControllerRemoveRuleExecute(r ApiOptimizationControllerRemoveRuleRequest) (*http.Response, error) {
+//  @return PixelControllerDeletePixel200Response
+func (a *OptimizationAPIService) OptimizationControllerRemoveRuleExecute(r ApiOptimizationControllerRemoveRuleRequest) (*PixelControllerDeletePixel200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PixelControllerDeletePixel200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OptimizationAPIService.OptimizationControllerRemoveRule")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/automation/rules/{id}"
@@ -533,28 +684,42 @@ func (a *OptimizationAPIService) OptimizationControllerRemoveRuleExecute(r ApiOp
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -562,10 +727,19 @@ func (a *OptimizationAPIService) OptimizationControllerRemoveRuleExecute(r ApiOp
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiOptimizationControllerSetRuleEnabledRequest struct {
@@ -574,12 +748,16 @@ type ApiOptimizationControllerSetRuleEnabledRequest struct {
 	id string
 }
 
-func (r ApiOptimizationControllerSetRuleEnabledRequest) Execute() (*http.Response, error) {
+func (r ApiOptimizationControllerSetRuleEnabledRequest) Execute() (*AudienceAutomationRule, *http.Response, error) {
 	return r.ApiService.OptimizationControllerSetRuleEnabledExecute(r)
 }
 
 /*
-OptimizationControllerSetRuleEnabled Method for OptimizationControllerSetRuleEnabled
+OptimizationControllerSetRuleEnabled Enable or disable an automation rule
+
+Sets `enabled` from the request body on rule `id` without deleting it. Returns the updated rule. If the rule does not exist or is not owned by the account, the response is 400 "rule not found".
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -594,16 +772,18 @@ func (a *OptimizationAPIService) OptimizationControllerSetRuleEnabled(ctx contex
 }
 
 // Execute executes the request
-func (a *OptimizationAPIService) OptimizationControllerSetRuleEnabledExecute(r ApiOptimizationControllerSetRuleEnabledRequest) (*http.Response, error) {
+//  @return AudienceAutomationRule
+func (a *OptimizationAPIService) OptimizationControllerSetRuleEnabledExecute(r ApiOptimizationControllerSetRuleEnabledRequest) (*AudienceAutomationRule, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPatch
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AudienceAutomationRule
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OptimizationAPIService.OptimizationControllerSetRuleEnabled")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/automation/rules/{id}"
@@ -623,28 +803,42 @@ func (a *OptimizationAPIService) OptimizationControllerSetRuleEnabledExecute(r A
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -652,8 +846,17 @@ func (a *OptimizationAPIService) OptimizationControllerSetRuleEnabledExecute(r A
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

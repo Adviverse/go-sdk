@@ -39,12 +39,16 @@ func (r ApiIntegrityControllerLivenessRequest) Days(days string) ApiIntegrityCon
 	return r
 }
 
-func (r ApiIntegrityControllerLivenessRequest) Execute() (*http.Response, error) {
+func (r ApiIntegrityControllerLivenessRequest) Execute() (*IntegrityControllerLiveness200Response, *http.Response, error) {
 	return r.ApiService.IntegrityControllerLivenessExecute(r)
 }
 
 /*
-IntegrityControllerLiveness Method for IntegrityControllerLiveness
+IntegrityControllerLiveness Get per-install liveness for your tags
+
+Lists up to 500 installs that pinged any of your tags in the last `days` (default 7, max 30), with last-seen time, latest tag/uid, whether ads are enabled, and `alive` (pinged within ~95 minutes). Optional `?client=` scopes to one client id. The summary counts alive-and-enabled, alive-but-disabled, and stale installs.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiIntegrityControllerLivenessRequest
@@ -57,16 +61,18 @@ func (a *IntegrityAPIService) IntegrityControllerLiveness(ctx context.Context) A
 }
 
 // Execute executes the request
-func (a *IntegrityAPIService) IntegrityControllerLivenessExecute(r ApiIntegrityControllerLivenessRequest) (*http.Response, error) {
+//  @return IntegrityControllerLiveness200Response
+func (a *IntegrityAPIService) IntegrityControllerLivenessExecute(r ApiIntegrityControllerLivenessRequest) (*IntegrityControllerLiveness200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *IntegrityControllerLiveness200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "IntegrityAPIService.IntegrityControllerLiveness")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/liveness"
@@ -75,10 +81,10 @@ func (a *IntegrityAPIService) IntegrityControllerLivenessExecute(r ApiIntegrityC
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.client == nil {
-		return nil, reportError("client is required and must be specified")
+		return localVarReturnValue, nil, reportError("client is required and must be specified")
 	}
 	if r.days == nil {
-		return nil, reportError("days is required and must be specified")
+		return localVarReturnValue, nil, reportError("days is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "client", r.client, "form", "")
@@ -93,28 +99,42 @@ func (a *IntegrityAPIService) IntegrityControllerLivenessExecute(r ApiIntegrityC
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -122,10 +142,19 @@ func (a *IntegrityAPIService) IntegrityControllerLivenessExecute(r ApiIntegrityC
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiIntegrityControllerPingRequest struct {
@@ -139,12 +168,16 @@ func (r ApiIntegrityControllerPingRequest) ClientPingDto(clientPingDto ClientPin
 	return r
 }
 
-func (r ApiIntegrityControllerPingRequest) Execute() (*http.Response, error) {
+func (r ApiIntegrityControllerPingRequest) Execute() (*AuthControllerResendVerification201Response, *http.Response, error) {
 	return r.ApiService.IntegrityControllerPingExecute(r)
 }
 
 /*
-IntegrityControllerPing Method for IntegrityControllerPing
+IntegrityControllerPing Report a client integrity ping
+
+Public, rate-limited endpoint the terminal SDK calls about hourly per install with the `tag` it serves, its `client` id, `install_id`/`installId`, machine `uid` and `enabled` state. The ping is recorded against the tag's publisher for integrity and liveness reports. For placements with a signing secret, `ts` and `sig` (HMAC-SHA256 of `tag|uid|ts`, within 300s) are required or the ping is ignored. Always returns `{ ok: true }`, even for unknown tags or failures, so it never affects serving.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiIntegrityControllerPingRequest
@@ -157,16 +190,18 @@ func (a *IntegrityAPIService) IntegrityControllerPing(ctx context.Context) ApiIn
 }
 
 // Execute executes the request
-func (a *IntegrityAPIService) IntegrityControllerPingExecute(r ApiIntegrityControllerPingRequest) (*http.Response, error) {
+//  @return AuthControllerResendVerification201Response
+func (a *IntegrityAPIService) IntegrityControllerPingExecute(r ApiIntegrityControllerPingRequest) (*AuthControllerResendVerification201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AuthControllerResendVerification201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "IntegrityAPIService.IntegrityControllerPing")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/track/client"
@@ -175,7 +210,7 @@ func (a *IntegrityAPIService) IntegrityControllerPingExecute(r ApiIntegrityContr
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.clientPingDto == nil {
-		return nil, reportError("clientPingDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("clientPingDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -188,7 +223,7 @@ func (a *IntegrityAPIService) IntegrityControllerPingExecute(r ApiIntegrityContr
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -199,19 +234,19 @@ func (a *IntegrityAPIService) IntegrityControllerPingExecute(r ApiIntegrityContr
 	localVarPostBody = r.clientPingDto
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -219,10 +254,19 @@ func (a *IntegrityAPIService) IntegrityControllerPingExecute(r ApiIntegrityContr
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiIntegrityControllerReportRequest struct {
@@ -242,12 +286,16 @@ func (r ApiIntegrityControllerReportRequest) Days(days string) ApiIntegrityContr
 	return r
 }
 
-func (r ApiIntegrityControllerReportRequest) Execute() (*http.Response, error) {
+func (r ApiIntegrityControllerReportRequest) Execute() (*IntegrityControllerReport200Response, *http.Response, error) {
 	return r.ApiService.IntegrityControllerReportExecute(r)
 }
 
 /*
-IntegrityControllerReport Method for IntegrityControllerReport
+IntegrityControllerReport Get the terminal integrity report
+
+Over the last `days` (default 7, max 30) of client pings, lists machines running one of your tags that also run a foreign tag (`competing`), and, when `?client=` is given, installs reporting your client id while serving a tag you don't own (`swapped`). Also returns your tag keys and distinct install/machine counts. Empty result if you have no placements.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiIntegrityControllerReportRequest
@@ -260,16 +308,18 @@ func (a *IntegrityAPIService) IntegrityControllerReport(ctx context.Context) Api
 }
 
 // Execute executes the request
-func (a *IntegrityAPIService) IntegrityControllerReportExecute(r ApiIntegrityControllerReportRequest) (*http.Response, error) {
+//  @return IntegrityControllerReport200Response
+func (a *IntegrityAPIService) IntegrityControllerReportExecute(r ApiIntegrityControllerReportRequest) (*IntegrityControllerReport200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *IntegrityControllerReport200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "IntegrityAPIService.IntegrityControllerReport")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/integrity"
@@ -278,10 +328,10 @@ func (a *IntegrityAPIService) IntegrityControllerReportExecute(r ApiIntegrityCon
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.client == nil {
-		return nil, reportError("client is required and must be specified")
+		return localVarReturnValue, nil, reportError("client is required and must be specified")
 	}
 	if r.days == nil {
-		return nil, reportError("days is required and must be specified")
+		return localVarReturnValue, nil, reportError("days is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "client", r.client, "form", "")
@@ -296,28 +346,42 @@ func (a *IntegrityAPIService) IntegrityControllerReportExecute(r ApiIntegrityCon
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -325,8 +389,17 @@ func (a *IntegrityAPIService) IntegrityControllerReportExecute(r ApiIntegrityCon
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

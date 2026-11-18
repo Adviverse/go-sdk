@@ -34,12 +34,16 @@ func (r ApiAdminControllerAccountsRequest) Q(q string) ApiAdminControllerAccount
 	return r
 }
 
-func (r ApiAdminControllerAccountsRequest) Execute() (*http.Response, error) {
+func (r ApiAdminControllerAccountsRequest) Execute() ([]AdminControllerAccounts200ResponseInner, *http.Response, error) {
 	return r.ApiService.AdminControllerAccountsExecute(r)
 }
 
 /*
-AdminControllerAccounts Method for AdminControllerAccounts
+AdminControllerAccounts Search accounts
+
+Returns up to 200 non-deleted accounts, newest first. `q` filters by case-insensitive substring match on email.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdminControllerAccountsRequest
@@ -52,16 +56,18 @@ func (a *AdminAPIService) AdminControllerAccounts(ctx context.Context) ApiAdminC
 }
 
 // Execute executes the request
-func (a *AdminAPIService) AdminControllerAccountsExecute(r ApiAdminControllerAccountsRequest) (*http.Response, error) {
+//  @return []AdminControllerAccounts200ResponseInner
+func (a *AdminAPIService) AdminControllerAccountsExecute(r ApiAdminControllerAccountsRequest) ([]AdminControllerAccounts200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []AdminControllerAccounts200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdminAPIService.AdminControllerAccounts")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/accounts"
@@ -70,7 +76,7 @@ func (a *AdminAPIService) AdminControllerAccountsExecute(r ApiAdminControllerAcc
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.q == nil {
-		return nil, reportError("q is required and must be specified")
+		return localVarReturnValue, nil, reportError("q is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "q", r.q, "form", "")
@@ -84,28 +90,42 @@ func (a *AdminAPIService) AdminControllerAccountsExecute(r ApiAdminControllerAcc
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -113,10 +133,19 @@ func (a *AdminAPIService) AdminControllerAccountsExecute(r ApiAdminControllerAcc
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdminControllerAddBlockRequest struct {
@@ -130,12 +159,16 @@ func (r ApiAdminControllerAddBlockRequest) AddBlockDto(addBlockDto AddBlockDto) 
 	return r
 }
 
-func (r ApiAdminControllerAddBlockRequest) Execute() (*http.Response, error) {
+func (r ApiAdminControllerAddBlockRequest) Execute() (*AdminControllerSetStatus201Response, *http.Response, error) {
 	return r.ApiService.AdminControllerAddBlockExecute(r)
 }
 
 /*
-AdminControllerAddBlock Method for AdminControllerAddBlock
+AdminControllerAddBlock Add a fraud blocklist entry
+
+Adds a `kind` (`ip`, `domain`, `asn`, `device`, `user_agent`, `country`, `subnet`) / `value` pair with an optional `reason`. Duplicates of an existing kind/value are ignored. The addition is audit-logged.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdminControllerAddBlockRequest
@@ -148,16 +181,18 @@ func (a *AdminAPIService) AdminControllerAddBlock(ctx context.Context) ApiAdminC
 }
 
 // Execute executes the request
-func (a *AdminAPIService) AdminControllerAddBlockExecute(r ApiAdminControllerAddBlockRequest) (*http.Response, error) {
+//  @return AdminControllerSetStatus201Response
+func (a *AdminAPIService) AdminControllerAddBlockExecute(r ApiAdminControllerAddBlockRequest) (*AdminControllerSetStatus201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdminControllerSetStatus201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdminAPIService.AdminControllerAddBlock")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/fraud/blocklist"
@@ -166,7 +201,7 @@ func (a *AdminAPIService) AdminControllerAddBlockExecute(r ApiAdminControllerAdd
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.addBlockDto == nil {
-		return nil, reportError("addBlockDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("addBlockDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -179,7 +214,7 @@ func (a *AdminAPIService) AdminControllerAddBlockExecute(r ApiAdminControllerAdd
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -188,21 +223,35 @@ func (a *AdminAPIService) AdminControllerAddBlockExecute(r ApiAdminControllerAdd
 	}
 	// body params
 	localVarPostBody = r.addBlockDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -210,10 +259,19 @@ func (a *AdminAPIService) AdminControllerAddBlockExecute(r ApiAdminControllerAdd
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdminControllerAuditsRequest struct {
@@ -226,7 +284,11 @@ func (r ApiAdminControllerAuditsRequest) Execute() (*http.Response, error) {
 }
 
 /*
-AdminControllerAudits Method for AdminControllerAudits
+AdminControllerAudits Read the admin audit log
+
+Returns the 500 most recent `audit_log` rows (actor, action, target type/id, before/after JSON, timestamp). Includes account status changes, moderation decisions, blocks and config changes.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdminControllerAuditsRequest
@@ -274,6 +336,20 @@ func (a *AdminAPIService) AdminControllerAuditsExecute(r ApiAdminControllerAudit
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return nil, err
@@ -312,7 +388,11 @@ func (r ApiAdminControllerBlocklistRequest) Execute() (*http.Response, error) {
 }
 
 /*
-AdminControllerBlocklist Method for AdminControllerBlocklist
+AdminControllerBlocklist List fraud blocklist entries
+
+Returns the 500 most recent `block_lists` rows (kind, value, reason, creator, timestamps).
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdminControllerBlocklistRequest
@@ -360,6 +440,20 @@ func (a *AdminAPIService) AdminControllerBlocklistExecute(r ApiAdminControllerBl
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return nil, err
@@ -393,12 +487,16 @@ type ApiAdminControllerConfigRequest struct {
 	ApiService *AdminAPIService
 }
 
-func (r ApiAdminControllerConfigRequest) Execute() (*http.Response, error) {
+func (r ApiAdminControllerConfigRequest) Execute() ([]AdminControllerConfig200ResponseInner, *http.Response, error) {
 	return r.ApiService.AdminControllerConfigExecute(r)
 }
 
 /*
-AdminControllerConfig Method for AdminControllerConfig
+AdminControllerConfig List platform config and feature flags
+
+Returns all `platform_config` key/value pairs, ordered by key. Values are arbitrary JSON.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdminControllerConfigRequest
@@ -411,16 +509,18 @@ func (a *AdminAPIService) AdminControllerConfig(ctx context.Context) ApiAdminCon
 }
 
 // Execute executes the request
-func (a *AdminAPIService) AdminControllerConfigExecute(r ApiAdminControllerConfigRequest) (*http.Response, error) {
+//  @return []AdminControllerConfig200ResponseInner
+func (a *AdminAPIService) AdminControllerConfigExecute(r ApiAdminControllerConfigRequest) ([]AdminControllerConfig200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []AdminControllerConfig200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdminAPIService.AdminControllerConfig")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/config"
@@ -439,28 +539,42 @@ func (a *AdminAPIService) AdminControllerConfigExecute(r ApiAdminControllerConfi
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -468,10 +582,19 @@ func (a *AdminAPIService) AdminControllerConfigExecute(r ApiAdminControllerConfi
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdminControllerConfirmDepositRequest struct {
@@ -480,12 +603,16 @@ type ApiAdminControllerConfirmDepositRequest struct {
 	id string
 }
 
-func (r ApiAdminControllerConfirmDepositRequest) Execute() (*http.Response, error) {
+func (r ApiAdminControllerConfirmDepositRequest) Execute() (*AdminControllerSetStatus201Response, *http.Response, error) {
 	return r.ApiService.AdminControllerConfirmDepositExecute(r)
 }
 
 /*
-AdminControllerConfirmDeposit Method for AdminControllerConfirmDeposit
+AdminControllerConfirmDeposit Confirm a manual deposit
+
+Marks a manual deposit received and credits the advertiser ledger. `ref` is the bank/provider reference (defaults to `manual:<id>`). Idempotent: `ok` is true only when a new credit was posted. A deposit tied to an agency invoice also marks that invoice paid.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -500,16 +627,18 @@ func (a *AdminAPIService) AdminControllerConfirmDeposit(ctx context.Context, id 
 }
 
 // Execute executes the request
-func (a *AdminAPIService) AdminControllerConfirmDepositExecute(r ApiAdminControllerConfirmDepositRequest) (*http.Response, error) {
+//  @return AdminControllerSetStatus201Response
+func (a *AdminAPIService) AdminControllerConfirmDepositExecute(r ApiAdminControllerConfirmDepositRequest) (*AdminControllerSetStatus201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdminControllerSetStatus201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdminAPIService.AdminControllerConfirmDeposit")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/deposits/{id}/confirm"
@@ -529,28 +658,42 @@ func (a *AdminAPIService) AdminControllerConfirmDepositExecute(r ApiAdminControl
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -558,10 +701,19 @@ func (a *AdminAPIService) AdminControllerConfirmDepositExecute(r ApiAdminControl
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdminControllerConfirmPayoutRequest struct {
@@ -570,12 +722,16 @@ type ApiAdminControllerConfirmPayoutRequest struct {
 	id string
 }
 
-func (r ApiAdminControllerConfirmPayoutRequest) Execute() (*http.Response, error) {
+func (r ApiAdminControllerConfirmPayoutRequest) Execute() (*AdminControllerSetStatus201Response, *http.Response, error) {
 	return r.ApiService.AdminControllerConfirmPayoutExecute(r)
 }
 
 /*
-AdminControllerConfirmPayout Method for AdminControllerConfirmPayout
+AdminControllerConfirmPayout Confirm a manual payout
+
+For manual (wire) payouts left in `processing`: after ops sends the bank transfer, `paid: true` (default) settles it and releases the held funds, and `paid: false` marks it failed and returns them. Returns 404 for an unknown payout and 400 if it is not awaiting confirmation.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -590,16 +746,18 @@ func (a *AdminAPIService) AdminControllerConfirmPayout(ctx context.Context, id s
 }
 
 // Execute executes the request
-func (a *AdminAPIService) AdminControllerConfirmPayoutExecute(r ApiAdminControllerConfirmPayoutRequest) (*http.Response, error) {
+//  @return AdminControllerSetStatus201Response
+func (a *AdminAPIService) AdminControllerConfirmPayoutExecute(r ApiAdminControllerConfirmPayoutRequest) (*AdminControllerSetStatus201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdminControllerSetStatus201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdminAPIService.AdminControllerConfirmPayout")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/payouts/{id}/confirm"
@@ -619,28 +777,42 @@ func (a *AdminAPIService) AdminControllerConfirmPayoutExecute(r ApiAdminControll
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -648,10 +820,19 @@ func (a *AdminAPIService) AdminControllerConfirmPayoutExecute(r ApiAdminControll
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdminControllerDecideRequest struct {
@@ -666,12 +847,16 @@ func (r ApiAdminControllerDecideRequest) ModerationDecisionDto(moderationDecisio
 	return r
 }
 
-func (r ApiAdminControllerDecideRequest) Execute() (*http.Response, error) {
+func (r ApiAdminControllerDecideRequest) Execute() (*AdminControllerSetStatus201Response, *http.Response, error) {
 	return r.ApiService.AdminControllerDecideExecute(r)
 }
 
 /*
-AdminControllerDecide Method for AdminControllerDecide
+AdminControllerDecide Approve or reject a moderation item
+
+Applies `decision` (`approved` or `rejected`) with optional `notes` to a queue item. This updates the target: the creative's moderation status, the campaign or sponsored-product campaign's status (`active` or `rejected`), or the property's status. The decision is audit-logged and the serving index is republished, so approved items can serve within seconds. 404 for an unknown item.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -686,16 +871,18 @@ func (a *AdminAPIService) AdminControllerDecide(ctx context.Context, id string) 
 }
 
 // Execute executes the request
-func (a *AdminAPIService) AdminControllerDecideExecute(r ApiAdminControllerDecideRequest) (*http.Response, error) {
+//  @return AdminControllerSetStatus201Response
+func (a *AdminAPIService) AdminControllerDecideExecute(r ApiAdminControllerDecideRequest) (*AdminControllerSetStatus201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdminControllerSetStatus201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdminAPIService.AdminControllerDecide")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/moderation/{id}/decide"
@@ -705,7 +892,7 @@ func (a *AdminAPIService) AdminControllerDecideExecute(r ApiAdminControllerDecid
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.moderationDecisionDto == nil {
-		return nil, reportError("moderationDecisionDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("moderationDecisionDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -718,7 +905,7 @@ func (a *AdminAPIService) AdminControllerDecideExecute(r ApiAdminControllerDecid
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -727,21 +914,35 @@ func (a *AdminAPIService) AdminControllerDecideExecute(r ApiAdminControllerDecid
 	}
 	// body params
 	localVarPostBody = r.moderationDecisionDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -749,10 +950,19 @@ func (a *AdminAPIService) AdminControllerDecideExecute(r ApiAdminControllerDecid
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdminControllerPendingDepositsRequest struct {
@@ -765,7 +975,11 @@ func (r ApiAdminControllerPendingDepositsRequest) Execute() (*http.Response, err
 }
 
 /*
-AdminControllerPendingDeposits Method for AdminControllerPendingDeposits
+AdminControllerPendingDeposits List manual deposits awaiting confirmation
+
+Returns up to 500 `pending` deposits on the manual `wire` and `paxum` rails, oldest first (all `deposits` columns).
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdminControllerPendingDepositsRequest
@@ -813,6 +1027,20 @@ func (a *AdminAPIService) AdminControllerPendingDepositsExecute(r ApiAdminContro
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return nil, err
@@ -851,7 +1079,11 @@ func (r ApiAdminControllerPendingPayoutsRequest) Execute() (*http.Response, erro
 }
 
 /*
-AdminControllerPendingPayouts Method for AdminControllerPendingPayouts
+AdminControllerPendingPayouts List payouts awaiting processing
+
+Returns publisher payouts in `requested` or `on_hold` status, oldest request first (all `payouts` columns).
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdminControllerPendingPayoutsRequest
@@ -899,6 +1131,20 @@ func (a *AdminAPIService) AdminControllerPendingPayoutsExecute(r ApiAdminControl
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return nil, err
@@ -933,12 +1179,16 @@ type ApiAdminControllerProcessPayoutRequest struct {
 	id string
 }
 
-func (r ApiAdminControllerProcessPayoutRequest) Execute() (*http.Response, error) {
+func (r ApiAdminControllerProcessPayoutRequest) Execute() (*AdminControllerProcessPayout201Response, *http.Response, error) {
 	return r.ApiService.AdminControllerProcessPayoutExecute(r)
 }
 
 /*
-AdminControllerProcessPayout Method for AdminControllerProcessPayout
+AdminControllerProcessPayout Process a requested payout
+
+Claims a `requested` payout atomically (so double-triggers call the provider once) and sends it through the payout rail for its method. If paid, the held funds are released from the ledger; if failed, the hold returns to available balance; manual rails such as wire stay `processing` until confirmed. Returns 400 if the payout is not in `requested`.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -953,16 +1203,18 @@ func (a *AdminAPIService) AdminControllerProcessPayout(ctx context.Context, id s
 }
 
 // Execute executes the request
-func (a *AdminAPIService) AdminControllerProcessPayoutExecute(r ApiAdminControllerProcessPayoutRequest) (*http.Response, error) {
+//  @return AdminControllerProcessPayout201Response
+func (a *AdminAPIService) AdminControllerProcessPayoutExecute(r ApiAdminControllerProcessPayoutRequest) (*AdminControllerProcessPayout201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdminControllerProcessPayout201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdminAPIService.AdminControllerProcessPayout")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/payouts/{id}/process"
@@ -982,28 +1234,42 @@ func (a *AdminAPIService) AdminControllerProcessPayoutExecute(r ApiAdminControll
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1011,10 +1277,19 @@ func (a *AdminAPIService) AdminControllerProcessPayoutExecute(r ApiAdminControll
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdminControllerQualityRequest struct {
@@ -1022,12 +1297,16 @@ type ApiAdminControllerQualityRequest struct {
 	ApiService *AdminAPIService
 }
 
-func (r ApiAdminControllerQualityRequest) Execute() (*http.Response, error) {
+func (r ApiAdminControllerQualityRequest) Execute() ([]AdminControllerQuality200ResponseInner, *http.Response, error) {
 	return r.ApiService.AdminControllerQualityExecute(r)
 }
 
 /*
-AdminControllerQuality Method for AdminControllerQuality
+AdminControllerQuality List placement quality scores
+
+Returns the 200 most recent quality-score windows per placement with the property domain, IVT rate, fill rate and composite score.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdminControllerQualityRequest
@@ -1040,16 +1319,18 @@ func (a *AdminAPIService) AdminControllerQuality(ctx context.Context) ApiAdminCo
 }
 
 // Execute executes the request
-func (a *AdminAPIService) AdminControllerQualityExecute(r ApiAdminControllerQualityRequest) (*http.Response, error) {
+//  @return []AdminControllerQuality200ResponseInner
+func (a *AdminAPIService) AdminControllerQualityExecute(r ApiAdminControllerQualityRequest) ([]AdminControllerQuality200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []AdminControllerQuality200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdminAPIService.AdminControllerQuality")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/fraud/quality"
@@ -1068,28 +1349,42 @@ func (a *AdminAPIService) AdminControllerQualityExecute(r ApiAdminControllerQual
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1097,10 +1392,19 @@ func (a *AdminAPIService) AdminControllerQualityExecute(r ApiAdminControllerQual
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdminControllerQueueRequest struct {
@@ -1119,7 +1423,11 @@ func (r ApiAdminControllerQueueRequest) Execute() (*http.Response, error) {
 }
 
 /*
-AdminControllerQueue Method for AdminControllerQueue
+AdminControllerQueue List the pending moderation queue
+
+Returns pending moderation items, oldest first, optionally filtered by `type` (entity type such as `creative`, `campaign`, `promote_campaign`, `property`). Creative items are joined with what a reviewer needs to see the ad: type, asset and landing URLs, title, screenshot, VAST/VPAID URLs, duration and companions.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdminControllerQueueRequest
@@ -1171,6 +1479,20 @@ func (a *AdminAPIService) AdminControllerQueueExecute(r ApiAdminControllerQueueR
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return nil, err
@@ -1205,12 +1527,16 @@ type ApiAdminControllerRescanRequest struct {
 	creativeId string
 }
 
-func (r ApiAdminControllerRescanRequest) Execute() (*http.Response, error) {
+func (r ApiAdminControllerRescanRequest) Execute() (*AdminControllerRescan201Response, *http.Response, error) {
 	return r.ApiService.AdminControllerRescanExecute(r)
 }
 
 /*
-AdminControllerRescan Method for AdminControllerRescan
+AdminControllerRescan Re-scan a creative for cloaking
+
+Recaptures the landing-page screenshot, then fetches the landing URL with a browser and a bot user agent and compares the responses. Repeated divergence adds cloaking strikes and, at the threshold, flags the creative and re-queues it for moderation. A matching fetch clears strikes and a prior cloaking flag. Fetch errors fail open (not flagged). The result is audit-logged.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param creativeId
@@ -1225,16 +1551,18 @@ func (a *AdminAPIService) AdminControllerRescan(ctx context.Context, creativeId 
 }
 
 // Execute executes the request
-func (a *AdminAPIService) AdminControllerRescanExecute(r ApiAdminControllerRescanRequest) (*http.Response, error) {
+//  @return AdminControllerRescan201Response
+func (a *AdminAPIService) AdminControllerRescanExecute(r ApiAdminControllerRescanRequest) (*AdminControllerRescan201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdminControllerRescan201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdminAPIService.AdminControllerRescan")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/moderation/{creativeId}/rescan"
@@ -1254,28 +1582,42 @@ func (a *AdminAPIService) AdminControllerRescanExecute(r ApiAdminControllerResca
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1283,10 +1625,19 @@ func (a *AdminAPIService) AdminControllerRescanExecute(r ApiAdminControllerResca
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdminControllerSetConfigRequest struct {
@@ -1300,12 +1651,16 @@ func (r ApiAdminControllerSetConfigRequest) SetConfigDto(setConfigDto SetConfigD
 	return r
 }
 
-func (r ApiAdminControllerSetConfigRequest) Execute() (*http.Response, error) {
+func (r ApiAdminControllerSetConfigRequest) Execute() (*AdminControllerSetStatus201Response, *http.Response, error) {
 	return r.ApiService.AdminControllerSetConfigExecute(r)
 }
 
 /*
-AdminControllerSetConfig Method for AdminControllerSetConfig
+AdminControllerSetConfig Set a platform config value
+
+Creates or replaces the config entry `key` (1-200 chars) with `value` (any JSON). The change is recorded with the admin as updater and audit-logged.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdminControllerSetConfigRequest
@@ -1318,16 +1673,18 @@ func (a *AdminAPIService) AdminControllerSetConfig(ctx context.Context) ApiAdmin
 }
 
 // Execute executes the request
-func (a *AdminAPIService) AdminControllerSetConfigExecute(r ApiAdminControllerSetConfigRequest) (*http.Response, error) {
+//  @return AdminControllerSetStatus201Response
+func (a *AdminAPIService) AdminControllerSetConfigExecute(r ApiAdminControllerSetConfigRequest) (*AdminControllerSetStatus201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdminControllerSetStatus201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdminAPIService.AdminControllerSetConfig")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/config"
@@ -1336,7 +1693,7 @@ func (a *AdminAPIService) AdminControllerSetConfigExecute(r ApiAdminControllerSe
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.setConfigDto == nil {
-		return nil, reportError("setConfigDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("setConfigDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1349,7 +1706,7 @@ func (a *AdminAPIService) AdminControllerSetConfigExecute(r ApiAdminControllerSe
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1358,21 +1715,35 @@ func (a *AdminAPIService) AdminControllerSetConfigExecute(r ApiAdminControllerSe
 	}
 	// body params
 	localVarPostBody = r.setConfigDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1380,10 +1751,19 @@ func (a *AdminAPIService) AdminControllerSetConfigExecute(r ApiAdminControllerSe
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdminControllerSetStatusRequest struct {
@@ -1398,12 +1778,16 @@ func (r ApiAdminControllerSetStatusRequest) SetAccountStatusDto(setAccountStatus
 	return r
 }
 
-func (r ApiAdminControllerSetStatusRequest) Execute() (*http.Response, error) {
+func (r ApiAdminControllerSetStatusRequest) Execute() (*AdminControllerSetStatus201Response, *http.Response, error) {
 	return r.ApiService.AdminControllerSetStatusExecute(r)
 }
 
 /*
-AdminControllerSetStatus Method for AdminControllerSetStatus
+AdminControllerSetStatus Set an account's status
+
+Sets an account's `status` to `active`, `pending`, `suspended`, `banned` or `closed`. The previous and new status are written to the audit log. 404 if the account does not exist.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1418,16 +1802,18 @@ func (a *AdminAPIService) AdminControllerSetStatus(ctx context.Context, id strin
 }
 
 // Execute executes the request
-func (a *AdminAPIService) AdminControllerSetStatusExecute(r ApiAdminControllerSetStatusRequest) (*http.Response, error) {
+//  @return AdminControllerSetStatus201Response
+func (a *AdminAPIService) AdminControllerSetStatusExecute(r ApiAdminControllerSetStatusRequest) (*AdminControllerSetStatus201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdminControllerSetStatus201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdminAPIService.AdminControllerSetStatus")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/accounts/{id}/status"
@@ -1437,7 +1823,7 @@ func (a *AdminAPIService) AdminControllerSetStatusExecute(r ApiAdminControllerSe
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.setAccountStatusDto == nil {
-		return nil, reportError("setAccountStatusDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("setAccountStatusDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1450,7 +1836,7 @@ func (a *AdminAPIService) AdminControllerSetStatusExecute(r ApiAdminControllerSe
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1459,21 +1845,35 @@ func (a *AdminAPIService) AdminControllerSetStatusExecute(r ApiAdminControllerSe
 	}
 	// body params
 	localVarPostBody = r.setAccountStatusDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1481,8 +1881,17 @@ func (a *AdminAPIService) AdminControllerSetStatusExecute(r ApiAdminControllerSe
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

@@ -35,12 +35,16 @@ func (r ApiAdvertiserControllerAddAudienceMembersRequest) AudienceMembersDto(aud
 	return r
 }
 
-func (r ApiAdvertiserControllerAddAudienceMembersRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerAddAudienceMembersRequest) Execute() (*AdvertiserControllerAddAudienceMembers201Response, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerAddAudienceMembersExecute(r)
 }
 
 /*
-AdvertiserControllerAddAudienceMembers Method for AdvertiserControllerAddAudienceMembers
+AdvertiserControllerAddAudienceMembers Add hashed members to an audience
+
+Adds the strings in `hashes` (user id hashes) to the audience's member set; empty or non-string entries are skipped. Returns the number of accepted entries and the resulting set size. Responds 404/403 when the audience is missing or not owned.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -55,16 +59,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerAddAudienceMembers(ctx contex
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerAddAudienceMembersExecute(r ApiAdvertiserControllerAddAudienceMembersRequest) (*http.Response, error) {
+//  @return AdvertiserControllerAddAudienceMembers201Response
+func (a *AdvertiserAPIService) AdvertiserControllerAddAudienceMembersExecute(r ApiAdvertiserControllerAddAudienceMembersRequest) (*AdvertiserControllerAddAudienceMembers201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvertiserControllerAddAudienceMembers201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerAddAudienceMembers")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/audiences/{id}/members"
@@ -74,7 +80,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerAddAudienceMembersExecute(r A
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.audienceMembersDto == nil {
-		return nil, reportError("audienceMembersDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("audienceMembersDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -87,7 +93,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerAddAudienceMembersExecute(r A
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -96,21 +102,35 @@ func (a *AdvertiserAPIService) AdvertiserControllerAddAudienceMembersExecute(r A
 	}
 	// body params
 	localVarPostBody = r.audienceMembersDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -118,10 +138,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerAddAudienceMembersExecute(r A
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerAddComponentRequest struct {
@@ -136,12 +165,16 @@ func (r ApiAdvertiserControllerAddComponentRequest) AddComponentDto(addComponent
 	return r
 }
 
-func (r ApiAdvertiserControllerAddComponentRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerAddComponentRequest) Execute() (*AdvertiserControllerAddComponent201Response, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerAddComponentExecute(r)
 }
 
 /*
-AdvertiserControllerAddComponent Method for AdvertiserControllerAddComponent
+AdvertiserControllerAddComponent Add a DCO component to a creative's pool
+
+Adds one `{ slot, value }` component to the component pool of the creative's campaign. `slot` is headline, body, image, cta, logo or bg_color; `value` must be non-empty and image/logo values are SSRF-checked (400). The creative must be owned and authored under a campaign (404 otherwise). Republishes the serving index.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -156,16 +189,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerAddComponent(ctx context.Cont
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerAddComponentExecute(r ApiAdvertiserControllerAddComponentRequest) (*http.Response, error) {
+//  @return AdvertiserControllerAddComponent201Response
+func (a *AdvertiserAPIService) AdvertiserControllerAddComponentExecute(r ApiAdvertiserControllerAddComponentRequest) (*AdvertiserControllerAddComponent201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvertiserControllerAddComponent201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerAddComponent")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/creatives/{id}/components"
@@ -175,7 +210,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerAddComponentExecute(r ApiAdve
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.addComponentDto == nil {
-		return nil, reportError("addComponentDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("addComponentDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -188,7 +223,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerAddComponentExecute(r ApiAdve
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -197,21 +232,35 @@ func (a *AdvertiserAPIService) AdvertiserControllerAddComponentExecute(r ApiAdve
 	}
 	// body params
 	localVarPostBody = r.addComponentDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -219,10 +268,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerAddComponentExecute(r ApiAdve
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerAttachCreativeRequest struct {
@@ -237,12 +295,16 @@ func (r ApiAdvertiserControllerAttachCreativeRequest) AttachCreativeDto(attachCr
 	return r
 }
 
-func (r ApiAdvertiserControllerAttachCreativeRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerAttachCreativeRequest) Execute() (*AdvertiserControllerAttachCreative201Response, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerAttachCreativeExecute(r)
 }
 
 /*
-AdvertiserControllerAttachCreative Method for AdvertiserControllerAttachCreative
+AdvertiserControllerAttachCreative Attach a library creative to a campaign
+
+Links the creative to `campaignId` with an optional rotation `weight` (minimum 1, default 1). Attaching again updates the weight and re-enables the link. Both the creative (404) and campaign (404/403) must be owned. Republishes the serving index.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -257,16 +319,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerAttachCreative(ctx context.Co
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerAttachCreativeExecute(r ApiAdvertiserControllerAttachCreativeRequest) (*http.Response, error) {
+//  @return AdvertiserControllerAttachCreative201Response
+func (a *AdvertiserAPIService) AdvertiserControllerAttachCreativeExecute(r ApiAdvertiserControllerAttachCreativeRequest) (*AdvertiserControllerAttachCreative201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvertiserControllerAttachCreative201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerAttachCreative")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/creatives/{id}/attach"
@@ -276,7 +340,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerAttachCreativeExecute(r ApiAd
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.attachCreativeDto == nil {
-		return nil, reportError("attachCreativeDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("attachCreativeDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -289,7 +353,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerAttachCreativeExecute(r ApiAd
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -298,21 +362,35 @@ func (a *AdvertiserAPIService) AdvertiserControllerAttachCreativeExecute(r ApiAd
 	}
 	// body params
 	localVarPostBody = r.attachCreativeDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -320,10 +398,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerAttachCreativeExecute(r ApiAd
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerAudiencePixelRequest struct {
@@ -332,12 +419,16 @@ type ApiAdvertiserControllerAudiencePixelRequest struct {
 	id string
 }
 
-func (r ApiAdvertiserControllerAudiencePixelRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerAudiencePixelRequest) Execute() (*AdvertiserControllerAudiencePixel200Response, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerAudiencePixelExecute(r)
 }
 
 /*
-AdvertiserControllerAudiencePixel Method for AdvertiserControllerAudiencePixel
+AdvertiserControllerAudiencePixel Get the retargeting pixel snippet for an audience
+
+Returns the tracking URL plus ready-to-paste `<img>` and `<script>` snippets that add the visiting user to this audience via /v1/track/audience. Replace the USER_ID placeholder (the script uses window.ADNET_UID). 404/403 when the audience is not owned.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -352,16 +443,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerAudiencePixel(ctx context.Con
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerAudiencePixelExecute(r ApiAdvertiserControllerAudiencePixelRequest) (*http.Response, error) {
+//  @return AdvertiserControllerAudiencePixel200Response
+func (a *AdvertiserAPIService) AdvertiserControllerAudiencePixelExecute(r ApiAdvertiserControllerAudiencePixelRequest) (*AdvertiserControllerAudiencePixel200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvertiserControllerAudiencePixel200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerAudiencePixel")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/audiences/{id}/pixel"
@@ -381,28 +474,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerAudiencePixelExecute(r ApiAdv
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -410,10 +517,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerAudiencePixelExecute(r ApiAdv
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerAudienceSuggestionsRequest struct {
@@ -427,12 +543,16 @@ func (r ApiAdvertiserControllerAudienceSuggestionsRequest) Days(days string) Api
 	return r
 }
 
-func (r ApiAdvertiserControllerAudienceSuggestionsRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerAudienceSuggestionsRequest) Execute() (*AdvertiserControllerAudienceSuggestions200Response, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerAudienceSuggestionsExecute(r)
 }
 
 /*
-AdvertiserControllerAudienceSuggestions Method for AdvertiserControllerAudienceSuggestions
+AdvertiserControllerAudienceSuggestions Suggest audiences from pixel activity
+
+Inspects the account's pixel events over the last `days` (1-180, default 30) and returns ready-to-create rule audiences such as all visitors, engaged visitors, cart and checkout abandoners, purchasers, high-value buyers, unconverted leads and viewers of the top 5 products. Each suggestion has a `rule` to pass to POST /audiences and an `estReach` upper bound. `eventInventory` maps each event name to its distinct users.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdvertiserControllerAudienceSuggestionsRequest
@@ -445,16 +565,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerAudienceSuggestions(ctx conte
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerAudienceSuggestionsExecute(r ApiAdvertiserControllerAudienceSuggestionsRequest) (*http.Response, error) {
+//  @return AdvertiserControllerAudienceSuggestions200Response
+func (a *AdvertiserAPIService) AdvertiserControllerAudienceSuggestionsExecute(r ApiAdvertiserControllerAudienceSuggestionsRequest) (*AdvertiserControllerAudienceSuggestions200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvertiserControllerAudienceSuggestions200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerAudienceSuggestions")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/audiences/suggestions"
@@ -463,7 +585,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerAudienceSuggestionsExecute(r 
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.days == nil {
-		return nil, reportError("days is required and must be specified")
+		return localVarReturnValue, nil, reportError("days is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "days", r.days, "form", "")
@@ -477,28 +599,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerAudienceSuggestionsExecute(r 
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -506,10 +642,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerAudienceSuggestionsExecute(r 
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerCreateRequest struct {
@@ -523,12 +668,16 @@ func (r ApiAdvertiserControllerCreateRequest) CreateCampaignDto(createCampaignDt
 	return r
 }
 
-func (r ApiAdvertiserControllerCreateRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerCreateRequest) Execute() (*AdvCampaign, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerCreateExecute(r)
 }
 
 /*
-AdvertiserControllerCreate Method for AdvertiserControllerCreate
+AdvertiserControllerCreate Create a campaign (ad set)
+
+Creates a campaign in `draft` status together with its targeting row and, if `conversion` is given, a conversion config. Key body fields: `name`, `format`, `pricingModel`, `bidAmount`, budgets, `pacing`, schedule, `targeting`, `bidStrategy`/`targetCpa`/`targetRoas`, `houseAd`, `priorityTier`, `groupId`. The currency is always taken from the advertiser's account (a client-sent `currency` is ignored), `terminal` format is forced to CPM, and `groupId` is silently dropped unless the advertiser owns that group. A house ad with no placement whitelist is confined to the owner's own active placements. Submit the draft for review to start serving.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdvertiserControllerCreateRequest
@@ -541,16 +690,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreate(ctx context.Context) A
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerCreateExecute(r ApiAdvertiserControllerCreateRequest) (*http.Response, error) {
+//  @return AdvCampaign
+func (a *AdvertiserAPIService) AdvertiserControllerCreateExecute(r ApiAdvertiserControllerCreateRequest) (*AdvCampaign, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvCampaign
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerCreate")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/campaigns"
@@ -559,7 +710,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateExecute(r ApiAdvertiser
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.createCampaignDto == nil {
-		return nil, reportError("createCampaignDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("createCampaignDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -572,7 +723,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateExecute(r ApiAdvertiser
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -581,21 +732,35 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateExecute(r ApiAdvertiser
 	}
 	// body params
 	localVarPostBody = r.createCampaignDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -603,10 +768,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateExecute(r ApiAdvertiser
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerCreateAudienceRequest struct {
@@ -620,12 +794,16 @@ func (r ApiAdvertiserControllerCreateAudienceRequest) CreateAudienceDto(createAu
 	return r
 }
 
-func (r ApiAdvertiserControllerCreateAudienceRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerCreateAudienceRequest) Execute() (*AdvertiserControllerCreateAudience201Response, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerCreateAudienceExecute(r)
 }
 
 /*
-AdvertiserControllerCreateAudience Method for AdvertiserControllerCreateAudience
+AdvertiserControllerCreateAudience Create an audience
+
+Creates an audience. Passing a `rule` makes it an event-rule audience (type `rule`) built from pixel events: the rule is bounds-checked (400), membership is resolved immediately in the background, and the resolver keeps it fresh. Without a rule, `type` selects uploaded, lookalike or retargeting (the default). `pixelId` scopes the audience to one pixel.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdvertiserControllerCreateAudienceRequest
@@ -638,16 +816,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateAudience(ctx context.Co
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerCreateAudienceExecute(r ApiAdvertiserControllerCreateAudienceRequest) (*http.Response, error) {
+//  @return AdvertiserControllerCreateAudience201Response
+func (a *AdvertiserAPIService) AdvertiserControllerCreateAudienceExecute(r ApiAdvertiserControllerCreateAudienceRequest) (*AdvertiserControllerCreateAudience201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvertiserControllerCreateAudience201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerCreateAudience")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/audiences"
@@ -656,7 +836,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateAudienceExecute(r ApiAd
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.createAudienceDto == nil {
-		return nil, reportError("createAudienceDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("createAudienceDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -669,7 +849,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateAudienceExecute(r ApiAd
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -678,21 +858,35 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateAudienceExecute(r ApiAd
 	}
 	// body params
 	localVarPostBody = r.createAudienceDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -700,10 +894,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateAudienceExecute(r ApiAd
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerCreateCreativeRequest struct {
@@ -717,12 +920,16 @@ func (r ApiAdvertiserControllerCreateCreativeRequest) CreateCreativeDto(createCr
 	return r
 }
 
-func (r ApiAdvertiserControllerCreateCreativeRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerCreateCreativeRequest) Execute() (*AdvCreative, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerCreateCreativeExecute(r)
 }
 
 /*
-AdvertiserControllerCreateCreative Method for AdvertiserControllerCreateCreative
+AdvertiserControllerCreateCreative Create a creative
+
+Creates a creative in the library; pass `campaignId` to also author it directly under a campaign (404/403 if that campaign is not owned). Every URL field is SSRF-checked (400 for internal destinations) and video/VAST fields are validated (`duration` 1-600, `skipOffsetSec`, https `vastTagUrl`/`vpaidUrl`, `companions`); `carouselItems` is capped at 20. Marketplace creatives start `pending` and enter moderation; creatives under a house-ad campaign are approved immediately. A malware scan always runs, video assets are queued for HLS transcoding, and a VAST tag without `duration` is probed in the background.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdvertiserControllerCreateCreativeRequest
@@ -735,16 +942,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateCreative(ctx context.Co
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerCreateCreativeExecute(r ApiAdvertiserControllerCreateCreativeRequest) (*http.Response, error) {
+//  @return AdvCreative
+func (a *AdvertiserAPIService) AdvertiserControllerCreateCreativeExecute(r ApiAdvertiserControllerCreateCreativeRequest) (*AdvCreative, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvCreative
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerCreateCreative")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/creatives"
@@ -753,7 +962,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateCreativeExecute(r ApiAd
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.createCreativeDto == nil {
-		return nil, reportError("createCreativeDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("createCreativeDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -766,7 +975,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateCreativeExecute(r ApiAd
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -775,21 +984,35 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateCreativeExecute(r ApiAd
 	}
 	// body params
 	localVarPostBody = r.createCreativeDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -797,10 +1020,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateCreativeExecute(r ApiAd
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerCreateDestinationRequest struct {
@@ -815,12 +1047,16 @@ func (r ApiAdvertiserControllerCreateDestinationRequest) CreateDestinationDto(cr
 	return r
 }
 
-func (r ApiAdvertiserControllerCreateDestinationRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerCreateDestinationRequest) Execute() (*AdvertiserControllerCreateAudience201Response, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerCreateDestinationExecute(r)
 }
 
 /*
-AdvertiserControllerCreateDestination Method for AdvertiserControllerCreateDestination
+AdvertiserControllerCreateDestination Add a sync destination to an audience
+
+Creates a destination of `type` webhook (default; HMAC-signed, SSRF-guarded HTTPS push), meta_custom_audience or google_customer_match, with adapter settings and credentials in `config`. Responds 404 when the audience is not owned. Active destinations are synced on a schedule; PII destinations receive only hashed email/phone, never raw PII.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -835,16 +1071,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateDestination(ctx context
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerCreateDestinationExecute(r ApiAdvertiserControllerCreateDestinationRequest) (*http.Response, error) {
+//  @return AdvertiserControllerCreateAudience201Response
+func (a *AdvertiserAPIService) AdvertiserControllerCreateDestinationExecute(r ApiAdvertiserControllerCreateDestinationRequest) (*AdvertiserControllerCreateAudience201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvertiserControllerCreateAudience201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerCreateDestination")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/audiences/{id}/destinations"
@@ -854,7 +1092,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateDestinationExecute(r Ap
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.createDestinationDto == nil {
-		return nil, reportError("createDestinationDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("createDestinationDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -867,7 +1105,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateDestinationExecute(r Ap
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -876,21 +1114,35 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateDestinationExecute(r Ap
 	}
 	// body params
 	localVarPostBody = r.createDestinationDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -898,10 +1150,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateDestinationExecute(r Ap
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerCreateFeedRequest struct {
@@ -915,12 +1176,16 @@ func (r ApiAdvertiserControllerCreateFeedRequest) CreateFeedDto(createFeedDto Cr
 	return r
 }
 
-func (r ApiAdvertiserControllerCreateFeedRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerCreateFeedRequest) Execute() (*AdvProductFeed, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerCreateFeedExecute(r)
 }
 
 /*
-AdvertiserControllerCreateFeed Method for AdvertiserControllerCreateFeed
+AdvertiserControllerCreateFeed Register a product feed
+
+Registers a product feed for dynamic product ads. Body: `name`, `url` (http/https), `format` (csv, xml or google_merchant) and optional `scheduleCron`. Responds 400 for a missing name, a non-http URL or an unknown format. The feed is not fetched until a fetch is triggered or the scheduler runs.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdvertiserControllerCreateFeedRequest
@@ -933,16 +1198,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateFeed(ctx context.Contex
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerCreateFeedExecute(r ApiAdvertiserControllerCreateFeedRequest) (*http.Response, error) {
+//  @return AdvProductFeed
+func (a *AdvertiserAPIService) AdvertiserControllerCreateFeedExecute(r ApiAdvertiserControllerCreateFeedRequest) (*AdvProductFeed, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvProductFeed
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerCreateFeed")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/feeds"
@@ -951,7 +1218,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateFeedExecute(r ApiAdvert
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.createFeedDto == nil {
-		return nil, reportError("createFeedDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("createFeedDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -964,7 +1231,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateFeedExecute(r ApiAdvert
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -973,21 +1240,35 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateFeedExecute(r ApiAdvert
 	}
 	// body params
 	localVarPostBody = r.createFeedDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -995,10 +1276,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateFeedExecute(r ApiAdvert
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerCreateGroupRequest struct {
@@ -1012,12 +1302,16 @@ func (r ApiAdvertiserControllerCreateGroupRequest) CampaignGroupDto(campaignGrou
 	return r
 }
 
-func (r ApiAdvertiserControllerCreateGroupRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerCreateGroupRequest) Execute() (*AdvCampaignGroup, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerCreateGroupExecute(r)
 }
 
 /*
-AdvertiserControllerCreateGroup Method for AdvertiserControllerCreateGroup
+AdvertiserControllerCreateGroup Create a campaign group
+
+Creates a campaign group with `name` and an optional `objective`. New groups start with status `active`. Ad sets are attached to a group by passing `groupId` when creating a campaign.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdvertiserControllerCreateGroupRequest
@@ -1030,16 +1324,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateGroup(ctx context.Conte
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerCreateGroupExecute(r ApiAdvertiserControllerCreateGroupRequest) (*http.Response, error) {
+//  @return AdvCampaignGroup
+func (a *AdvertiserAPIService) AdvertiserControllerCreateGroupExecute(r ApiAdvertiserControllerCreateGroupRequest) (*AdvCampaignGroup, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvCampaignGroup
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerCreateGroup")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/campaign-groups"
@@ -1048,7 +1344,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateGroupExecute(r ApiAdver
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.campaignGroupDto == nil {
-		return nil, reportError("campaignGroupDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("campaignGroupDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1061,7 +1357,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateGroupExecute(r ApiAdver
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1070,21 +1366,35 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateGroupExecute(r ApiAdver
 	}
 	// body params
 	localVarPostBody = r.campaignGroupDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1092,10 +1402,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreateGroupExecute(r ApiAdver
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerCreatePromoteRequest struct {
@@ -1109,12 +1428,16 @@ func (r ApiAdvertiserControllerCreatePromoteRequest) CreatePromoteCampaignDto(cr
 	return r
 }
 
-func (r ApiAdvertiserControllerCreatePromoteRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerCreatePromoteRequest) Execute() (*AdvPromoteCampaign, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerCreatePromoteExecute(r)
 }
 
 /*
-AdvertiserControllerCreatePromote Method for AdvertiserControllerCreatePromote
+AdvertiserControllerCreatePromote Create a sponsored-product promote campaign
+
+Creates a draft campaign that promotes catalog items. `itemSelector` must be exactly one of `{ item_ids }`, `{ keywords }` or `{ all: true }`. `pricingModel` is cpc (default) or cpa; cpc and flat cpa need `bidAmount` > 0, while cpa with `cpaMode: percent` needs `cpaPercent` in (0, 1]. Also accepts budgets, `pacing` (even|asap), `minOrderValue` (CPA fraud floor), `currency`, schedule and `targeting`. Validation failures return 400. The created row is returned with NUMERIC columns as strings.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdvertiserControllerCreatePromoteRequest
@@ -1127,16 +1450,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreatePromote(ctx context.Con
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerCreatePromoteExecute(r ApiAdvertiserControllerCreatePromoteRequest) (*http.Response, error) {
+//  @return AdvPromoteCampaign
+func (a *AdvertiserAPIService) AdvertiserControllerCreatePromoteExecute(r ApiAdvertiserControllerCreatePromoteRequest) (*AdvPromoteCampaign, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvPromoteCampaign
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerCreatePromote")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/promote-campaigns"
@@ -1145,7 +1470,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreatePromoteExecute(r ApiAdv
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.createPromoteCampaignDto == nil {
-		return nil, reportError("createPromoteCampaignDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("createPromoteCampaignDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1158,7 +1483,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreatePromoteExecute(r ApiAdv
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1167,21 +1492,35 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreatePromoteExecute(r ApiAdv
 	}
 	// body params
 	localVarPostBody = r.createPromoteCampaignDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1189,10 +1528,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreatePromoteExecute(r ApiAdv
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerCreativeAssignmentsRequest struct {
@@ -1201,12 +1549,16 @@ type ApiAdvertiserControllerCreativeAssignmentsRequest struct {
 	id string
 }
 
-func (r ApiAdvertiserControllerCreativeAssignmentsRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerCreativeAssignmentsRequest) Execute() ([]AdvCreativeAssignment, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerCreativeAssignmentsExecute(r)
 }
 
 /*
-AdvertiserControllerCreativeAssignments Method for AdvertiserControllerCreativeAssignments
+AdvertiserControllerCreativeAssignments List campaigns a creative is attached to
+
+Returns the non-deleted campaigns this library creative is attached to, with the attachment `weight` and `enabled` flag. Creatives authored directly under a campaign without an attachment do not appear. 404 when the creative is not owned.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1221,16 +1573,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreativeAssignments(ctx conte
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerCreativeAssignmentsExecute(r ApiAdvertiserControllerCreativeAssignmentsRequest) (*http.Response, error) {
+//  @return []AdvCreativeAssignment
+func (a *AdvertiserAPIService) AdvertiserControllerCreativeAssignmentsExecute(r ApiAdvertiserControllerCreativeAssignmentsRequest) ([]AdvCreativeAssignment, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []AdvCreativeAssignment
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerCreativeAssignments")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/creatives/{id}/campaigns"
@@ -1250,28 +1604,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreativeAssignmentsExecute(r 
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1279,10 +1647,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerCreativeAssignmentsExecute(r 
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerDetachCreativeRequest struct {
@@ -1297,12 +1674,16 @@ func (r ApiAdvertiserControllerDetachCreativeRequest) AttachCreativeDto(attachCr
 	return r
 }
 
-func (r ApiAdvertiserControllerDetachCreativeRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerDetachCreativeRequest) Execute() (*AdvertiserControllerDetachCreative201Response, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerDetachCreativeExecute(r)
 }
 
 /*
-AdvertiserControllerDetachCreative Method for AdvertiserControllerDetachCreative
+AdvertiserControllerDetachCreative Detach a library creative from a campaign
+
+Removes the link between the creative and `campaignId` and republishes the serving index. Succeeds even if no link existed. 404 when the creative is not owned.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1317,16 +1698,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerDetachCreative(ctx context.Co
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerDetachCreativeExecute(r ApiAdvertiserControllerDetachCreativeRequest) (*http.Response, error) {
+//  @return AdvertiserControllerDetachCreative201Response
+func (a *AdvertiserAPIService) AdvertiserControllerDetachCreativeExecute(r ApiAdvertiserControllerDetachCreativeRequest) (*AdvertiserControllerDetachCreative201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvertiserControllerDetachCreative201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerDetachCreative")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/creatives/{id}/detach"
@@ -1336,7 +1719,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerDetachCreativeExecute(r ApiAd
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.attachCreativeDto == nil {
-		return nil, reportError("attachCreativeDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("attachCreativeDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1349,7 +1732,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerDetachCreativeExecute(r ApiAd
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1358,21 +1741,35 @@ func (a *AdvertiserAPIService) AdvertiserControllerDetachCreativeExecute(r ApiAd
 	}
 	// body params
 	localVarPostBody = r.attachCreativeDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1380,10 +1777,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerDetachCreativeExecute(r ApiAd
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerEstimateAudienceRequest struct {
@@ -1397,12 +1803,16 @@ func (r ApiAdvertiserControllerEstimateAudienceRequest) CreateAudienceDto(create
 	return r
 }
 
-func (r ApiAdvertiserControllerEstimateAudienceRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerEstimateAudienceRequest) Execute() (*AdvertiserControllerEstimateAudience201Response, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerEstimateAudienceExecute(r)
 }
 
 /*
-AdvertiserControllerEstimateAudience Method for AdvertiserControllerEstimateAudience
+AdvertiserControllerEstimateAudience Estimate the size of an audience rule
+
+Counts the distinct users matching `rule` (optionally limited to `pixelId`) without creating an audience. The rule is bounds-checked (400). A query failure returns 0. Rate-limited to 20 calls per throttle window because each call runs a ClickHouse aggregation.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdvertiserControllerEstimateAudienceRequest
@@ -1415,16 +1825,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerEstimateAudience(ctx context.
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerEstimateAudienceExecute(r ApiAdvertiserControllerEstimateAudienceRequest) (*http.Response, error) {
+//  @return AdvertiserControllerEstimateAudience201Response
+func (a *AdvertiserAPIService) AdvertiserControllerEstimateAudienceExecute(r ApiAdvertiserControllerEstimateAudienceRequest) (*AdvertiserControllerEstimateAudience201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvertiserControllerEstimateAudience201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerEstimateAudience")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/audiences/estimate"
@@ -1433,7 +1845,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerEstimateAudienceExecute(r Api
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.createAudienceDto == nil {
-		return nil, reportError("createAudienceDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("createAudienceDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1446,7 +1858,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerEstimateAudienceExecute(r Api
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1455,21 +1867,35 @@ func (a *AdvertiserAPIService) AdvertiserControllerEstimateAudienceExecute(r Api
 	}
 	// body params
 	localVarPostBody = r.createAudienceDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1477,10 +1903,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerEstimateAudienceExecute(r Api
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerFetchFeedRequest struct {
@@ -1489,12 +1924,16 @@ type ApiAdvertiserControllerFetchFeedRequest struct {
 	id string
 }
 
-func (r ApiAdvertiserControllerFetchFeedRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerFetchFeedRequest) Execute() (*AdvertiserControllerFetchFeed201Response, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerFetchFeedExecute(r)
 }
 
 /*
-AdvertiserControllerFetchFeed Method for AdvertiserControllerFetchFeed
+AdvertiserControllerFetchFeed Fetch a product feed now
+
+Downloads (SSRF-guarded) and parses the feed immediately and upserts its products, returning the parsed and upserted counts. Rate-limited to 5 calls per throttle window. Responds 404 when the feed does not exist and 403 when it belongs to another advertiser.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1509,16 +1948,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerFetchFeed(ctx context.Context
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerFetchFeedExecute(r ApiAdvertiserControllerFetchFeedRequest) (*http.Response, error) {
+//  @return AdvertiserControllerFetchFeed201Response
+func (a *AdvertiserAPIService) AdvertiserControllerFetchFeedExecute(r ApiAdvertiserControllerFetchFeedRequest) (*AdvertiserControllerFetchFeed201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvertiserControllerFetchFeed201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerFetchFeed")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/feeds/{id}/fetch"
@@ -1538,28 +1979,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerFetchFeedExecute(r ApiAdverti
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1567,10 +2022,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerFetchFeedExecute(r ApiAdverti
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerGetRequest struct {
@@ -1579,12 +2043,16 @@ type ApiAdvertiserControllerGetRequest struct {
 	id string
 }
 
-func (r ApiAdvertiserControllerGetRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerGetRequest) Execute() (*AdvCampaignDetail, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerGetExecute(r)
 }
 
 /*
-AdvertiserControllerGet Method for AdvertiserControllerGet
+AdvertiserControllerGet Get a campaign with targeting and creatives
+
+Returns the campaign row plus its raw `targeting` row and the creatives authored directly under it (library-attached creatives are listed by GET /campaigns/{id}/creatives). Responds 404 when the campaign does not exist or is deleted, and 403 when it belongs to another advertiser.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1599,16 +2067,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerGet(ctx context.Context, id s
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerGetExecute(r ApiAdvertiserControllerGetRequest) (*http.Response, error) {
+//  @return AdvCampaignDetail
+func (a *AdvertiserAPIService) AdvertiserControllerGetExecute(r ApiAdvertiserControllerGetRequest) (*AdvCampaignDetail, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvCampaignDetail
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerGet")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/campaigns/{id}"
@@ -1628,28 +2098,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerGetExecute(r ApiAdvertiserCon
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1657,10 +2141,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerGetExecute(r ApiAdvertiserCon
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerGetConversionConfigRequest struct {
@@ -1669,12 +2162,16 @@ type ApiAdvertiserControllerGetConversionConfigRequest struct {
 	id string
 }
 
-func (r ApiAdvertiserControllerGetConversionConfigRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerGetConversionConfigRequest) Execute() (*AdvConversionConfig, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerGetConversionConfigExecute(r)
 }
 
 /*
-AdvertiserControllerGetConversionConfig Method for AdvertiserControllerGetConversionConfig
+AdvertiserControllerGetConversionConfig Get a campaign's conversion config
+
+Returns the conversion-tracking config for the campaign (event type, payout, postback URL, dedupe and attribution windows, CPA mode). The body is empty (null) when none has been set. Responds 404 when the campaign is missing and 403 when not owned.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1689,16 +2186,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerGetConversionConfig(ctx conte
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerGetConversionConfigExecute(r ApiAdvertiserControllerGetConversionConfigRequest) (*http.Response, error) {
+//  @return AdvConversionConfig
+func (a *AdvertiserAPIService) AdvertiserControllerGetConversionConfigExecute(r ApiAdvertiserControllerGetConversionConfigRequest) (*AdvConversionConfig, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvConversionConfig
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerGetConversionConfig")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/campaigns/{id}/conversion-config"
@@ -1718,28 +2217,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerGetConversionConfigExecute(r 
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1747,10 +2260,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerGetConversionConfigExecute(r 
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerGetCreativeRequest struct {
@@ -1759,12 +2281,16 @@ type ApiAdvertiserControllerGetCreativeRequest struct {
 	id string
 }
 
-func (r ApiAdvertiserControllerGetCreativeRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerGetCreativeRequest) Execute() (*AdvCreative, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerGetCreativeExecute(r)
 }
 
 /*
-AdvertiserControllerGetCreative Method for AdvertiserControllerGetCreative
+AdvertiserControllerGetCreative Get a creative
+
+Returns one creative owned by the advertiser. Responds 404 when it does not exist, is deleted, or belongs to another advertiser.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1779,16 +2305,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerGetCreative(ctx context.Conte
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerGetCreativeExecute(r ApiAdvertiserControllerGetCreativeRequest) (*http.Response, error) {
+//  @return AdvCreative
+func (a *AdvertiserAPIService) AdvertiserControllerGetCreativeExecute(r ApiAdvertiserControllerGetCreativeRequest) (*AdvCreative, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvCreative
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerGetCreative")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/creatives/{id}"
@@ -1808,28 +2336,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerGetCreativeExecute(r ApiAdver
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1837,10 +2379,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerGetCreativeExecute(r ApiAdver
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerGetGroupRequest struct {
@@ -1849,12 +2400,16 @@ type ApiAdvertiserControllerGetGroupRequest struct {
 	id string
 }
 
-func (r ApiAdvertiserControllerGetGroupRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerGetGroupRequest) Execute() (*AdvCampaignGroup, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerGetGroupExecute(r)
 }
 
 /*
-AdvertiserControllerGetGroup Method for AdvertiserControllerGetGroup
+AdvertiserControllerGetGroup Get a campaign group
+
+Returns one campaign group row. Responds 404 when the group does not exist, is deleted, or belongs to another advertiser. Ad sets are not nested here; the list endpoint includes them.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1869,16 +2424,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerGetGroup(ctx context.Context,
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerGetGroupExecute(r ApiAdvertiserControllerGetGroupRequest) (*http.Response, error) {
+//  @return AdvCampaignGroup
+func (a *AdvertiserAPIService) AdvertiserControllerGetGroupExecute(r ApiAdvertiserControllerGetGroupRequest) (*AdvCampaignGroup, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvCampaignGroup
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerGetGroup")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/campaign-groups/{id}"
@@ -1898,28 +2455,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerGetGroupExecute(r ApiAdvertis
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1927,10 +2498,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerGetGroupExecute(r ApiAdvertis
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerGetTargetingRequest struct {
@@ -1939,12 +2519,16 @@ type ApiAdvertiserControllerGetTargetingRequest struct {
 	id string
 }
 
-func (r ApiAdvertiserControllerGetTargetingRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerGetTargetingRequest) Execute() (*AdvTargeting, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerGetTargetingExecute(r)
 }
 
 /*
-AdvertiserControllerGetTargeting Method for AdvertiserControllerGetTargeting
+AdvertiserControllerGetTargeting Get campaign targeting
+
+Returns the campaign's targeting normalized to the camelCase shape accepted by create/update. Absent fields come back as empty arrays (or null for `osVersionMin` and `frequencyCap`). `dayparting` is a 168-element array indexed weekday*24+hour (Sunday=0); empty means all hours. 404/403 as for GET campaign.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1959,16 +2543,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerGetTargeting(ctx context.Cont
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerGetTargetingExecute(r ApiAdvertiserControllerGetTargetingRequest) (*http.Response, error) {
+//  @return AdvTargeting
+func (a *AdvertiserAPIService) AdvertiserControllerGetTargetingExecute(r ApiAdvertiserControllerGetTargetingRequest) (*AdvTargeting, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvTargeting
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerGetTargeting")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/campaigns/{id}/targeting"
@@ -1988,28 +2574,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerGetTargetingExecute(r ApiAdve
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2017,10 +2617,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerGetTargetingExecute(r ApiAdve
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerListRequest struct {
@@ -2028,12 +2637,16 @@ type ApiAdvertiserControllerListRequest struct {
 	ApiService *AdvertiserAPIService
 }
 
-func (r ApiAdvertiserControllerListRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerListRequest) Execute() ([]AdvCampaign, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerListExecute(r)
 }
 
 /*
-AdvertiserControllerList Method for AdvertiserControllerList
+AdvertiserControllerList List campaigns (ad sets)
+
+Returns the advertiser's non-deleted `campaigns` rows (the UI "Ad set", the real targeting and serving unit), newest first. Pagination is opt-in: pass `limit` (clamped to 1-500) and `offset`; without `limit` the full set is returned.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdvertiserControllerListRequest
@@ -2046,16 +2659,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerList(ctx context.Context) Api
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerListExecute(r ApiAdvertiserControllerListRequest) (*http.Response, error) {
+//  @return []AdvCampaign
+func (a *AdvertiserAPIService) AdvertiserControllerListExecute(r ApiAdvertiserControllerListRequest) ([]AdvCampaign, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []AdvCampaign
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerList")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/campaigns"
@@ -2074,28 +2689,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerListExecute(r ApiAdvertiserCo
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2103,10 +2732,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerListExecute(r ApiAdvertiserCo
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerListAllCreativesRequest struct {
@@ -2114,12 +2752,16 @@ type ApiAdvertiserControllerListAllCreativesRequest struct {
 	ApiService *AdvertiserAPIService
 }
 
-func (r ApiAdvertiserControllerListAllCreativesRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerListAllCreativesRequest) Execute() ([]AdvLibraryCreative, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerListAllCreativesExecute(r)
 }
 
 /*
-AdvertiserControllerListAllCreatives Method for AdvertiserControllerListAllCreatives
+AdvertiserControllerListAllCreatives List the creative library
+
+Returns every non-deleted creative owned by the advertiser, independent of campaigns, with `campaign_count` (number of library attachments). Used by Creative Studio.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdvertiserControllerListAllCreativesRequest
@@ -2132,16 +2774,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerListAllCreatives(ctx context.
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerListAllCreativesExecute(r ApiAdvertiserControllerListAllCreativesRequest) (*http.Response, error) {
+//  @return []AdvLibraryCreative
+func (a *AdvertiserAPIService) AdvertiserControllerListAllCreativesExecute(r ApiAdvertiserControllerListAllCreativesRequest) ([]AdvLibraryCreative, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []AdvLibraryCreative
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerListAllCreatives")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/creatives"
@@ -2160,28 +2804,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerListAllCreativesExecute(r Api
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2189,10 +2847,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerListAllCreativesExecute(r Api
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerListAudiencesRequest struct {
@@ -2200,12 +2867,16 @@ type ApiAdvertiserControllerListAudiencesRequest struct {
 	ApiService *AdvertiserAPIService
 }
 
-func (r ApiAdvertiserControllerListAudiencesRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerListAudiencesRequest) Execute() ([]AdvAudience, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerListAudiencesExecute(r)
 }
 
 /*
-AdvertiserControllerListAudiences Method for AdvertiserControllerListAudiences
+AdvertiserControllerListAudiences List audiences
+
+Returns the account's audiences, newest first, with the live member count read from the serving set. A team member scoped to specific pixels only sees audiences tied to those pixels.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdvertiserControllerListAudiencesRequest
@@ -2218,16 +2889,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerListAudiences(ctx context.Con
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerListAudiencesExecute(r ApiAdvertiserControllerListAudiencesRequest) (*http.Response, error) {
+//  @return []AdvAudience
+func (a *AdvertiserAPIService) AdvertiserControllerListAudiencesExecute(r ApiAdvertiserControllerListAudiencesRequest) ([]AdvAudience, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []AdvAudience
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerListAudiences")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/audiences"
@@ -2246,28 +2919,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerListAudiencesExecute(r ApiAdv
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2275,10 +2962,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerListAudiencesExecute(r ApiAdv
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerListCatalogRequest struct {
@@ -2286,12 +2982,16 @@ type ApiAdvertiserControllerListCatalogRequest struct {
 	ApiService *AdvertiserAPIService
 }
 
-func (r ApiAdvertiserControllerListCatalogRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerListCatalogRequest) Execute() ([]AdvCatalogItem, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerListCatalogExecute(r)
 }
 
 /*
-AdvertiserControllerListCatalog Method for AdvertiserControllerListCatalog
+AdvertiserControllerListCatalog List marketplace catalog items
+
+Returns the advertiser's non-deleted catalog items, most recently updated first.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdvertiserControllerListCatalogRequest
@@ -2304,16 +3004,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerListCatalog(ctx context.Conte
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerListCatalogExecute(r ApiAdvertiserControllerListCatalogRequest) (*http.Response, error) {
+//  @return []AdvCatalogItem
+func (a *AdvertiserAPIService) AdvertiserControllerListCatalogExecute(r ApiAdvertiserControllerListCatalogRequest) ([]AdvCatalogItem, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []AdvCatalogItem
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerListCatalog")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/marketplace-catalog"
@@ -2332,28 +3034,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerListCatalogExecute(r ApiAdver
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2361,10 +3077,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerListCatalogExecute(r ApiAdver
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerListCatalogFeedsRequest struct {
@@ -2372,12 +3097,16 @@ type ApiAdvertiserControllerListCatalogFeedsRequest struct {
 	ApiService *AdvertiserAPIService
 }
 
-func (r ApiAdvertiserControllerListCatalogFeedsRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerListCatalogFeedsRequest) Execute() ([]AdvCatalogFeed, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerListCatalogFeedsExecute(r)
 }
 
 /*
-AdvertiserControllerListCatalogFeeds Method for AdvertiserControllerListCatalogFeeds
+AdvertiserControllerListCatalogFeeds List scheduled catalog feeds
+
+Returns the advertiser's non-deleted catalog feeds, newest first, with the last sync time and last error.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdvertiserControllerListCatalogFeedsRequest
@@ -2390,16 +3119,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerListCatalogFeeds(ctx context.
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerListCatalogFeedsExecute(r ApiAdvertiserControllerListCatalogFeedsRequest) (*http.Response, error) {
+//  @return []AdvCatalogFeed
+func (a *AdvertiserAPIService) AdvertiserControllerListCatalogFeedsExecute(r ApiAdvertiserControllerListCatalogFeedsRequest) ([]AdvCatalogFeed, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []AdvCatalogFeed
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerListCatalogFeeds")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/catalog-feeds"
@@ -2418,28 +3149,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerListCatalogFeedsExecute(r Api
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2447,10 +3192,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerListCatalogFeedsExecute(r Api
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerListComponentsRequest struct {
@@ -2459,12 +3213,16 @@ type ApiAdvertiserControllerListComponentsRequest struct {
 	id string
 }
 
-func (r ApiAdvertiserControllerListComponentsRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerListComponentsRequest) Execute() ([]AdvCreativeComponent, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerListComponentsExecute(r)
 }
 
 /*
-AdvertiserControllerListComponents Method for AdvertiserControllerListComponents
+AdvertiserControllerListComponents List DCO components for a creative
+
+Returns the components in the creative's campaign pool plus account-wide components (no campaign), ordered by slot. Each row includes bandit impressions/clicks and the derived `ctr` (0 with no impressions). 404 when the creative is not owned or has no campaign.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -2479,16 +3237,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerListComponents(ctx context.Co
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerListComponentsExecute(r ApiAdvertiserControllerListComponentsRequest) (*http.Response, error) {
+//  @return []AdvCreativeComponent
+func (a *AdvertiserAPIService) AdvertiserControllerListComponentsExecute(r ApiAdvertiserControllerListComponentsRequest) ([]AdvCreativeComponent, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []AdvCreativeComponent
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerListComponents")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/creatives/{id}/components"
@@ -2508,28 +3268,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerListComponentsExecute(r ApiAd
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2537,10 +3311,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerListComponentsExecute(r ApiAd
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerListCreativesRequest struct {
@@ -2549,12 +3332,16 @@ type ApiAdvertiserControllerListCreativesRequest struct {
 	id string
 }
 
-func (r ApiAdvertiserControllerListCreativesRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerListCreativesRequest) Execute() ([]AdvCampaignCreative, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerListCreativesExecute(r)
 }
 
 /*
-AdvertiserControllerListCreatives Method for AdvertiserControllerListCreatives
+AdvertiserControllerListCreatives List creatives serving a campaign
+
+Returns creatives authored directly under the campaign plus library creatives attached to it, newest first. Each row adds `effective_weight` (attachment weight, else the creative weight) and `attached`. Returns an empty list for a campaign the advertiser does not own.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -2569,16 +3356,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerListCreatives(ctx context.Con
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerListCreativesExecute(r ApiAdvertiserControllerListCreativesRequest) (*http.Response, error) {
+//  @return []AdvCampaignCreative
+func (a *AdvertiserAPIService) AdvertiserControllerListCreativesExecute(r ApiAdvertiserControllerListCreativesRequest) ([]AdvCampaignCreative, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []AdvCampaignCreative
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerListCreatives")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/campaigns/{id}/creatives"
@@ -2598,28 +3387,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerListCreativesExecute(r ApiAdv
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2627,10 +3430,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerListCreativesExecute(r ApiAdv
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerListDestinationsRequest struct {
@@ -2639,12 +3451,16 @@ type ApiAdvertiserControllerListDestinationsRequest struct {
 	id string
 }
 
-func (r ApiAdvertiserControllerListDestinationsRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerListDestinationsRequest) Execute() ([]AdvAudienceDestination, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerListDestinationsExecute(r)
 }
 
 /*
-AdvertiserControllerListDestinations Method for AdvertiserControllerListDestinations
+AdvertiserControllerListDestinations List sync destinations for an audience
+
+Returns the destinations that push this audience's members to external systems, newest first. Secrets and tokens in `config` are redacted. Returns an empty list for an audience the account does not own.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -2659,16 +3475,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerListDestinations(ctx context.
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerListDestinationsExecute(r ApiAdvertiserControllerListDestinationsRequest) (*http.Response, error) {
+//  @return []AdvAudienceDestination
+func (a *AdvertiserAPIService) AdvertiserControllerListDestinationsExecute(r ApiAdvertiserControllerListDestinationsRequest) ([]AdvAudienceDestination, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []AdvAudienceDestination
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerListDestinations")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/audiences/{id}/destinations"
@@ -2688,28 +3506,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerListDestinationsExecute(r Api
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2717,10 +3549,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerListDestinationsExecute(r Api
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerListFeedProductsRequest struct {
@@ -2741,12 +3582,16 @@ func (r ApiAdvertiserControllerListFeedProductsRequest) Offset(offset string) Ap
 	return r
 }
 
-func (r ApiAdvertiserControllerListFeedProductsRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerListFeedProductsRequest) Execute() (*AdvertiserControllerListFeedProducts200Response, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerListFeedProductsExecute(r)
 }
 
 /*
-AdvertiserControllerListFeedProducts Method for AdvertiserControllerListFeedProducts
+AdvertiserControllerListFeedProducts List products parsed from a feed
+
+Returns products from the feed, most recently updated first. Query `limit` (1-500, default 50) and `offset` (default 0). Responds 404/403 when the feed is missing or not owned.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -2761,16 +3606,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerListFeedProducts(ctx context.
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerListFeedProductsExecute(r ApiAdvertiserControllerListFeedProductsRequest) (*http.Response, error) {
+//  @return AdvertiserControllerListFeedProducts200Response
+func (a *AdvertiserAPIService) AdvertiserControllerListFeedProductsExecute(r ApiAdvertiserControllerListFeedProductsRequest) (*AdvertiserControllerListFeedProducts200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvertiserControllerListFeedProducts200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerListFeedProducts")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/feeds/{id}/products"
@@ -2780,10 +3627,10 @@ func (a *AdvertiserAPIService) AdvertiserControllerListFeedProductsExecute(r Api
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.limit == nil {
-		return nil, reportError("limit is required and must be specified")
+		return localVarReturnValue, nil, reportError("limit is required and must be specified")
 	}
 	if r.offset == nil {
-		return nil, reportError("offset is required and must be specified")
+		return localVarReturnValue, nil, reportError("offset is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "limit", r.limit, "form", "")
@@ -2798,28 +3645,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerListFeedProductsExecute(r Api
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2827,10 +3688,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerListFeedProductsExecute(r Api
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerListFeedsRequest struct {
@@ -2838,12 +3708,16 @@ type ApiAdvertiserControllerListFeedsRequest struct {
 	ApiService *AdvertiserAPIService
 }
 
-func (r ApiAdvertiserControllerListFeedsRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerListFeedsRequest) Execute() ([]AdvProductFeed, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerListFeedsExecute(r)
 }
 
 /*
-AdvertiserControllerListFeeds Method for AdvertiserControllerListFeeds
+AdvertiserControllerListFeeds List product feeds
+
+Returns the advertiser's non-deleted product feeds, newest first, with their fetch schedule, last fetch time and status.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdvertiserControllerListFeedsRequest
@@ -2856,16 +3730,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerListFeeds(ctx context.Context
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerListFeedsExecute(r ApiAdvertiserControllerListFeedsRequest) (*http.Response, error) {
+//  @return []AdvProductFeed
+func (a *AdvertiserAPIService) AdvertiserControllerListFeedsExecute(r ApiAdvertiserControllerListFeedsRequest) ([]AdvProductFeed, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []AdvProductFeed
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerListFeeds")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/feeds"
@@ -2884,28 +3760,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerListFeedsExecute(r ApiAdverti
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2913,10 +3803,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerListFeedsExecute(r ApiAdverti
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerListGroupsRequest struct {
@@ -2924,12 +3823,16 @@ type ApiAdvertiserControllerListGroupsRequest struct {
 	ApiService *AdvertiserAPIService
 }
 
-func (r ApiAdvertiserControllerListGroupsRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerListGroupsRequest) Execute() ([]AdvCampaignGroupWithAdSets, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerListGroupsExecute(r)
 }
 
 /*
-AdvertiserControllerListGroups Method for AdvertiserControllerListGroups
+AdvertiserControllerListGroups List campaign groups with their ad sets
+
+Returns every non-deleted campaign group (the UI "Campaign") owned by the advertiser, newest first. Each group carries a spend rollup (`spent_total`, summed over its live ad sets) and an `adSets` array with a compact summary of each ad set (`campaigns` row) under it. Ad sets with no group are not included here; use GET /v1/advertiser/campaigns for those.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdvertiserControllerListGroupsRequest
@@ -2942,16 +3845,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerListGroups(ctx context.Contex
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerListGroupsExecute(r ApiAdvertiserControllerListGroupsRequest) (*http.Response, error) {
+//  @return []AdvCampaignGroupWithAdSets
+func (a *AdvertiserAPIService) AdvertiserControllerListGroupsExecute(r ApiAdvertiserControllerListGroupsRequest) ([]AdvCampaignGroupWithAdSets, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []AdvCampaignGroupWithAdSets
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerListGroups")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/campaign-groups"
@@ -2970,28 +3875,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerListGroupsExecute(r ApiAdvert
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -2999,10 +3918,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerListGroupsExecute(r ApiAdvert
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerListPromoteRequest struct {
@@ -3010,12 +3938,16 @@ type ApiAdvertiserControllerListPromoteRequest struct {
 	ApiService *AdvertiserAPIService
 }
 
-func (r ApiAdvertiserControllerListPromoteRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerListPromoteRequest) Execute() ([]AdvPromoteCampaign, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerListPromoteExecute(r)
 }
 
 /*
-AdvertiserControllerListPromote Method for AdvertiserControllerListPromote
+AdvertiserControllerListPromote List sponsored-product promote campaigns
+
+Returns the advertiser's non-deleted promote campaigns, newest first, with money fields as numbers.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdvertiserControllerListPromoteRequest
@@ -3028,16 +3960,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerListPromote(ctx context.Conte
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerListPromoteExecute(r ApiAdvertiserControllerListPromoteRequest) (*http.Response, error) {
+//  @return []AdvPromoteCampaign
+func (a *AdvertiserAPIService) AdvertiserControllerListPromoteExecute(r ApiAdvertiserControllerListPromoteRequest) ([]AdvPromoteCampaign, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []AdvPromoteCampaign
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerListPromote")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/promote-campaigns"
@@ -3056,28 +3990,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerListPromoteExecute(r ApiAdver
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -3085,10 +4033,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerListPromoteExecute(r ApiAdver
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerLookalikeAudienceRequest struct {
@@ -3103,12 +4060,16 @@ func (r ApiAdvertiserControllerLookalikeAudienceRequest) LookalikeDto(lookalikeD
 	return r
 }
 
-func (r ApiAdvertiserControllerLookalikeAudienceRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerLookalikeAudienceRequest) Execute() (*AdvertiserControllerLookalikeAudience201Response, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerLookalikeAudienceExecute(r)
 }
 
 /*
-AdvertiserControllerLookalikeAudience Method for AdvertiserControllerLookalikeAudience
+AdvertiserControllerLookalikeAudience Create a heuristic lookalike audience
+
+Builds a new `lookalike` audience from the seed audience using a profile heuristic, not a trained model: it finds the dominant geo/device of the seed's recent impressions (falling back to the network-wide profile) and selects other recent users with that profile, excluding seed members. `size` is capped by LOOKALIKE_MAX (default 50,000). The result can be empty. 404/403 when the seed is not owned.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -3123,16 +4084,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerLookalikeAudience(ctx context
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerLookalikeAudienceExecute(r ApiAdvertiserControllerLookalikeAudienceRequest) (*http.Response, error) {
+//  @return AdvertiserControllerLookalikeAudience201Response
+func (a *AdvertiserAPIService) AdvertiserControllerLookalikeAudienceExecute(r ApiAdvertiserControllerLookalikeAudienceRequest) (*AdvertiserControllerLookalikeAudience201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvertiserControllerLookalikeAudience201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerLookalikeAudience")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/audiences/{id}/lookalike"
@@ -3142,7 +4105,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerLookalikeAudienceExecute(r Ap
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.lookalikeDto == nil {
-		return nil, reportError("lookalikeDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("lookalikeDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -3155,7 +4118,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerLookalikeAudienceExecute(r Ap
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -3164,21 +4127,35 @@ func (a *AdvertiserAPIService) AdvertiserControllerLookalikeAudienceExecute(r Ap
 	}
 	// body params
 	localVarPostBody = r.lookalikeDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -3186,10 +4163,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerLookalikeAudienceExecute(r Ap
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerModeledLookalikeRequest struct {
@@ -3203,12 +4189,16 @@ func (r ApiAdvertiserControllerModeledLookalikeRequest) ModeledLookalikeDto(mode
 	return r
 }
 
-func (r ApiAdvertiserControllerModeledLookalikeRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerModeledLookalikeRequest) Execute() (*AdvertiserControllerModeledLookalike201Response, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerModeledLookalikeExecute(r)
 }
 
 /*
-AdvertiserControllerModeledLookalike Method for AdvertiserControllerModeledLookalike
+AdvertiserControllerModeledLookalike Create a modeled lookalike audience
+
+Fits a model of the seed audience's distinctive first-party pixel features against the account's background audience, scores recent pixel-active users (excluding seed members and opt-outs) and creates a new lookalike audience. Body: `seedAudienceId`, optional `size` and `minScore` (0-1). Responds 400 when the seed or the output is below the k-anonymity floor, and 404/403 when the seed is not owned. The audience is rebuilt periodically.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdvertiserControllerModeledLookalikeRequest
@@ -3221,16 +4211,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerModeledLookalike(ctx context.
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerModeledLookalikeExecute(r ApiAdvertiserControllerModeledLookalikeRequest) (*http.Response, error) {
+//  @return AdvertiserControllerModeledLookalike201Response
+func (a *AdvertiserAPIService) AdvertiserControllerModeledLookalikeExecute(r ApiAdvertiserControllerModeledLookalikeRequest) (*AdvertiserControllerModeledLookalike201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvertiserControllerModeledLookalike201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerModeledLookalike")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/audiences/lookalike-modeled"
@@ -3239,7 +4231,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerModeledLookalikeExecute(r Api
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.modeledLookalikeDto == nil {
-		return nil, reportError("modeledLookalikeDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("modeledLookalikeDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -3252,7 +4244,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerModeledLookalikeExecute(r Api
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -3261,21 +4253,35 @@ func (a *AdvertiserAPIService) AdvertiserControllerModeledLookalikeExecute(r Api
 	}
 	// body params
 	localVarPostBody = r.modeledLookalikeDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -3283,10 +4289,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerModeledLookalikeExecute(r Api
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerModeledLookalikePreviewRequest struct {
@@ -3295,12 +4310,16 @@ type ApiAdvertiserControllerModeledLookalikePreviewRequest struct {
 	id string
 }
 
-func (r ApiAdvertiserControllerModeledLookalikePreviewRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerModeledLookalikePreviewRequest) Execute() (*AdvertiserControllerModeledLookalikePreview200Response, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerModeledLookalikePreviewExecute(r)
 }
 
 /*
-AdvertiserControllerModeledLookalikePreview Method for AdvertiserControllerModeledLookalikePreview
+AdvertiserControllerModeledLookalikePreview Preview a modeled lookalike for a seed
+
+Returns the seed and background sizes, whether the seed passes the k-anonymity gate (`eligible`) and the most distinctive features, without creating an audience. When ineligible, `note` explains why and `topFeatures` is empty. 404/403 when the seed is not owned.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -3315,16 +4334,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerModeledLookalikePreview(ctx c
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerModeledLookalikePreviewExecute(r ApiAdvertiserControllerModeledLookalikePreviewRequest) (*http.Response, error) {
+//  @return AdvertiserControllerModeledLookalikePreview200Response
+func (a *AdvertiserAPIService) AdvertiserControllerModeledLookalikePreviewExecute(r ApiAdvertiserControllerModeledLookalikePreviewRequest) (*AdvertiserControllerModeledLookalikePreview200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvertiserControllerModeledLookalikePreview200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerModeledLookalikePreview")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/audiences/{id}/lookalike-modeled/preview"
@@ -3344,28 +4365,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerModeledLookalikePreviewExecut
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -3373,10 +4408,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerModeledLookalikePreviewExecut
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerPromoteStatusRequest struct {
@@ -3391,12 +4435,16 @@ func (r ApiAdvertiserControllerPromoteStatusRequest) SetPromoteStatusDto(setProm
 	return r
 }
 
-func (r ApiAdvertiserControllerPromoteStatusRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerPromoteStatusRequest) Execute() (*AdvStatusResult, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerPromoteStatusExecute(r)
 }
 
 /*
-AdvertiserControllerPromoteStatus Method for AdvertiserControllerPromoteStatus
+AdvertiserControllerPromoteStatus Activate or pause a promote campaign
+
+Sets `status` to active or paused and republishes the serving index so the engine adds or removes it from sponsored-product auctions. 404/403 when missing or not owned.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -3411,16 +4459,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerPromoteStatus(ctx context.Con
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerPromoteStatusExecute(r ApiAdvertiserControllerPromoteStatusRequest) (*http.Response, error) {
+//  @return AdvStatusResult
+func (a *AdvertiserAPIService) AdvertiserControllerPromoteStatusExecute(r ApiAdvertiserControllerPromoteStatusRequest) (*AdvStatusResult, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvStatusResult
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerPromoteStatus")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/promote-campaigns/{id}/status"
@@ -3430,7 +4480,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerPromoteStatusExecute(r ApiAdv
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.setPromoteStatusDto == nil {
-		return nil, reportError("setPromoteStatusDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("setPromoteStatusDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -3443,7 +4493,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerPromoteStatusExecute(r ApiAdv
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -3452,21 +4502,35 @@ func (a *AdvertiserAPIService) AdvertiserControllerPromoteStatusExecute(r ApiAdv
 	}
 	// body params
 	localVarPostBody = r.setPromoteStatusDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -3474,10 +4538,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerPromoteStatusExecute(r ApiAdv
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerReachRequest struct {
@@ -3491,12 +4564,16 @@ func (r ApiAdvertiserControllerReachRequest) ReachEstimateDto(reachEstimateDto R
 	return r
 }
 
-func (r ApiAdvertiserControllerReachRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerReachRequest) Execute() (*AdvertiserControllerReach201Response, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerReachExecute(r)
 }
 
 /*
-AdvertiserControllerReach Method for AdvertiserControllerReach
+AdvertiserControllerReach Estimate daily reach for targeting
+
+Estimates available daily impressions as the average daily ad-request volume over the last 7 days, optionally filtered by `geoInclude` (country codes) and `deviceTypes`. The `format` field is accepted but not used in the estimate. If ClickHouse has no usable history the estimate is 0 with a `note`.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdvertiserControllerReachRequest
@@ -3509,16 +4586,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerReach(ctx context.Context) Ap
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerReachExecute(r ApiAdvertiserControllerReachRequest) (*http.Response, error) {
+//  @return AdvertiserControllerReach201Response
+func (a *AdvertiserAPIService) AdvertiserControllerReachExecute(r ApiAdvertiserControllerReachRequest) (*AdvertiserControllerReach201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvertiserControllerReach201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerReach")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/reach-estimate"
@@ -3527,7 +4606,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerReachExecute(r ApiAdvertiserC
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.reachEstimateDto == nil {
-		return nil, reportError("reachEstimateDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("reachEstimateDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -3540,7 +4619,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerReachExecute(r ApiAdvertiserC
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -3549,21 +4628,35 @@ func (a *AdvertiserAPIService) AdvertiserControllerReachExecute(r ApiAdvertiserC
 	}
 	// body params
 	localVarPostBody = r.reachEstimateDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -3571,10 +4664,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerReachExecute(r ApiAdvertiserC
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerRegisterCatalogFeedRequest struct {
@@ -3588,12 +4690,16 @@ func (r ApiAdvertiserControllerRegisterCatalogFeedRequest) RegisterCatalogFeedDt
 	return r
 }
 
-func (r ApiAdvertiserControllerRegisterCatalogFeedRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerRegisterCatalogFeedRequest) Execute() (*AdvCatalogFeed, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerRegisterCatalogFeedExecute(r)
 }
 
 /*
-AdvertiserControllerRegisterCatalogFeed Method for AdvertiserControllerRegisterCatalogFeed
+AdvertiserControllerRegisterCatalogFeed Register a scheduled catalog feed
+
+Registers a hosted JSON or CSV catalog at `feedUrl` (http/https; 400 otherwise) that a background job re-fetches every `intervalMinutes` (minimum 15, default 360) into the catalog. Registering a URL that is already registered updates its interval and reactivates it instead of creating a duplicate.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdvertiserControllerRegisterCatalogFeedRequest
@@ -3606,16 +4712,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerRegisterCatalogFeed(ctx conte
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerRegisterCatalogFeedExecute(r ApiAdvertiserControllerRegisterCatalogFeedRequest) (*http.Response, error) {
+//  @return AdvCatalogFeed
+func (a *AdvertiserAPIService) AdvertiserControllerRegisterCatalogFeedExecute(r ApiAdvertiserControllerRegisterCatalogFeedRequest) (*AdvCatalogFeed, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvCatalogFeed
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerRegisterCatalogFeed")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/catalog-feeds"
@@ -3624,7 +4732,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerRegisterCatalogFeedExecute(r 
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.registerCatalogFeedDto == nil {
-		return nil, reportError("registerCatalogFeedDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("registerCatalogFeedDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -3637,7 +4745,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerRegisterCatalogFeedExecute(r 
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -3646,21 +4754,35 @@ func (a *AdvertiserAPIService) AdvertiserControllerRegisterCatalogFeedExecute(r 
 	}
 	// body params
 	localVarPostBody = r.registerCatalogFeedDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -3668,10 +4790,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerRegisterCatalogFeedExecute(r 
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerRemoveRequest struct {
@@ -3680,12 +4811,16 @@ type ApiAdvertiserControllerRemoveRequest struct {
 	id string
 }
 
-func (r ApiAdvertiserControllerRemoveRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerRemoveRequest) Execute() (*AdvDeleted, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerRemoveExecute(r)
 }
 
 /*
-AdvertiserControllerRemove Method for AdvertiserControllerRemove
+AdvertiserControllerRemove Delete a campaign
+
+Soft-deletes the campaign and republishes the serving index so it stops serving immediately. Historical spend and stats remain available for reporting. Responds 404 when missing and 403 when not owned.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -3700,16 +4835,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerRemove(ctx context.Context, i
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerRemoveExecute(r ApiAdvertiserControllerRemoveRequest) (*http.Response, error) {
+//  @return AdvDeleted
+func (a *AdvertiserAPIService) AdvertiserControllerRemoveExecute(r ApiAdvertiserControllerRemoveRequest) (*AdvDeleted, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvDeleted
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerRemove")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/campaigns/{id}"
@@ -3729,28 +4866,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerRemoveExecute(r ApiAdvertiser
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -3758,10 +4909,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerRemoveExecute(r ApiAdvertiser
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerRemoveAudienceRequest struct {
@@ -3770,12 +4930,16 @@ type ApiAdvertiserControllerRemoveAudienceRequest struct {
 	id string
 }
 
-func (r ApiAdvertiserControllerRemoveAudienceRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerRemoveAudienceRequest) Execute() (*AdvDeleted, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerRemoveAudienceExecute(r)
 }
 
 /*
-AdvertiserControllerRemoveAudience Method for AdvertiserControllerRemoveAudience
+AdvertiserControllerRemoveAudience Delete an audience
+
+Permanently deletes the audience row and its member set, so targeting that references it stops matching. Responds 404/403 when missing or not owned.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -3790,16 +4954,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerRemoveAudience(ctx context.Co
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerRemoveAudienceExecute(r ApiAdvertiserControllerRemoveAudienceRequest) (*http.Response, error) {
+//  @return AdvDeleted
+func (a *AdvertiserAPIService) AdvertiserControllerRemoveAudienceExecute(r ApiAdvertiserControllerRemoveAudienceRequest) (*AdvDeleted, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvDeleted
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerRemoveAudience")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/audiences/{id}"
@@ -3819,28 +4985,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerRemoveAudienceExecute(r ApiAd
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -3848,10 +5028,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerRemoveAudienceExecute(r ApiAd
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerRemoveCatalogFeedRequest struct {
@@ -3860,12 +5049,16 @@ type ApiAdvertiserControllerRemoveCatalogFeedRequest struct {
 	id string
 }
 
-func (r ApiAdvertiserControllerRemoveCatalogFeedRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerRemoveCatalogFeedRequest) Execute() (*AdvDeleted, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerRemoveCatalogFeedExecute(r)
 }
 
 /*
-AdvertiserControllerRemoveCatalogFeed Method for AdvertiserControllerRemoveCatalogFeed
+AdvertiserControllerRemoveCatalogFeed Delete a scheduled catalog feed
+
+Soft-deletes the feed and stops its scheduled syncs; items already imported stay in the catalog. Returns `deleted: false` (not 404) when no owned, live feed matches.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -3880,16 +5073,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerRemoveCatalogFeed(ctx context
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerRemoveCatalogFeedExecute(r ApiAdvertiserControllerRemoveCatalogFeedRequest) (*http.Response, error) {
+//  @return AdvDeleted
+func (a *AdvertiserAPIService) AdvertiserControllerRemoveCatalogFeedExecute(r ApiAdvertiserControllerRemoveCatalogFeedRequest) (*AdvDeleted, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvDeleted
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerRemoveCatalogFeed")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/catalog-feeds/{id}"
@@ -3909,28 +5104,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerRemoveCatalogFeedExecute(r Ap
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -3938,10 +5147,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerRemoveCatalogFeedExecute(r Ap
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerRemoveComponentRequest struct {
@@ -3951,12 +5169,16 @@ type ApiAdvertiserControllerRemoveComponentRequest struct {
 	cid string
 }
 
-func (r ApiAdvertiserControllerRemoveComponentRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerRemoveComponentRequest) Execute() (*AdvDeleted, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerRemoveComponentExecute(r)
 }
 
 /*
-AdvertiserControllerRemoveComponent Method for AdvertiserControllerRemoveComponent
+AdvertiserControllerRemoveComponent Delete a DCO component
+
+Soft-deletes component `cid` and republishes the serving index. Responds 404 when the creative or the component is not owned by the advertiser.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -3973,16 +5195,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerRemoveComponent(ctx context.C
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerRemoveComponentExecute(r ApiAdvertiserControllerRemoveComponentRequest) (*http.Response, error) {
+//  @return AdvDeleted
+func (a *AdvertiserAPIService) AdvertiserControllerRemoveComponentExecute(r ApiAdvertiserControllerRemoveComponentRequest) (*AdvDeleted, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvDeleted
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerRemoveComponent")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/creatives/{id}/components/{cid}"
@@ -4003,28 +5227,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerRemoveComponentExecute(r ApiA
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -4032,10 +5270,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerRemoveComponentExecute(r ApiA
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerRemoveCreativeRequest struct {
@@ -4044,12 +5291,16 @@ type ApiAdvertiserControllerRemoveCreativeRequest struct {
 	id string
 }
 
-func (r ApiAdvertiserControllerRemoveCreativeRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerRemoveCreativeRequest) Execute() (*AdvDeleted, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerRemoveCreativeExecute(r)
 }
 
 /*
-AdvertiserControllerRemoveCreative Method for AdvertiserControllerRemoveCreative
+AdvertiserControllerRemoveCreative Delete a creative
+
+Soft-deletes the creative, removes all its campaign attachments, and republishes the serving index. Responds 404 when not owned.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -4064,16 +5315,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerRemoveCreative(ctx context.Co
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerRemoveCreativeExecute(r ApiAdvertiserControllerRemoveCreativeRequest) (*http.Response, error) {
+//  @return AdvDeleted
+func (a *AdvertiserAPIService) AdvertiserControllerRemoveCreativeExecute(r ApiAdvertiserControllerRemoveCreativeRequest) (*AdvDeleted, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvDeleted
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerRemoveCreative")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/creatives/{id}"
@@ -4093,28 +5346,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerRemoveCreativeExecute(r ApiAd
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -4122,10 +5389,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerRemoveCreativeExecute(r ApiAd
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerRemoveDestinationRequest struct {
@@ -4134,12 +5410,16 @@ type ApiAdvertiserControllerRemoveDestinationRequest struct {
 	did string
 }
 
-func (r ApiAdvertiserControllerRemoveDestinationRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerRemoveDestinationRequest) Execute() (*AdvDeleted, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerRemoveDestinationExecute(r)
 }
 
 /*
-AdvertiserControllerRemoveDestination Method for AdvertiserControllerRemoveDestination
+AdvertiserControllerRemoveDestination Delete a sync destination
+
+Deletes the destination; members already pushed to the external system are not removed there. 404/403 when missing or not owned.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param did
@@ -4154,16 +5434,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerRemoveDestination(ctx context
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerRemoveDestinationExecute(r ApiAdvertiserControllerRemoveDestinationRequest) (*http.Response, error) {
+//  @return AdvDeleted
+func (a *AdvertiserAPIService) AdvertiserControllerRemoveDestinationExecute(r ApiAdvertiserControllerRemoveDestinationRequest) (*AdvDeleted, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvDeleted
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerRemoveDestination")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/destinations/{did}"
@@ -4183,28 +5465,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerRemoveDestinationExecute(r Ap
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -4212,10 +5508,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerRemoveDestinationExecute(r Ap
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerRemoveGroupRequest struct {
@@ -4224,12 +5529,16 @@ type ApiAdvertiserControllerRemoveGroupRequest struct {
 	id string
 }
 
-func (r ApiAdvertiserControllerRemoveGroupRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerRemoveGroupRequest) Execute() (*AdvDeleted, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerRemoveGroupExecute(r)
 }
 
 /*
-AdvertiserControllerRemoveGroup Method for AdvertiserControllerRemoveGroup
+AdvertiserControllerRemoveGroup Delete a campaign group
+
+Soft-deletes the group. Its ad sets are not deleted; they are detached (`group_id` set to null) and keep serving as standalone campaigns. Responds 404 when the group is not owned.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -4244,16 +5553,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerRemoveGroup(ctx context.Conte
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerRemoveGroupExecute(r ApiAdvertiserControllerRemoveGroupRequest) (*http.Response, error) {
+//  @return AdvDeleted
+func (a *AdvertiserAPIService) AdvertiserControllerRemoveGroupExecute(r ApiAdvertiserControllerRemoveGroupRequest) (*AdvDeleted, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvDeleted
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerRemoveGroup")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/campaign-groups/{id}"
@@ -4273,28 +5584,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerRemoveGroupExecute(r ApiAdver
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -4302,10 +5627,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerRemoveGroupExecute(r ApiAdver
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerSetDcoRequest struct {
@@ -4320,12 +5654,16 @@ func (r ApiAdvertiserControllerSetDcoRequest) SetDcoDto(setDcoDto SetDcoDto) Api
 	return r
 }
 
-func (r ApiAdvertiserControllerSetDcoRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerSetDcoRequest) Execute() (*AdvertiserControllerSetDco200Response, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerSetDcoExecute(r)
 }
 
 /*
-AdvertiserControllerSetDco Method for AdvertiserControllerSetDco
+AdvertiserControllerSetDco Set DCO and product-ad flags on a creative
+
+Sets `isDco` (default true) and `dcoContext` (global, geo, device or audience; default global; 400 otherwise), and optionally `productAd` and `defaultProductId` for dynamic product ads. When DCO is on, the engine fills the creative per render from the component pools. 404 when the creative is not owned or has no campaign.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -4340,16 +5678,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerSetDco(ctx context.Context, i
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerSetDcoExecute(r ApiAdvertiserControllerSetDcoRequest) (*http.Response, error) {
+//  @return AdvertiserControllerSetDco200Response
+func (a *AdvertiserAPIService) AdvertiserControllerSetDcoExecute(r ApiAdvertiserControllerSetDcoRequest) (*AdvertiserControllerSetDco200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPatch
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvertiserControllerSetDco200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerSetDco")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/creatives/{id}/dco"
@@ -4359,7 +5699,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerSetDcoExecute(r ApiAdvertiser
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.setDcoDto == nil {
-		return nil, reportError("setDcoDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("setDcoDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -4372,7 +5712,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerSetDcoExecute(r ApiAdvertiser
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -4381,21 +5721,35 @@ func (a *AdvertiserAPIService) AdvertiserControllerSetDcoExecute(r ApiAdvertiser
 	}
 	// body params
 	localVarPostBody = r.setDcoDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -4403,10 +5757,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerSetDcoExecute(r ApiAdvertiser
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerStatusRequest struct {
@@ -4415,12 +5778,16 @@ type ApiAdvertiserControllerStatusRequest struct {
 	id string
 }
 
-func (r ApiAdvertiserControllerStatusRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerStatusRequest) Execute() (*AdvStatusResult, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerStatusExecute(r)
 }
 
 /*
-AdvertiserControllerStatus Method for AdvertiserControllerStatus
+AdvertiserControllerStatus Activate or pause a campaign
+
+Sets the campaign status from the body field `status` (`active` or `paused`) and republishes the serving index. Returns the status that was written. 404/403 as for GET campaign.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -4435,16 +5802,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerStatus(ctx context.Context, i
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerStatusExecute(r ApiAdvertiserControllerStatusRequest) (*http.Response, error) {
+//  @return AdvStatusResult
+func (a *AdvertiserAPIService) AdvertiserControllerStatusExecute(r ApiAdvertiserControllerStatusRequest) (*AdvStatusResult, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvStatusResult
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerStatus")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/campaigns/{id}/status"
@@ -4464,28 +5833,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerStatusExecute(r ApiAdvertiser
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -4493,10 +5876,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerStatusExecute(r ApiAdvertiser
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerSubmitRequest struct {
@@ -4505,12 +5897,16 @@ type ApiAdvertiserControllerSubmitRequest struct {
 	id string
 }
 
-func (r ApiAdvertiserControllerSubmitRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerSubmitRequest) Execute() (*AdvStatusResult, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerSubmitExecute(r)
 }
 
 /*
-AdvertiserControllerSubmit Method for AdvertiserControllerSubmit
+AdvertiserControllerSubmit Submit a campaign for moderation review
+
+Moves a `draft` campaign to `pending_review` and enqueues it in the moderation queue. A campaign that is not in draft keeps its status, but the response still reports `pending_review`. 404/403 as for GET campaign.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -4525,16 +5921,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerSubmit(ctx context.Context, i
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerSubmitExecute(r ApiAdvertiserControllerSubmitRequest) (*http.Response, error) {
+//  @return AdvStatusResult
+func (a *AdvertiserAPIService) AdvertiserControllerSubmitExecute(r ApiAdvertiserControllerSubmitRequest) (*AdvStatusResult, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvStatusResult
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerSubmit")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/campaigns/{id}/submit"
@@ -4554,28 +5952,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerSubmitExecute(r ApiAdvertiser
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -4583,10 +5995,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerSubmitExecute(r ApiAdvertiser
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerSubmitPromoteRequest struct {
@@ -4595,12 +6016,16 @@ type ApiAdvertiserControllerSubmitPromoteRequest struct {
 	id string
 }
 
-func (r ApiAdvertiserControllerSubmitPromoteRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerSubmitPromoteRequest) Execute() (*AdvStatusResult, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerSubmitPromoteExecute(r)
 }
 
 /*
-AdvertiserControllerSubmitPromote Method for AdvertiserControllerSubmitPromote
+AdvertiserControllerSubmitPromote Submit a promote campaign for review
+
+Moves a draft promote campaign to `pending_review` and enqueues it for moderation; a non-draft keeps its status. Responds 404 when missing and 403 when not owned.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -4615,16 +6040,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerSubmitPromote(ctx context.Con
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerSubmitPromoteExecute(r ApiAdvertiserControllerSubmitPromoteRequest) (*http.Response, error) {
+//  @return AdvStatusResult
+func (a *AdvertiserAPIService) AdvertiserControllerSubmitPromoteExecute(r ApiAdvertiserControllerSubmitPromoteRequest) (*AdvStatusResult, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvStatusResult
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerSubmitPromote")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/promote-campaigns/{id}/submit"
@@ -4644,28 +6071,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerSubmitPromoteExecute(r ApiAdv
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -4673,10 +6114,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerSubmitPromoteExecute(r ApiAdv
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerSyncDestinationRequest struct {
@@ -4685,12 +6135,16 @@ type ApiAdvertiserControllerSyncDestinationRequest struct {
 	did string
 }
 
-func (r ApiAdvertiserControllerSyncDestinationRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerSyncDestinationRequest) Execute() (*AdvertiserControllerSyncDestination201Response, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerSyncDestinationExecute(r)
 }
 
 /*
-AdvertiserControllerSyncDestination Method for AdvertiserControllerSyncDestination
+AdvertiserControllerSyncDestination Sync a destination now
+
+Pushes the audience's current members (up to 500,000, excluding opt-outs) to the destination immediately and records the outcome on the destination. Returns the sync status and member count. 404/403 when the destination is missing or not owned.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param did
@@ -4705,16 +6159,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerSyncDestination(ctx context.C
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerSyncDestinationExecute(r ApiAdvertiserControllerSyncDestinationRequest) (*http.Response, error) {
+//  @return AdvertiserControllerSyncDestination201Response
+func (a *AdvertiserAPIService) AdvertiserControllerSyncDestinationExecute(r ApiAdvertiserControllerSyncDestinationRequest) (*AdvertiserControllerSyncDestination201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvertiserControllerSyncDestination201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerSyncDestination")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/destinations/{did}/sync"
@@ -4734,28 +6190,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerSyncDestinationExecute(r ApiA
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -4763,10 +6233,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerSyncDestinationExecute(r ApiA
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerTranscodeCreativeRequest struct {
@@ -4775,12 +6254,16 @@ type ApiAdvertiserControllerTranscodeCreativeRequest struct {
 	id string
 }
 
-func (r ApiAdvertiserControllerTranscodeCreativeRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerTranscodeCreativeRequest) Execute() (*AdvertiserControllerTranscodeCreative201Response, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerTranscodeCreativeExecute(r)
 }
 
 /*
-AdvertiserControllerTranscodeCreative Method for AdvertiserControllerTranscodeCreative
+AdvertiserControllerTranscodeCreative Queue HLS transcoding for a video creative
+
+Starts (or restarts) transcoding the creative's video to HLS so SSAI can splice its segments. The job runs in the background and errors are not reported; the response only confirms it was queued. Responds 404 when the creative is not owned.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -4795,16 +6278,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerTranscodeCreative(ctx context
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerTranscodeCreativeExecute(r ApiAdvertiserControllerTranscodeCreativeRequest) (*http.Response, error) {
+//  @return AdvertiserControllerTranscodeCreative201Response
+func (a *AdvertiserAPIService) AdvertiserControllerTranscodeCreativeExecute(r ApiAdvertiserControllerTranscodeCreativeRequest) (*AdvertiserControllerTranscodeCreative201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvertiserControllerTranscodeCreative201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerTranscodeCreative")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/creatives/{id}/transcode"
@@ -4824,28 +6309,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerTranscodeCreativeExecute(r Ap
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -4853,10 +6352,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerTranscodeCreativeExecute(r Ap
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerUpdateRequest struct {
@@ -4871,12 +6379,16 @@ func (r ApiAdvertiserControllerUpdateRequest) UpdateCampaignDto(updateCampaignDt
 	return r
 }
 
-func (r ApiAdvertiserControllerUpdateRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerUpdateRequest) Execute() (*AdvCampaignDetail, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerUpdateExecute(r)
 }
 
 /*
-AdvertiserControllerUpdate Method for AdvertiserControllerUpdate
+AdvertiserControllerUpdate Update a campaign
+
+Patches the campaign. Updatable: name, bidAmount, budgets, pacing, startAt/endAt, SKAdNetwork ids, houseAd, priorityTier, deliveryGoal/goalType, bidModifiers, portfolioFreqCap, sequenceGroup/sequenceOrder, suppressAfterConversion, holdoutPct (clamped 0-1), bidStrategy/targetCpa/targetRoas and utm (null resets to defaults). Passing `targeting` replaces the whole targeting row (omitted targeting fields are cleared). Format, pricing model and currency cannot change. Republishes the serving index and returns the same shape as GET; 404/403 as for GET.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -4891,16 +6403,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpdate(ctx context.Context, i
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerUpdateExecute(r ApiAdvertiserControllerUpdateRequest) (*http.Response, error) {
+//  @return AdvCampaignDetail
+func (a *AdvertiserAPIService) AdvertiserControllerUpdateExecute(r ApiAdvertiserControllerUpdateRequest) (*AdvCampaignDetail, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPatch
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvCampaignDetail
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerUpdate")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/campaigns/{id}"
@@ -4910,7 +6424,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpdateExecute(r ApiAdvertiser
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.updateCampaignDto == nil {
-		return nil, reportError("updateCampaignDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("updateCampaignDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -4923,7 +6437,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpdateExecute(r ApiAdvertiser
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -4932,21 +6446,35 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpdateExecute(r ApiAdvertiser
 	}
 	// body params
 	localVarPostBody = r.updateCampaignDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -4954,10 +6482,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpdateExecute(r ApiAdvertiser
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerUpdateAudienceRequest struct {
@@ -4972,12 +6509,16 @@ func (r ApiAdvertiserControllerUpdateAudienceRequest) CreateAudienceDto(createAu
 	return r
 }
 
-func (r ApiAdvertiserControllerUpdateAudienceRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerUpdateAudienceRequest) Execute() (*AdvertiserControllerCreateAudience201Response, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerUpdateAudienceExecute(r)
 }
 
 /*
-AdvertiserControllerUpdateAudience Method for AdvertiserControllerUpdateAudience
+AdvertiserControllerUpdateAudience Update an audience
+
+Updates `name` and/or `rule`. Setting a rule converts the audience to type `rule` and re-resolves its membership in the background. Responds 404 when the audience does not exist and 403 when it belongs to another account.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -4992,16 +6533,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpdateAudience(ctx context.Co
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerUpdateAudienceExecute(r ApiAdvertiserControllerUpdateAudienceRequest) (*http.Response, error) {
+//  @return AdvertiserControllerCreateAudience201Response
+func (a *AdvertiserAPIService) AdvertiserControllerUpdateAudienceExecute(r ApiAdvertiserControllerUpdateAudienceRequest) (*AdvertiserControllerCreateAudience201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPatch
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvertiserControllerCreateAudience201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerUpdateAudience")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/audiences/{id}"
@@ -5011,7 +6554,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpdateAudienceExecute(r ApiAd
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.createAudienceDto == nil {
-		return nil, reportError("createAudienceDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("createAudienceDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -5024,7 +6567,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpdateAudienceExecute(r ApiAd
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -5033,21 +6576,35 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpdateAudienceExecute(r ApiAd
 	}
 	// body params
 	localVarPostBody = r.createAudienceDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -5055,10 +6612,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpdateAudienceExecute(r ApiAd
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerUpdateCreativeRequest struct {
@@ -5073,12 +6639,16 @@ func (r ApiAdvertiserControllerUpdateCreativeRequest) UpdateCreativeDto(updateCr
 	return r
 }
 
-func (r ApiAdvertiserControllerUpdateCreativeRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerUpdateCreativeRequest) Execute() (*AdvCreative, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerUpdateCreativeExecute(r)
 }
 
 /*
-AdvertiserControllerUpdateCreative Method for AdvertiserControllerUpdateCreative
+AdvertiserControllerUpdateCreative Update a creative
+
+Patches the creative's editable fields (asset/landing/icon/main-image URLs, copy, dimensions, weight, carousel items, video and VAST fields). URLs are SSRF-checked and the merged video fields re-validated (400). Any content change (asset, landing, copy, images, VAST tag, VPAID, companions) resets moderation to `pending` and re-runs the malware scan. Republishes the serving index; an empty patch returns the current row. 404 when not owned.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -5093,16 +6663,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpdateCreative(ctx context.Co
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerUpdateCreativeExecute(r ApiAdvertiserControllerUpdateCreativeRequest) (*http.Response, error) {
+//  @return AdvCreative
+func (a *AdvertiserAPIService) AdvertiserControllerUpdateCreativeExecute(r ApiAdvertiserControllerUpdateCreativeRequest) (*AdvCreative, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPatch
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvCreative
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerUpdateCreative")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/creatives/{id}"
@@ -5112,7 +6684,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpdateCreativeExecute(r ApiAd
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.updateCreativeDto == nil {
-		return nil, reportError("updateCreativeDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("updateCreativeDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -5125,7 +6697,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpdateCreativeExecute(r ApiAd
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -5134,21 +6706,35 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpdateCreativeExecute(r ApiAd
 	}
 	// body params
 	localVarPostBody = r.updateCreativeDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -5156,10 +6742,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpdateCreativeExecute(r ApiAd
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerUpdateDestinationRequest struct {
@@ -5174,12 +6769,16 @@ func (r ApiAdvertiserControllerUpdateDestinationRequest) UpdateDestinationDto(up
 	return r
 }
 
-func (r ApiAdvertiserControllerUpdateDestinationRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerUpdateDestinationRequest) Execute() (*AdvertiserControllerCreateAudience201Response, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerUpdateDestinationExecute(r)
 }
 
 /*
-AdvertiserControllerUpdateDestination Method for AdvertiserControllerUpdateDestination
+AdvertiserControllerUpdateDestination Update a sync destination
+
+Updates the destination's `config` and/or `active` flag. Responds 404 when it does not exist and 403 when it belongs to another account.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param did
@@ -5194,16 +6793,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpdateDestination(ctx context
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerUpdateDestinationExecute(r ApiAdvertiserControllerUpdateDestinationRequest) (*http.Response, error) {
+//  @return AdvertiserControllerCreateAudience201Response
+func (a *AdvertiserAPIService) AdvertiserControllerUpdateDestinationExecute(r ApiAdvertiserControllerUpdateDestinationRequest) (*AdvertiserControllerCreateAudience201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPatch
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvertiserControllerCreateAudience201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerUpdateDestination")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/destinations/{did}"
@@ -5213,7 +6814,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpdateDestinationExecute(r Ap
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.updateDestinationDto == nil {
-		return nil, reportError("updateDestinationDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("updateDestinationDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -5226,7 +6827,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpdateDestinationExecute(r Ap
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -5235,21 +6836,35 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpdateDestinationExecute(r Ap
 	}
 	// body params
 	localVarPostBody = r.updateDestinationDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -5257,10 +6872,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpdateDestinationExecute(r Ap
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerUpdateGroupRequest struct {
@@ -5275,12 +6899,16 @@ func (r ApiAdvertiserControllerUpdateGroupRequest) UpdateCampaignGroupDto(update
 	return r
 }
 
-func (r ApiAdvertiserControllerUpdateGroupRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerUpdateGroupRequest) Execute() (*AdvCampaignGroup, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerUpdateGroupExecute(r)
 }
 
 /*
-AdvertiserControllerUpdateGroup Method for AdvertiserControllerUpdateGroup
+AdvertiserControllerUpdateGroup Update a campaign group
+
+Patches `name`, `status` (active | paused | draft) and/or `objective`. Status cascades to the group's ad sets: `paused` pauses every active ad set, `active` re-activates paused ones (drafts stay draft), and the serving index is republished. Responds 404 when the group is not owned.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -5295,16 +6923,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpdateGroup(ctx context.Conte
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerUpdateGroupExecute(r ApiAdvertiserControllerUpdateGroupRequest) (*http.Response, error) {
+//  @return AdvCampaignGroup
+func (a *AdvertiserAPIService) AdvertiserControllerUpdateGroupExecute(r ApiAdvertiserControllerUpdateGroupRequest) (*AdvCampaignGroup, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPatch
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvCampaignGroup
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerUpdateGroup")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/campaign-groups/{id}"
@@ -5314,7 +6944,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpdateGroupExecute(r ApiAdver
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.updateCampaignGroupDto == nil {
-		return nil, reportError("updateCampaignGroupDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("updateCampaignGroupDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -5327,7 +6957,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpdateGroupExecute(r ApiAdver
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -5336,21 +6966,35 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpdateGroupExecute(r ApiAdver
 	}
 	// body params
 	localVarPostBody = r.updateCampaignGroupDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -5358,10 +7002,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpdateGroupExecute(r ApiAdver
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerUploadCreativeRequest struct {
@@ -5369,12 +7022,16 @@ type ApiAdvertiserControllerUploadCreativeRequest struct {
 	ApiService *AdvertiserAPIService
 }
 
-func (r ApiAdvertiserControllerUploadCreativeRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerUploadCreativeRequest) Execute() (*AdvertiserControllerUploadCreative201Response, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerUploadCreativeExecute(r)
 }
 
 /*
-AdvertiserControllerUploadCreative Method for AdvertiserControllerUploadCreative
+AdvertiserControllerUploadCreative Upload a creative asset file
+
+Multipart upload with the file in field `file` (400 if missing). The file is ClamAV-scanned (fail-open: `skipped` when the scanner is unavailable), stored on object storage, and PNG/GIF/JPEG dimensions are detected. Pass the returned `assetUrl` to POST /v1/advertiser/creatives; this call does not create a creative.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdvertiserControllerUploadCreativeRequest
@@ -5387,16 +7044,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerUploadCreative(ctx context.Co
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerUploadCreativeExecute(r ApiAdvertiserControllerUploadCreativeRequest) (*http.Response, error) {
+//  @return AdvertiserControllerUploadCreative201Response
+func (a *AdvertiserAPIService) AdvertiserControllerUploadCreativeExecute(r ApiAdvertiserControllerUploadCreativeRequest) (*AdvertiserControllerUploadCreative201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvertiserControllerUploadCreative201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerUploadCreative")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/creatives/upload"
@@ -5415,28 +7074,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerUploadCreativeExecute(r ApiAd
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -5444,10 +7117,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerUploadCreativeExecute(r ApiAd
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerUploadPlayableRequest struct {
@@ -5455,12 +7137,16 @@ type ApiAdvertiserControllerUploadPlayableRequest struct {
 	ApiService *AdvertiserAPIService
 }
 
-func (r ApiAdvertiserControllerUploadPlayableRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerUploadPlayableRequest) Execute() (*AdvertiserControllerUploadPlayable201Response, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerUploadPlayableExecute(r)
 }
 
 /*
-AdvertiserControllerUploadPlayable Method for AdvertiserControllerUploadPlayable
+AdvertiserControllerUploadPlayable Upload a playable (HTML5) ZIP bundle
+
+Multipart upload of a ZIP in field `file`. The bundle is malware-scanned and validated: it must have an `index.html` at its root, only allowed file types, no unsafe paths, and stay within file-count and size limits (400 otherwise, including zip-bomb expansion). The sandbox/MRAID runtime is injected into the entry document and the files are hosted on the CDN. Pass the returned `assetUrl` with `type: html5` to POST creatives.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdvertiserControllerUploadPlayableRequest
@@ -5473,16 +7159,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerUploadPlayable(ctx context.Co
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerUploadPlayableExecute(r ApiAdvertiserControllerUploadPlayableRequest) (*http.Response, error) {
+//  @return AdvertiserControllerUploadPlayable201Response
+func (a *AdvertiserAPIService) AdvertiserControllerUploadPlayableExecute(r ApiAdvertiserControllerUploadPlayableRequest) (*AdvertiserControllerUploadPlayable201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvertiserControllerUploadPlayable201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerUploadPlayable")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/creatives/playable"
@@ -5501,28 +7189,42 @@ func (a *AdvertiserAPIService) AdvertiserControllerUploadPlayableExecute(r ApiAd
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -5530,10 +7232,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerUploadPlayableExecute(r ApiAd
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerUpsertCatalogRequest struct {
@@ -5547,12 +7258,16 @@ func (r ApiAdvertiserControllerUpsertCatalogRequest) BulkUpsertCatalogDto(bulkUp
 	return r
 }
 
-func (r ApiAdvertiserControllerUpsertCatalogRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerUpsertCatalogRequest) Execute() (*AdvertiserControllerUpsertCatalog201Response, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerUpsertCatalogExecute(r)
 }
 
 /*
-AdvertiserControllerUpsertCatalog Method for AdvertiserControllerUpsertCatalog
+AdvertiserControllerUpsertCatalog Bulk upsert marketplace catalog items
+
+Upserts `items` into the marketplace catalog keyed by `externalId` (items without one are dropped) and mirrors each to Redis for serve-time rendering and keyword matching of sponsored products. Responds 400 when `items` is empty, no item has an externalId, or more than 50,000 items are sent.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiAdvertiserControllerUpsertCatalogRequest
@@ -5565,16 +7280,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpsertCatalog(ctx context.Con
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerUpsertCatalogExecute(r ApiAdvertiserControllerUpsertCatalogRequest) (*http.Response, error) {
+//  @return AdvertiserControllerUpsertCatalog201Response
+func (a *AdvertiserAPIService) AdvertiserControllerUpsertCatalogExecute(r ApiAdvertiserControllerUpsertCatalogRequest) (*AdvertiserControllerUpsertCatalog201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvertiserControllerUpsertCatalog201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerUpsertCatalog")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/marketplace-catalog"
@@ -5583,7 +7300,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpsertCatalogExecute(r ApiAdv
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.bulkUpsertCatalogDto == nil {
-		return nil, reportError("bulkUpsertCatalogDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("bulkUpsertCatalogDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -5596,7 +7313,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpsertCatalogExecute(r ApiAdv
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -5605,21 +7322,35 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpsertCatalogExecute(r ApiAdv
 	}
 	// body params
 	localVarPostBody = r.bulkUpsertCatalogDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -5627,10 +7358,19 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpsertCatalogExecute(r ApiAdv
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiAdvertiserControllerUpsertConversionConfigRequest struct {
@@ -5645,12 +7385,16 @@ func (r ApiAdvertiserControllerUpsertConversionConfigRequest) Body(body map[stri
 	return r
 }
 
-func (r ApiAdvertiserControllerUpsertConversionConfigRequest) Execute() (*http.Response, error) {
+func (r ApiAdvertiserControllerUpsertConversionConfigRequest) Execute() (*AdvConversionConfig, *http.Response, error) {
 	return r.ApiService.AdvertiserControllerUpsertConversionConfigExecute(r)
 }
 
 /*
-AdvertiserControllerUpsertConversionConfig Method for AdvertiserControllerUpsertConversionConfig
+AdvertiserControllerUpsertConversionConfig Create or replace a campaign's conversion config
+
+Upserts the conversion config. Body fields: `eventType` (default purchase), `payoutValue` (also stored as conversion_value), `postbackUrl`, `dedupeWindowSec` (default 0), `attributionWindowDays` (default 30), `cpaMode` flat|percent, `cpaPercent`, `minOrderValue` (fraud floor) and `viewThroughHours`. Omitted fields are reset to their defaults rather than kept. Returns the stored config; 404/403 as for GET.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -5665,16 +7409,18 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpsertConversionConfig(ctx co
 }
 
 // Execute executes the request
-func (a *AdvertiserAPIService) AdvertiserControllerUpsertConversionConfigExecute(r ApiAdvertiserControllerUpsertConversionConfigRequest) (*http.Response, error) {
+//  @return AdvConversionConfig
+func (a *AdvertiserAPIService) AdvertiserControllerUpsertConversionConfigExecute(r ApiAdvertiserControllerUpsertConversionConfigRequest) (*AdvConversionConfig, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdvConversionConfig
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdvertiserAPIService.AdvertiserControllerUpsertConversionConfig")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/campaigns/{id}/conversion-config"
@@ -5684,7 +7430,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpsertConversionConfigExecute
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.body == nil {
-		return nil, reportError("body is required and must be specified")
+		return localVarReturnValue, nil, reportError("body is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -5697,7 +7443,7 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpsertConversionConfigExecute
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -5706,21 +7452,35 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpsertConversionConfigExecute
 	}
 	// body params
 	localVarPostBody = r.body
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -5728,8 +7488,17 @@ func (a *AdvertiserAPIService) AdvertiserControllerUpsertConversionConfigExecute
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

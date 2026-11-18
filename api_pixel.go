@@ -40,12 +40,16 @@ func (r ApiPixelControllerAttributionRequest) PixelId(pixelId string) ApiPixelCo
 	return r
 }
 
-func (r ApiPixelControllerAttributionRequest) Execute() (*http.Response, error) {
+func (r ApiPixelControllerAttributionRequest) Execute() (*PixelControllerAttribution200Response, *http.Response, error) {
 	return r.ApiService.PixelControllerAttributionExecute(r)
 }
 
 /*
-PixelControllerAttribution Method for PixelControllerAttribution
+PixelControllerAttribution Closed-loop attribution by traffic source
+
+Breaks the funnel down by last-touch source (UTM source, else the referring host, else "direct"), medium and campaign over the last `days` (default 30, max 180): visitors, checkouts, purchases, abandoned checkouts, lost deals, revenue and lost value. Also returns account totals, lost-deal reasons and a first-touch source breakdown. Self-referrals are folded into "direct".
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPixelControllerAttributionRequest
@@ -58,16 +62,18 @@ func (a *PixelAPIService) PixelControllerAttribution(ctx context.Context) ApiPix
 }
 
 // Execute executes the request
-func (a *PixelAPIService) PixelControllerAttributionExecute(r ApiPixelControllerAttributionRequest) (*http.Response, error) {
+//  @return PixelControllerAttribution200Response
+func (a *PixelAPIService) PixelControllerAttributionExecute(r ApiPixelControllerAttributionRequest) (*PixelControllerAttribution200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PixelControllerAttribution200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PixelAPIService.PixelControllerAttribution")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/pixel/attribution"
@@ -76,10 +82,10 @@ func (a *PixelAPIService) PixelControllerAttributionExecute(r ApiPixelController
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.days == nil {
-		return nil, reportError("days is required and must be specified")
+		return localVarReturnValue, nil, reportError("days is required and must be specified")
 	}
 	if r.pixelId == nil {
-		return nil, reportError("pixelId is required and must be specified")
+		return localVarReturnValue, nil, reportError("pixelId is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "days", r.days, "form", "")
@@ -94,28 +100,42 @@ func (a *PixelAPIService) PixelControllerAttributionExecute(r ApiPixelController
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -123,10 +143,19 @@ func (a *PixelAPIService) PixelControllerAttributionExecute(r ApiPixelController
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPixelControllerCliLinkCodeRequest struct {
@@ -134,12 +163,16 @@ type ApiPixelControllerCliLinkCodeRequest struct {
 	ApiService *PixelAPIService
 }
 
-func (r ApiPixelControllerCliLinkCodeRequest) Execute() (*http.Response, error) {
+func (r ApiPixelControllerCliLinkCodeRequest) Execute() (*PixelControllerCliLinkCode201Response, *http.Response, error) {
 	return r.ApiService.PixelControllerCliLinkCodeExecute(r)
 }
 
 /*
-PixelControllerCliLinkCode Method for PixelControllerCliLinkCode
+PixelControllerCliLinkCode Generate a one-time CLI link code
+
+Creates a single-use code, valid for 10 minutes, that a terminal client exchanges at /v1/track/link for the SHA-256 hash of the account email. This links CLI ad requests to the account identity without the raw email ever leaving the server. Returns 404 if the account has no email.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPixelControllerCliLinkCodeRequest
@@ -152,16 +185,18 @@ func (a *PixelAPIService) PixelControllerCliLinkCode(ctx context.Context) ApiPix
 }
 
 // Execute executes the request
-func (a *PixelAPIService) PixelControllerCliLinkCodeExecute(r ApiPixelControllerCliLinkCodeRequest) (*http.Response, error) {
+//  @return PixelControllerCliLinkCode201Response
+func (a *PixelAPIService) PixelControllerCliLinkCodeExecute(r ApiPixelControllerCliLinkCodeRequest) (*PixelControllerCliLinkCode201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PixelControllerCliLinkCode201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PixelAPIService.PixelControllerCliLinkCode")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/cli-link-code"
@@ -180,28 +215,42 @@ func (a *PixelAPIService) PixelControllerCliLinkCodeExecute(r ApiPixelController
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -209,10 +258,19 @@ func (a *PixelAPIService) PixelControllerCliLinkCodeExecute(r ApiPixelController
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPixelControllerCliLinkExchangeRequest struct {
@@ -220,12 +278,16 @@ type ApiPixelControllerCliLinkExchangeRequest struct {
 	ApiService *PixelAPIService
 }
 
-func (r ApiPixelControllerCliLinkExchangeRequest) Execute() (*http.Response, error) {
+func (r ApiPixelControllerCliLinkExchangeRequest) Execute() (*PixelControllerCliLinkExchange201Response, *http.Response, error) {
 	return r.ApiService.PixelControllerCliLinkExchangeExecute(r)
 }
 
 /*
-PixelControllerCliLinkExchange Method for PixelControllerCliLinkExchange
+PixelControllerCliLinkExchange Exchange a CLI link code for an email hash
+
+Public. Trades the `code` issued by /v1/advertiser/cli-link-code for the account's email hash (`em`), which the CLI then sends on ad requests. Codes are single-use and deleted on exchange; unknown or expired codes return `{ok:false}`.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPixelControllerCliLinkExchangeRequest
@@ -238,16 +300,18 @@ func (a *PixelAPIService) PixelControllerCliLinkExchange(ctx context.Context) Ap
 }
 
 // Execute executes the request
-func (a *PixelAPIService) PixelControllerCliLinkExchangeExecute(r ApiPixelControllerCliLinkExchangeRequest) (*http.Response, error) {
+//  @return PixelControllerCliLinkExchange201Response
+func (a *PixelAPIService) PixelControllerCliLinkExchangeExecute(r ApiPixelControllerCliLinkExchangeRequest) (*PixelControllerCliLinkExchange201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PixelControllerCliLinkExchange201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PixelAPIService.PixelControllerCliLinkExchange")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/track/link"
@@ -266,7 +330,7 @@ func (a *PixelAPIService) PixelControllerCliLinkExchangeExecute(r ApiPixelContro
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -275,19 +339,19 @@ func (a *PixelAPIService) PixelControllerCliLinkExchangeExecute(r ApiPixelContro
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -295,10 +359,19 @@ func (a *PixelAPIService) PixelControllerCliLinkExchangeExecute(r ApiPixelContro
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPixelControllerCreatePixelRequest struct {
@@ -306,12 +379,16 @@ type ApiPixelControllerCreatePixelRequest struct {
 	ApiService *PixelAPIService
 }
 
-func (r ApiPixelControllerCreatePixelRequest) Execute() (*http.Response, error) {
+func (r ApiPixelControllerCreatePixelRequest) Execute() (*AudiencePixel, *http.Response, error) {
 	return r.ApiService.PixelControllerCreatePixelExecute(r)
 }
 
 /*
-PixelControllerCreatePixel Method for PixelControllerCreatePixel
+PixelControllerCreatePixel Create a pixel
+
+Creates an additional pixel under the account (agencies typically run one per client). Optional body field `name` (trimmed, max 80 chars, defaults to "Default pixel"). Returns the new pixel with its install snippet.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPixelControllerCreatePixelRequest
@@ -324,16 +401,18 @@ func (a *PixelAPIService) PixelControllerCreatePixel(ctx context.Context) ApiPix
 }
 
 // Execute executes the request
-func (a *PixelAPIService) PixelControllerCreatePixelExecute(r ApiPixelControllerCreatePixelRequest) (*http.Response, error) {
+//  @return AudiencePixel
+func (a *PixelAPIService) PixelControllerCreatePixelExecute(r ApiPixelControllerCreatePixelRequest) (*AudiencePixel, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AudiencePixel
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PixelAPIService.PixelControllerCreatePixel")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/pixels"
@@ -352,28 +431,42 @@ func (a *PixelAPIService) PixelControllerCreatePixelExecute(r ApiPixelController
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -381,10 +474,19 @@ func (a *PixelAPIService) PixelControllerCreatePixelExecute(r ApiPixelController
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPixelControllerDeletePixelRequest struct {
@@ -393,12 +495,16 @@ type ApiPixelControllerDeletePixelRequest struct {
 	id string
 }
 
-func (r ApiPixelControllerDeletePixelRequest) Execute() (*http.Response, error) {
+func (r ApiPixelControllerDeletePixelRequest) Execute() (*PixelControllerDeletePixel200Response, *http.Response, error) {
 	return r.ApiService.PixelControllerDeletePixelExecute(r)
 }
 
 /*
-PixelControllerDeletePixel Method for PixelControllerDeletePixel
+PixelControllerDeletePixel Delete a pixel
+
+Deletes the pixel `id` if it belongs to the account. An account always keeps at least one pixel, so deleting the last one fails with 400. Deleting an id the account does not own is a silent no-op.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -413,16 +519,18 @@ func (a *PixelAPIService) PixelControllerDeletePixel(ctx context.Context, id str
 }
 
 // Execute executes the request
-func (a *PixelAPIService) PixelControllerDeletePixelExecute(r ApiPixelControllerDeletePixelRequest) (*http.Response, error) {
+//  @return PixelControllerDeletePixel200Response
+func (a *PixelAPIService) PixelControllerDeletePixelExecute(r ApiPixelControllerDeletePixelRequest) (*PixelControllerDeletePixel200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PixelControllerDeletePixel200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PixelAPIService.PixelControllerDeletePixel")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/pixels/{id}"
@@ -442,28 +550,42 @@ func (a *PixelAPIService) PixelControllerDeletePixelExecute(r ApiPixelController
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -471,10 +593,19 @@ func (a *PixelAPIService) PixelControllerDeletePixelExecute(r ApiPixelController
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPixelControllerEventsRequest struct {
@@ -494,12 +625,16 @@ func (r ApiPixelControllerEventsRequest) PixelId(pixelId string) ApiPixelControl
 	return r
 }
 
-func (r ApiPixelControllerEventsRequest) Execute() (*http.Response, error) {
+func (r ApiPixelControllerEventsRequest) Execute() ([]PixelControllerEvents200ResponseInner, *http.Response, error) {
 	return r.ApiService.PixelControllerEventsExecute(r)
 }
 
 /*
-PixelControllerEvents Method for PixelControllerEvents
+PixelControllerEvents Per-event activity totals
+
+Aggregates pixel events from ClickHouse over the last `days` (default 30, clamped to 1-180), optionally filtered to `pixelId`. Returns one row per event name with event count, unique users and summed value, ordered by count.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPixelControllerEventsRequest
@@ -512,16 +647,18 @@ func (a *PixelAPIService) PixelControllerEvents(ctx context.Context) ApiPixelCon
 }
 
 // Execute executes the request
-func (a *PixelAPIService) PixelControllerEventsExecute(r ApiPixelControllerEventsRequest) (*http.Response, error) {
+//  @return []PixelControllerEvents200ResponseInner
+func (a *PixelAPIService) PixelControllerEventsExecute(r ApiPixelControllerEventsRequest) ([]PixelControllerEvents200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []PixelControllerEvents200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PixelAPIService.PixelControllerEvents")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/pixel/events"
@@ -530,10 +667,10 @@ func (a *PixelAPIService) PixelControllerEventsExecute(r ApiPixelControllerEvent
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.days == nil {
-		return nil, reportError("days is required and must be specified")
+		return localVarReturnValue, nil, reportError("days is required and must be specified")
 	}
 	if r.pixelId == nil {
-		return nil, reportError("pixelId is required and must be specified")
+		return localVarReturnValue, nil, reportError("pixelId is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "days", r.days, "form", "")
@@ -548,28 +685,42 @@ func (a *PixelAPIService) PixelControllerEventsExecute(r ApiPixelControllerEvent
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -577,10 +728,19 @@ func (a *PixelAPIService) PixelControllerEventsExecute(r ApiPixelControllerEvent
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPixelControllerGetPixelRequest struct {
@@ -594,12 +754,16 @@ func (r ApiPixelControllerGetPixelRequest) PixelId(pixelId string) ApiPixelContr
 	return r
 }
 
-func (r ApiPixelControllerGetPixelRequest) Execute() (*http.Response, error) {
+func (r ApiPixelControllerGetPixelRequest) Execute() (*AudiencePixel, *http.Response, error) {
 	return r.ApiService.PixelControllerGetPixelExecute(r)
 }
 
 /*
-PixelControllerGetPixel Method for PixelControllerGetPixel
+PixelControllerGetPixel Get one pixel and its install snippet
+
+Returns the pixel named by the `pixelId` query param, or the account's primary pixel when omitted (created if the account has none). The response includes the pixel.js library URL, the base snippet to paste sitewide and the list of standard event names. Returns 404 when `pixelId` is not owned by the account.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPixelControllerGetPixelRequest
@@ -612,16 +776,18 @@ func (a *PixelAPIService) PixelControllerGetPixel(ctx context.Context) ApiPixelC
 }
 
 // Execute executes the request
-func (a *PixelAPIService) PixelControllerGetPixelExecute(r ApiPixelControllerGetPixelRequest) (*http.Response, error) {
+//  @return AudiencePixel
+func (a *PixelAPIService) PixelControllerGetPixelExecute(r ApiPixelControllerGetPixelRequest) (*AudiencePixel, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AudiencePixel
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PixelAPIService.PixelControllerGetPixel")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/pixel"
@@ -630,7 +796,7 @@ func (a *PixelAPIService) PixelControllerGetPixelExecute(r ApiPixelControllerGet
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.pixelId == nil {
-		return nil, reportError("pixelId is required and must be specified")
+		return localVarReturnValue, nil, reportError("pixelId is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "pixelId", r.pixelId, "form", "")
@@ -644,28 +810,42 @@ func (a *PixelAPIService) PixelControllerGetPixelExecute(r ApiPixelControllerGet
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -673,10 +853,19 @@ func (a *PixelAPIService) PixelControllerGetPixelExecute(r ApiPixelControllerGet
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPixelControllerInsightsRequest struct {
@@ -696,12 +885,16 @@ func (r ApiPixelControllerInsightsRequest) PixelId(pixelId string) ApiPixelContr
 	return r
 }
 
-func (r ApiPixelControllerInsightsRequest) Execute() (*http.Response, error) {
+func (r ApiPixelControllerInsightsRequest) Execute() (*PixelControllerInsights200Response, *http.Response, error) {
 	return r.ApiService.PixelControllerInsightsExecute(r)
 }
 
 /*
-PixelControllerInsights Method for PixelControllerInsights
+PixelControllerInsights Pixel funnel, ROAS summary and daily trend
+
+Builds the Pixel dashboard view over the last `days` (default 30, max 180), optionally scoped to `pixelId`: unique users per funnel stage, a summary of events, attributed conversions, revenue, ad spend and ROAS, and a daily events/conversions/revenue series. ROAS is 0 when there is no spend.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPixelControllerInsightsRequest
@@ -714,16 +907,18 @@ func (a *PixelAPIService) PixelControllerInsights(ctx context.Context) ApiPixelC
 }
 
 // Execute executes the request
-func (a *PixelAPIService) PixelControllerInsightsExecute(r ApiPixelControllerInsightsRequest) (*http.Response, error) {
+//  @return PixelControllerInsights200Response
+func (a *PixelAPIService) PixelControllerInsightsExecute(r ApiPixelControllerInsightsRequest) (*PixelControllerInsights200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PixelControllerInsights200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PixelAPIService.PixelControllerInsights")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/pixel/insights"
@@ -732,10 +927,10 @@ func (a *PixelAPIService) PixelControllerInsightsExecute(r ApiPixelControllerIns
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.days == nil {
-		return nil, reportError("days is required and must be specified")
+		return localVarReturnValue, nil, reportError("days is required and must be specified")
 	}
 	if r.pixelId == nil {
-		return nil, reportError("pixelId is required and must be specified")
+		return localVarReturnValue, nil, reportError("pixelId is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "days", r.days, "form", "")
@@ -750,28 +945,42 @@ func (a *PixelAPIService) PixelControllerInsightsExecute(r ApiPixelControllerIns
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -779,10 +988,19 @@ func (a *PixelAPIService) PixelControllerInsightsExecute(r ApiPixelControllerIns
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPixelControllerLibraryRequest struct {
@@ -795,7 +1013,11 @@ func (r ApiPixelControllerLibraryRequest) Execute() (*http.Response, error) {
 }
 
 /*
-PixelControllerLibrary Method for PixelControllerLibrary
+PixelControllerLibrary Serve the pixel JavaScript library
+
+Returns the pixel.js library that the base snippet loads asynchronously; it drains the `adq(...)` command queue and posts events to /v1/track/event. Served as JavaScript with a one-hour public cache.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPixelControllerLibraryRequest
@@ -876,12 +1098,16 @@ type ApiPixelControllerListPixelsRequest struct {
 	ApiService *PixelAPIService
 }
 
-func (r ApiPixelControllerListPixelsRequest) Execute() (*http.Response, error) {
+func (r ApiPixelControllerListPixelsRequest) Execute() ([]AudiencePixel, *http.Response, error) {
 	return r.ApiService.PixelControllerListPixelsExecute(r)
 }
 
 /*
-PixelControllerListPixels Method for PixelControllerListPixels
+PixelControllerListPixels List the account's pixels
+
+Returns every pixel owned by the account, oldest first so the primary pixel stays on top. If the account has no pixel yet, a default one is created and returned. Team members scoped to specific pixels only see the pixels assigned to them.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPixelControllerListPixelsRequest
@@ -894,16 +1120,18 @@ func (a *PixelAPIService) PixelControllerListPixels(ctx context.Context) ApiPixe
 }
 
 // Execute executes the request
-func (a *PixelAPIService) PixelControllerListPixelsExecute(r ApiPixelControllerListPixelsRequest) (*http.Response, error) {
+//  @return []AudiencePixel
+func (a *PixelAPIService) PixelControllerListPixelsExecute(r ApiPixelControllerListPixelsRequest) ([]AudiencePixel, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []AudiencePixel
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PixelAPIService.PixelControllerListPixels")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/pixels"
@@ -922,28 +1150,42 @@ func (a *PixelAPIService) PixelControllerListPixelsExecute(r ApiPixelControllerL
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -951,10 +1193,19 @@ func (a *PixelAPIService) PixelControllerListPixelsExecute(r ApiPixelControllerL
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPixelControllerProductsRequest struct {
@@ -974,12 +1225,16 @@ func (r ApiPixelControllerProductsRequest) PixelId(pixelId string) ApiPixelContr
 	return r
 }
 
-func (r ApiPixelControllerProductsRequest) Execute() (*http.Response, error) {
+func (r ApiPixelControllerProductsRequest) Execute() ([]PixelControllerProducts200ResponseInner, *http.Response, error) {
 	return r.ApiService.PixelControllerProductsExecute(r)
 }
 
 /*
-PixelControllerProducts Method for PixelControllerProducts
+PixelControllerProducts Product-level analytics
+
+Explodes the `content_ids` carried on pixel events and returns, per product id, unique users who viewed, added to cart, purchased or were lost, plus purchase revenue and lost value. Window is the last `days` (default 30, max 180), optional `pixelId` filter, limited to 200 products.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPixelControllerProductsRequest
@@ -992,16 +1247,18 @@ func (a *PixelAPIService) PixelControllerProducts(ctx context.Context) ApiPixelC
 }
 
 // Execute executes the request
-func (a *PixelAPIService) PixelControllerProductsExecute(r ApiPixelControllerProductsRequest) (*http.Response, error) {
+//  @return []PixelControllerProducts200ResponseInner
+func (a *PixelAPIService) PixelControllerProductsExecute(r ApiPixelControllerProductsRequest) ([]PixelControllerProducts200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []PixelControllerProducts200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PixelAPIService.PixelControllerProducts")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/pixel/products"
@@ -1010,10 +1267,10 @@ func (a *PixelAPIService) PixelControllerProductsExecute(r ApiPixelControllerPro
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.days == nil {
-		return nil, reportError("days is required and must be specified")
+		return localVarReturnValue, nil, reportError("days is required and must be specified")
 	}
 	if r.pixelId == nil {
-		return nil, reportError("pixelId is required and must be specified")
+		return localVarReturnValue, nil, reportError("pixelId is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "days", r.days, "form", "")
@@ -1028,28 +1285,42 @@ func (a *PixelAPIService) PixelControllerProductsExecute(r ApiPixelControllerPro
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1057,10 +1328,19 @@ func (a *PixelAPIService) PixelControllerProductsExecute(r ApiPixelControllerPro
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPixelControllerSetRealtimeRequest struct {
@@ -1068,12 +1348,16 @@ type ApiPixelControllerSetRealtimeRequest struct {
 	ApiService *PixelAPIService
 }
 
-func (r ApiPixelControllerSetRealtimeRequest) Execute() (*http.Response, error) {
+func (r ApiPixelControllerSetRealtimeRequest) Execute() (*PixelControllerSetRealtime201Response, *http.Response, error) {
 	return r.ApiService.PixelControllerSetRealtimeExecute(r)
 }
 
 /*
-PixelControllerSetRealtime Method for PixelControllerSetRealtime
+PixelControllerSetRealtime Toggle real-time audiences for a pixel
+
+Turns real-time, action-based audience membership on or off (`enabled`) for `pixelId` (or the primary pixel). When on, each consented event and trait update is evaluated against the account's rule audiences by a background worker right after ingestion. Returns 404 for a pixel the account does not own.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPixelControllerSetRealtimeRequest
@@ -1086,16 +1370,18 @@ func (a *PixelAPIService) PixelControllerSetRealtime(ctx context.Context) ApiPix
 }
 
 // Execute executes the request
-func (a *PixelAPIService) PixelControllerSetRealtimeExecute(r ApiPixelControllerSetRealtimeRequest) (*http.Response, error) {
+//  @return PixelControllerSetRealtime201Response
+func (a *PixelAPIService) PixelControllerSetRealtimeExecute(r ApiPixelControllerSetRealtimeRequest) (*PixelControllerSetRealtime201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PixelControllerSetRealtime201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PixelAPIService.PixelControllerSetRealtime")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/pixel/realtime"
@@ -1114,28 +1400,42 @@ func (a *PixelAPIService) PixelControllerSetRealtimeExecute(r ApiPixelController
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1143,10 +1443,19 @@ func (a *PixelAPIService) PixelControllerSetRealtimeExecute(r ApiPixelController
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPixelControllerTrackRequest struct {
@@ -1154,12 +1463,16 @@ type ApiPixelControllerTrackRequest struct {
 	ApiService *PixelAPIService
 }
 
-func (r ApiPixelControllerTrackRequest) Execute() (*http.Response, error) {
+func (r ApiPixelControllerTrackRequest) Execute() (*PixelControllerTrack201Response, *http.Response, error) {
 	return r.ApiService.PixelControllerTrackExecute(r)
 }
 
 /*
-PixelControllerTrack Method for PixelControllerTrack
+PixelControllerTrack Ingest a pixel event
+
+Called by pixel.js. Body carries `pixelId`, `event` (default PageView), optional `eventId` (deduplicated per account for 7 days), `url`, `referrer`, `params` (value, currency, content_ids, order_id...), UTM touch data, hashed `am` identifiers and consent flags. Events from hosts outside the pixel's allowed domains are rejected; without consent (GPC or consent:false) the event is stored for aggregate analytics only, with no identity linkage. Conversion events carrying an `adclid` are attributed to the clicked ad. Never throws: failures return `{status:"error"}` and the request sets the first-party uid cookie.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPixelControllerTrackRequest
@@ -1172,16 +1485,18 @@ func (a *PixelAPIService) PixelControllerTrack(ctx context.Context) ApiPixelCont
 }
 
 // Execute executes the request
-func (a *PixelAPIService) PixelControllerTrackExecute(r ApiPixelControllerTrackRequest) (*http.Response, error) {
+//  @return PixelControllerTrack201Response
+func (a *PixelAPIService) PixelControllerTrackExecute(r ApiPixelControllerTrackRequest) (*PixelControllerTrack201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PixelControllerTrack201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PixelAPIService.PixelControllerTrack")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/track/event"
@@ -1200,7 +1515,7 @@ func (a *PixelAPIService) PixelControllerTrackExecute(r ApiPixelControllerTrackR
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1209,19 +1524,19 @@ func (a *PixelAPIService) PixelControllerTrackExecute(r ApiPixelControllerTrackR
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1229,10 +1544,19 @@ func (a *PixelAPIService) PixelControllerTrackExecute(r ApiPixelControllerTrackR
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPixelControllerTrackCodingRequest struct {
@@ -1240,12 +1564,16 @@ type ApiPixelControllerTrackCodingRequest struct {
 	ApiService *PixelAPIService
 }
 
-func (r ApiPixelControllerTrackCodingRequest) Execute() (*http.Response, error) {
+func (r ApiPixelControllerTrackCodingRequest) Execute() (*PixelControllerTrackCoding201Response, *http.Response, error) {
 	return r.ApiService.PixelControllerTrackCodingExecute(r)
 }
 
 /*
-PixelControllerTrackCoding Method for PixelControllerTrackCoding
+PixelControllerTrackCoding Record terminal coding-context keywords
+
+Public beacon for CLI/IDE clients. Body: `kw` (up to 20 keywords), `client`, and `em` (a SHA-256 email hash) or `uid`. Keywords are logged under a reserved network account keyed to the same email-derived canonical id the ad engine targets, so they feed developer interest segments. A valid `em` also writes the cross-surface identity link. Returns `skipped` when there are no keywords; never throws.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPixelControllerTrackCodingRequest
@@ -1258,16 +1586,18 @@ func (a *PixelAPIService) PixelControllerTrackCoding(ctx context.Context) ApiPix
 }
 
 // Execute executes the request
-func (a *PixelAPIService) PixelControllerTrackCodingExecute(r ApiPixelControllerTrackCodingRequest) (*http.Response, error) {
+//  @return PixelControllerTrackCoding201Response
+func (a *PixelAPIService) PixelControllerTrackCodingExecute(r ApiPixelControllerTrackCodingRequest) (*PixelControllerTrackCoding201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PixelControllerTrackCoding201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PixelAPIService.PixelControllerTrackCoding")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/track/coding"
@@ -1286,7 +1616,7 @@ func (a *PixelAPIService) PixelControllerTrackCodingExecute(r ApiPixelController
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1295,19 +1625,19 @@ func (a *PixelAPIService) PixelControllerTrackCodingExecute(r ApiPixelController
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1315,10 +1645,19 @@ func (a *PixelAPIService) PixelControllerTrackCodingExecute(r ApiPixelController
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPixelControllerTrackGetRequest struct {
@@ -1331,7 +1670,11 @@ func (r ApiPixelControllerTrackGetRequest) Execute() (*http.Response, error) {
 }
 
 /*
-PixelControllerTrackGet Method for PixelControllerTrackGet
+PixelControllerTrackGet Ingest a pixel event via image beacon
+
+The noscript / image fallback for /v1/track/event. Query params `pixel_id`, `event`, `event_id`, `url` and `adclid` are read, and the full query string is stored as event params. Always responds with a 1x1 transparent GIF, even on failure.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPixelControllerTrackGetRequest
@@ -1412,12 +1755,16 @@ type ApiPixelControllerTraitRequest struct {
 	ApiService *PixelAPIService
 }
 
-func (r ApiPixelControllerTraitRequest) Execute() (*http.Response, error) {
+func (r ApiPixelControllerTraitRequest) Execute() (*PixelControllerTrait201Response, *http.Response, error) {
 	return r.ApiService.PixelControllerTraitExecute(r)
 }
 
 /*
-PixelControllerTrait Method for PixelControllerTrait
+PixelControllerTrait Set user traits for the visitor
+
+Stores CDP profile traits (`traits` object) for the caller's uid, resolved to a canonical id using optional hashed `am` identifiers. Traits require consent, so GPC or consent:false skips the write. When the pixel has real-time audiences enabled, trait-based rule audiences are re-evaluated. Fail-soft: errors (including an unknown pixel) return `{status:"error"}`.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPixelControllerTraitRequest
@@ -1430,16 +1777,18 @@ func (a *PixelAPIService) PixelControllerTrait(ctx context.Context) ApiPixelCont
 }
 
 // Execute executes the request
-func (a *PixelAPIService) PixelControllerTraitExecute(r ApiPixelControllerTraitRequest) (*http.Response, error) {
+//  @return PixelControllerTrait201Response
+func (a *PixelAPIService) PixelControllerTraitExecute(r ApiPixelControllerTraitRequest) (*PixelControllerTrait201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PixelControllerTrait201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PixelAPIService.PixelControllerTrait")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/track/trait"
@@ -1458,7 +1807,7 @@ func (a *PixelAPIService) PixelControllerTraitExecute(r ApiPixelControllerTraitR
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1467,19 +1816,19 @@ func (a *PixelAPIService) PixelControllerTraitExecute(r ApiPixelControllerTraitR
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1487,10 +1836,19 @@ func (a *PixelAPIService) PixelControllerTraitExecute(r ApiPixelControllerTraitR
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPixelControllerTraitLookupRequest struct {
@@ -1510,12 +1868,16 @@ func (r ApiPixelControllerTraitLookupRequest) PixelId(pixelId string) ApiPixelCo
 	return r
 }
 
-func (r ApiPixelControllerTraitLookupRequest) Execute() (*http.Response, error) {
+func (r ApiPixelControllerTraitLookupRequest) Execute() (*PixelControllerTraitLookup200Response, *http.Response, error) {
 	return r.ApiService.PixelControllerTraitLookupExecute(r)
 }
 
 /*
-PixelControllerTraitLookup Method for PixelControllerTraitLookup
+PixelControllerTraitLookup Look up a user's CDP traits
+
+Resolves the `user` query value (a canonical `id_...`, a cookie uid, a SHA-256 email/phone hash, or a raw email which is hashed server-side) to a canonical id through the identity map and returns its stored traits. With `pixelId`, only traits set by that pixel are shown. Unknown identifiers return an empty canonical and no traits rather than an error.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPixelControllerTraitLookupRequest
@@ -1528,16 +1890,18 @@ func (a *PixelAPIService) PixelControllerTraitLookup(ctx context.Context) ApiPix
 }
 
 // Execute executes the request
-func (a *PixelAPIService) PixelControllerTraitLookupExecute(r ApiPixelControllerTraitLookupRequest) (*http.Response, error) {
+//  @return PixelControllerTraitLookup200Response
+func (a *PixelAPIService) PixelControllerTraitLookupExecute(r ApiPixelControllerTraitLookupRequest) (*PixelControllerTraitLookup200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PixelControllerTraitLookup200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PixelAPIService.PixelControllerTraitLookup")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/pixel/traits"
@@ -1546,10 +1910,10 @@ func (a *PixelAPIService) PixelControllerTraitLookupExecute(r ApiPixelController
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.user == nil {
-		return nil, reportError("user is required and must be specified")
+		return localVarReturnValue, nil, reportError("user is required and must be specified")
 	}
 	if r.pixelId == nil {
-		return nil, reportError("pixelId is required and must be specified")
+		return localVarReturnValue, nil, reportError("pixelId is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "user", r.user, "form", "")
@@ -1564,28 +1928,42 @@ func (a *PixelAPIService) PixelControllerTraitLookupExecute(r ApiPixelController
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1593,10 +1971,19 @@ func (a *PixelAPIService) PixelControllerTraitLookupExecute(r ApiPixelController
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPixelControllerUpdateSettingsRequest struct {
@@ -1604,12 +1991,16 @@ type ApiPixelControllerUpdateSettingsRequest struct {
 	ApiService *PixelAPIService
 }
 
-func (r ApiPixelControllerUpdateSettingsRequest) Execute() (*http.Response, error) {
+func (r ApiPixelControllerUpdateSettingsRequest) Execute() (*AudiencePixel, *http.Response, error) {
 	return r.ApiService.PixelControllerUpdateSettingsExecute(r)
 }
 
 /*
-PixelControllerUpdateSettings Method for PixelControllerUpdateSettings
+PixelControllerUpdateSettings Update pixel settings
+
+Patches `name` (max 80 chars), `defaultConsent` (whether events without an explicit consent signal are treated as consented) and `allowedDomains` for `pixelId` (or the primary pixel). Domains are normalized to bare lowercase hosts, deduplicated and capped at 50; once set, events fired from other hosts are rejected. Omitted fields are left unchanged; returns the updated pixel, or 404 if not owned.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPixelControllerUpdateSettingsRequest
@@ -1622,16 +2013,18 @@ func (a *PixelAPIService) PixelControllerUpdateSettings(ctx context.Context) Api
 }
 
 // Execute executes the request
-func (a *PixelAPIService) PixelControllerUpdateSettingsExecute(r ApiPixelControllerUpdateSettingsRequest) (*http.Response, error) {
+//  @return AudiencePixel
+func (a *PixelAPIService) PixelControllerUpdateSettingsExecute(r ApiPixelControllerUpdateSettingsRequest) (*AudiencePixel, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AudiencePixel
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PixelAPIService.PixelControllerUpdateSettings")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/pixel/settings"
@@ -1650,28 +2043,42 @@ func (a *PixelAPIService) PixelControllerUpdateSettingsExecute(r ApiPixelControl
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1679,8 +2086,17 @@ func (a *PixelAPIService) PixelControllerUpdateSettingsExecute(r ApiPixelControl
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

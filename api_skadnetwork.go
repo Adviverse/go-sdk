@@ -27,12 +27,16 @@ type ApiSkadnetworkControllerHealthRequest struct {
 	ApiService *SkadnetworkAPIService
 }
 
-func (r ApiSkadnetworkControllerHealthRequest) Execute() (*http.Response, error) {
+func (r ApiSkadnetworkControllerHealthRequest) Execute() (*SkadnetworkControllerHealth200Response, *http.Response, error) {
 	return r.ApiService.SkadnetworkControllerHealthExecute(r)
 }
 
 /*
-SkadnetworkControllerHealth Method for SkadnetworkControllerHealth
+SkadnetworkControllerHealth Check the SKAdNetwork postback endpoint
+
+Public liveness check for the registered postback URL.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiSkadnetworkControllerHealthRequest
@@ -45,16 +49,18 @@ func (a *SkadnetworkAPIService) SkadnetworkControllerHealth(ctx context.Context)
 }
 
 // Execute executes the request
-func (a *SkadnetworkAPIService) SkadnetworkControllerHealthExecute(r ApiSkadnetworkControllerHealthRequest) (*http.Response, error) {
+//  @return SkadnetworkControllerHealth200Response
+func (a *SkadnetworkAPIService) SkadnetworkControllerHealthExecute(r ApiSkadnetworkControllerHealthRequest) (*SkadnetworkControllerHealth200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SkadnetworkControllerHealth200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SkadnetworkAPIService.SkadnetworkControllerHealth")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/skadnetwork/postback"
@@ -73,7 +79,7 @@ func (a *SkadnetworkAPIService) SkadnetworkControllerHealthExecute(r ApiSkadnetw
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -82,19 +88,19 @@ func (a *SkadnetworkAPIService) SkadnetworkControllerHealthExecute(r ApiSkadnetw
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -102,10 +108,19 @@ func (a *SkadnetworkAPIService) SkadnetworkControllerHealthExecute(r ApiSkadnetw
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiSkadnetworkControllerPostbackRequest struct {
@@ -113,12 +128,16 @@ type ApiSkadnetworkControllerPostbackRequest struct {
 	ApiService *SkadnetworkAPIService
 }
 
-func (r ApiSkadnetworkControllerPostbackRequest) Execute() (*http.Response, error) {
+func (r ApiSkadnetworkControllerPostbackRequest) Execute() (*SkadnetworkControllerPostback200Response, *http.Response, error) {
 	return r.ApiService.SkadnetworkControllerPostbackExecute(r)
 }
 
 /*
-SkadnetworkControllerPostback Method for SkadnetworkControllerPostback
+SkadnetworkControllerPostback Receive an Apple SKAdNetwork install postback
+
+Public, rate-limited endpoint Apple POSTs signed install postbacks to. Every postback is stored once per `transaction-id`; the signature is verified, the campaign resolved from `source-identifier`/`campaign-id` (and `app-id`), and won, verified postbacks are emitted as conversions. Always answers 200 so Apple does not retry; the outcome is in `status`: attributed, duplicate, invalid_signature, verified_unmatched, verified_lost, wrong_network, unsupported, bad_request or error.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiSkadnetworkControllerPostbackRequest
@@ -131,16 +150,18 @@ func (a *SkadnetworkAPIService) SkadnetworkControllerPostback(ctx context.Contex
 }
 
 // Execute executes the request
-func (a *SkadnetworkAPIService) SkadnetworkControllerPostbackExecute(r ApiSkadnetworkControllerPostbackRequest) (*http.Response, error) {
+//  @return SkadnetworkControllerPostback200Response
+func (a *SkadnetworkAPIService) SkadnetworkControllerPostbackExecute(r ApiSkadnetworkControllerPostbackRequest) (*SkadnetworkControllerPostback200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SkadnetworkControllerPostback200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SkadnetworkAPIService.SkadnetworkControllerPostback")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/skadnetwork/postback"
@@ -159,7 +180,7 @@ func (a *SkadnetworkAPIService) SkadnetworkControllerPostbackExecute(r ApiSkadne
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -168,19 +189,19 @@ func (a *SkadnetworkAPIService) SkadnetworkControllerPostbackExecute(r ApiSkadne
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -188,8 +209,17 @@ func (a *SkadnetworkAPIService) SkadnetworkControllerPostbackExecute(r ApiSkadne
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

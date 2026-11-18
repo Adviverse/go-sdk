@@ -27,12 +27,16 @@ type ApiStatsControllerGetRequest struct {
 	ApiService *StatsAPIService
 }
 
-func (r ApiStatsControllerGetRequest) Execute() (*http.Response, error) {
+func (r ApiStatsControllerGetRequest) Execute() (*StatsControllerGet200Response, *http.Response, error) {
 	return r.ApiService.StatsControllerGetExecute(r)
 }
 
 /*
-StatsControllerGet Method for StatsControllerGet
+StatsControllerGet Get public network stats
+
+Public, unauthenticated marketing figures: total impressions served across the network and total amount paid out to publishers (settled payouts). Cached in Redis for 10 minutes.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiStatsControllerGetRequest
@@ -45,16 +49,18 @@ func (a *StatsAPIService) StatsControllerGet(ctx context.Context) ApiStatsContro
 }
 
 // Execute executes the request
-func (a *StatsAPIService) StatsControllerGetExecute(r ApiStatsControllerGetRequest) (*http.Response, error) {
+//  @return StatsControllerGet200Response
+func (a *StatsAPIService) StatsControllerGetExecute(r ApiStatsControllerGetRequest) (*StatsControllerGet200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *StatsControllerGet200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "StatsAPIService.StatsControllerGet")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/stats"
@@ -73,7 +79,7 @@ func (a *StatsAPIService) StatsControllerGetExecute(r ApiStatsControllerGetReque
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -82,19 +88,19 @@ func (a *StatsAPIService) StatsControllerGetExecute(r ApiStatsControllerGetReque
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -102,8 +108,17 @@ func (a *StatsAPIService) StatsControllerGetExecute(r ApiStatsControllerGetReque
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

@@ -29,12 +29,16 @@ type ApiPublisherControllerAppAdsTxtRequest struct {
 	id string
 }
 
-func (r ApiPublisherControllerAppAdsTxtRequest) Execute() (*http.Response, error) {
+func (r ApiPublisherControllerAppAdsTxtRequest) Execute() (string, *http.Response, error) {
 	return r.ApiService.PublisherControllerAppAdsTxtExecute(r)
 }
 
 /*
-PublisherControllerAppAdsTxt Method for PublisherControllerAppAdsTxt
+PublisherControllerAppAdsTxt Get the app-ads.txt content for an app
+
+Returns plain-text app-ads.txt: a comment, the network's own `adviverse.com, <publisherAccountId>, DIRECT` line, then each configured authorized-seller entry (`domain, sellerId, DIRECT|RESELLER[, certId]`). 404/403 as for get.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -49,16 +53,18 @@ func (a *PublisherAPIService) PublisherControllerAppAdsTxt(ctx context.Context, 
 }
 
 // Execute executes the request
-func (a *PublisherAPIService) PublisherControllerAppAdsTxtExecute(r ApiPublisherControllerAppAdsTxtRequest) (*http.Response, error) {
+//  @return string
+func (a *PublisherAPIService) PublisherControllerAppAdsTxtExecute(r ApiPublisherControllerAppAdsTxtRequest) (string, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  string
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherAPIService.PublisherControllerAppAdsTxt")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/apps/{id}/app-ads.txt"
@@ -78,28 +84,42 @@ func (a *PublisherAPIService) PublisherControllerAppAdsTxtExecute(r ApiPublisher
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"text/plain"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -107,10 +127,19 @@ func (a *PublisherAPIService) PublisherControllerAppAdsTxtExecute(r ApiPublisher
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPublisherControllerCreateAppRequest struct {
@@ -124,12 +153,16 @@ func (r ApiPublisherControllerCreateAppRequest) CreateAppDto(createAppDto Create
 	return r
 }
 
-func (r ApiPublisherControllerCreateAppRequest) Execute() (*http.Response, error) {
+func (r ApiPublisherControllerCreateAppRequest) Execute() (*PubProperty, *http.Response, error) {
 	return r.ApiService.PublisherControllerCreateAppExecute(r)
 }
 
 /*
-PublisherControllerCreateApp Method for PublisherControllerCreateApp
+PublisherControllerCreateApp Register a mobile or CTV app
+
+Creates a `mobile_app` or `ctv` property from `kind`, `name`, `bundleId` and `platform` (ios, android, roku, firetv, appletv, androidtv, web), with optional `storeUrl`, `appStoreId`, `category` and `ctvMeta`. The bundle id is stored in both `bundle_id` and `domain`; the app enters the normal `pending` approval flow with file verification.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPublisherControllerCreateAppRequest
@@ -142,16 +175,18 @@ func (a *PublisherAPIService) PublisherControllerCreateApp(ctx context.Context) 
 }
 
 // Execute executes the request
-func (a *PublisherAPIService) PublisherControllerCreateAppExecute(r ApiPublisherControllerCreateAppRequest) (*http.Response, error) {
+//  @return PubProperty
+func (a *PublisherAPIService) PublisherControllerCreateAppExecute(r ApiPublisherControllerCreateAppRequest) (*PubProperty, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PubProperty
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherAPIService.PublisherControllerCreateApp")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/apps"
@@ -160,7 +195,7 @@ func (a *PublisherAPIService) PublisherControllerCreateAppExecute(r ApiPublisher
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.createAppDto == nil {
-		return nil, reportError("createAppDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("createAppDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -173,7 +208,7 @@ func (a *PublisherAPIService) PublisherControllerCreateAppExecute(r ApiPublisher
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -182,21 +217,35 @@ func (a *PublisherAPIService) PublisherControllerCreateAppExecute(r ApiPublisher
 	}
 	// body params
 	localVarPostBody = r.createAppDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -204,10 +253,19 @@ func (a *PublisherAPIService) PublisherControllerCreateAppExecute(r ApiPublisher
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPublisherControllerCreatePlacementRequest struct {
@@ -221,12 +279,16 @@ func (r ApiPublisherControllerCreatePlacementRequest) CreatePlacementDto(createP
 	return r
 }
 
-func (r ApiPublisherControllerCreatePlacementRequest) Execute() (*http.Response, error) {
+func (r ApiPublisherControllerCreatePlacementRequest) Execute() (*PubPlacement, *http.Response, error) {
 	return r.ApiService.PublisherControllerCreatePlacementExecute(r)
 }
 
 /*
-PublisherControllerCreatePlacement Method for PublisherControllerCreatePlacement
+PublisherControllerCreatePlacement Create a placement
+
+Creates an ad unit on one of your properties (`propertyId`, `name`, `format` required) with a generated `tag_key`. Optional fields cover size (`width`/`height` or `responsive`), `floorCpm`, `revShare` (defaults to the network rev-share), `auctionType` (default `first_price`), `passbackUrl`, `frequencyCap`, format `settings`, and yield fill (`houseOnly`, `houseShare` clamped to 0-1, `houseBackfill`, `floorFallback`). Popunders default to a 1-per-visitor-per-24h frequency cap unless `frequencyCap` is given (`{}` opts out). The serving index is republished. 404 if the property is missing, 403 if not yours.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPublisherControllerCreatePlacementRequest
@@ -239,16 +301,18 @@ func (a *PublisherAPIService) PublisherControllerCreatePlacement(ctx context.Con
 }
 
 // Execute executes the request
-func (a *PublisherAPIService) PublisherControllerCreatePlacementExecute(r ApiPublisherControllerCreatePlacementRequest) (*http.Response, error) {
+//  @return PubPlacement
+func (a *PublisherAPIService) PublisherControllerCreatePlacementExecute(r ApiPublisherControllerCreatePlacementRequest) (*PubPlacement, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PubPlacement
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherAPIService.PublisherControllerCreatePlacement")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/placements"
@@ -257,7 +321,7 @@ func (a *PublisherAPIService) PublisherControllerCreatePlacementExecute(r ApiPub
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.createPlacementDto == nil {
-		return nil, reportError("createPlacementDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("createPlacementDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -270,7 +334,7 @@ func (a *PublisherAPIService) PublisherControllerCreatePlacementExecute(r ApiPub
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -279,21 +343,35 @@ func (a *PublisherAPIService) PublisherControllerCreatePlacementExecute(r ApiPub
 	}
 	// body params
 	localVarPostBody = r.createPlacementDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -301,10 +379,19 @@ func (a *PublisherAPIService) PublisherControllerCreatePlacementExecute(r ApiPub
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPublisherControllerCreatePropertyRequest struct {
@@ -318,12 +405,16 @@ func (r ApiPublisherControllerCreatePropertyRequest) CreatePropertyDto(createPro
 	return r
 }
 
-func (r ApiPublisherControllerCreatePropertyRequest) Execute() (*http.Response, error) {
+func (r ApiPublisherControllerCreatePropertyRequest) Execute() (*PubProperty, *http.Response, error) {
 	return r.ApiService.PublisherControllerCreatePropertyExecute(r)
 }
 
 /*
-PublisherControllerCreateProperty Method for PublisherControllerCreateProperty
+PublisherControllerCreateProperty Register a property
+
+Creates a property with a fresh `adviverse-verify-…` verification token. `domain` is required; `kind` defaults to `website` and `verificationMethod` to `dns`. Website properties start `unverified`/`pending` and must be verified before they serve. With `kind: "cli"` the property is a terminal/AI-agent tool: `domain` is treated as a tool name and turned into a unique slug, and the row is created already `verified` and `approved` (no domain to prove).
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPublisherControllerCreatePropertyRequest
@@ -336,16 +427,18 @@ func (a *PublisherAPIService) PublisherControllerCreateProperty(ctx context.Cont
 }
 
 // Execute executes the request
-func (a *PublisherAPIService) PublisherControllerCreatePropertyExecute(r ApiPublisherControllerCreatePropertyRequest) (*http.Response, error) {
+//  @return PubProperty
+func (a *PublisherAPIService) PublisherControllerCreatePropertyExecute(r ApiPublisherControllerCreatePropertyRequest) (*PubProperty, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PubProperty
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherAPIService.PublisherControllerCreateProperty")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/properties"
@@ -354,7 +447,7 @@ func (a *PublisherAPIService) PublisherControllerCreatePropertyExecute(r ApiPubl
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.createPropertyDto == nil {
-		return nil, reportError("createPropertyDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("createPropertyDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -367,7 +460,7 @@ func (a *PublisherAPIService) PublisherControllerCreatePropertyExecute(r ApiPubl
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -376,21 +469,35 @@ func (a *PublisherAPIService) PublisherControllerCreatePropertyExecute(r ApiPubl
 	}
 	// body params
 	localVarPostBody = r.createPropertyDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -398,10 +505,19 @@ func (a *PublisherAPIService) PublisherControllerCreatePropertyExecute(r ApiPubl
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPublisherControllerDisableSigningRequest struct {
@@ -410,12 +526,16 @@ type ApiPublisherControllerDisableSigningRequest struct {
 	id string
 }
 
-func (r ApiPublisherControllerDisableSigningRequest) Execute() (*http.Response, error) {
+func (r ApiPublisherControllerDisableSigningRequest) Execute() (*PublisherControllerDisableSigning200Response, *http.Response, error) {
 	return r.ApiService.PublisherControllerDisableSigningExecute(r)
 }
 
 /*
-PublisherControllerDisableSigning Method for PublisherControllerDisableSigning
+PublisherControllerDisableSigning Disable signed-tag enforcement
+
+Removes the placement's signing secret so it goes back to unsigned serving, and republishes the index. 404 if not your placement.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -430,16 +550,18 @@ func (a *PublisherAPIService) PublisherControllerDisableSigning(ctx context.Cont
 }
 
 // Execute executes the request
-func (a *PublisherAPIService) PublisherControllerDisableSigningExecute(r ApiPublisherControllerDisableSigningRequest) (*http.Response, error) {
+//  @return PublisherControllerDisableSigning200Response
+func (a *PublisherAPIService) PublisherControllerDisableSigningExecute(r ApiPublisherControllerDisableSigningRequest) (*PublisherControllerDisableSigning200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PublisherControllerDisableSigning200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherAPIService.PublisherControllerDisableSigning")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/placements/{id}/signing-secret"
@@ -459,28 +581,42 @@ func (a *PublisherAPIService) PublisherControllerDisableSigningExecute(r ApiPubl
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -488,10 +624,19 @@ func (a *PublisherAPIService) PublisherControllerDisableSigningExecute(r ApiPubl
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPublisherControllerDomainConnectRequest struct {
@@ -500,12 +645,16 @@ type ApiPublisherControllerDomainConnectRequest struct {
 	id string
 }
 
-func (r ApiPublisherControllerDomainConnectRequest) Execute() (*http.Response, error) {
+func (r ApiPublisherControllerDomainConnectRequest) Execute() (*PublisherControllerDomainConnect201Response, *http.Response, error) {
 	return r.ApiService.PublisherControllerDomainConnectExecute(r)
 }
 
 /*
-PublisherControllerDomainConnect Method for PublisherControllerDomainConnect
+PublisherControllerDomainConnect Get a DomainConnect one-click DNS setup URL
+
+Discovers whether the property domain's DNS provider supports DomainConnect (TXT at `_domainconnect.<domain>`, then the provider settings `urlSyncUX`). If it does, returns `supported: true` with an `applyUrl` the user opens to approve writing the verification TXT record; afterwards call verify. On any discovery failure it returns `supported: false, method: "manual"` with the token so the publisher can add the TXT record by hand.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -520,16 +669,18 @@ func (a *PublisherAPIService) PublisherControllerDomainConnect(ctx context.Conte
 }
 
 // Execute executes the request
-func (a *PublisherAPIService) PublisherControllerDomainConnectExecute(r ApiPublisherControllerDomainConnectRequest) (*http.Response, error) {
+//  @return PublisherControllerDomainConnect201Response
+func (a *PublisherAPIService) PublisherControllerDomainConnectExecute(r ApiPublisherControllerDomainConnectRequest) (*PublisherControllerDomainConnect201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PublisherControllerDomainConnect201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherAPIService.PublisherControllerDomainConnect")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/properties/{id}/domainconnect"
@@ -549,28 +700,42 @@ func (a *PublisherAPIService) PublisherControllerDomainConnectExecute(r ApiPubli
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -578,10 +743,19 @@ func (a *PublisherAPIService) PublisherControllerDomainConnectExecute(r ApiPubli
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPublisherControllerGetAppRequest struct {
@@ -590,12 +764,16 @@ type ApiPublisherControllerGetAppRequest struct {
 	id string
 }
 
-func (r ApiPublisherControllerGetAppRequest) Execute() (*http.Response, error) {
+func (r ApiPublisherControllerGetAppRequest) Execute() (*PubProperty, *http.Response, error) {
 	return r.ApiService.PublisherControllerGetAppExecute(r)
 }
 
 /*
-PublisherControllerGetApp Method for PublisherControllerGetApp
+PublisherControllerGetApp Get a mobile or CTV app
+
+Returns one app/CTV property. 404 if it does not exist (or is a web property), 403 if another publisher owns it.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -610,16 +788,18 @@ func (a *PublisherAPIService) PublisherControllerGetApp(ctx context.Context, id 
 }
 
 // Execute executes the request
-func (a *PublisherAPIService) PublisherControllerGetAppExecute(r ApiPublisherControllerGetAppRequest) (*http.Response, error) {
+//  @return PubProperty
+func (a *PublisherAPIService) PublisherControllerGetAppExecute(r ApiPublisherControllerGetAppRequest) (*PubProperty, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PubProperty
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherAPIService.PublisherControllerGetApp")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/apps/{id}"
@@ -639,28 +819,42 @@ func (a *PublisherAPIService) PublisherControllerGetAppExecute(r ApiPublisherCon
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -668,10 +862,19 @@ func (a *PublisherAPIService) PublisherControllerGetAppExecute(r ApiPublisherCon
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPublisherControllerListAppsRequest struct {
@@ -679,12 +882,16 @@ type ApiPublisherControllerListAppsRequest struct {
 	ApiService *PublisherAPIService
 }
 
-func (r ApiPublisherControllerListAppsRequest) Execute() (*http.Response, error) {
+func (r ApiPublisherControllerListAppsRequest) Execute() ([]PubProperty, *http.Response, error) {
 	return r.ApiService.PublisherControllerListAppsExecute(r)
 }
 
 /*
-PublisherControllerListApps Method for PublisherControllerListApps
+PublisherControllerListApps List your mobile and CTV apps
+
+Returns the publisher's properties of kind `mobile_app` or `ctv`, newest first. Web properties are excluded.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPublisherControllerListAppsRequest
@@ -697,16 +904,18 @@ func (a *PublisherAPIService) PublisherControllerListApps(ctx context.Context) A
 }
 
 // Execute executes the request
-func (a *PublisherAPIService) PublisherControllerListAppsExecute(r ApiPublisherControllerListAppsRequest) (*http.Response, error) {
+//  @return []PubProperty
+func (a *PublisherAPIService) PublisherControllerListAppsExecute(r ApiPublisherControllerListAppsRequest) ([]PubProperty, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []PubProperty
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherAPIService.PublisherControllerListApps")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/apps"
@@ -725,28 +934,42 @@ func (a *PublisherAPIService) PublisherControllerListAppsExecute(r ApiPublisherC
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -754,10 +977,19 @@ func (a *PublisherAPIService) PublisherControllerListAppsExecute(r ApiPublisherC
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPublisherControllerListPlacementsRequest struct {
@@ -765,12 +997,16 @@ type ApiPublisherControllerListPlacementsRequest struct {
 	ApiService *PublisherAPIService
 }
 
-func (r ApiPublisherControllerListPlacementsRequest) Execute() (*http.Response, error) {
+func (r ApiPublisherControllerListPlacementsRequest) Execute() ([]PubPlacement, *http.Response, error) {
 	return r.ApiService.PublisherControllerListPlacementsExecute(r)
 }
 
 /*
-PublisherControllerListPlacements Method for PublisherControllerListPlacements
+PublisherControllerListPlacements List your placements
+
+Returns every non-deleted placement across all of the publisher's properties, newest first. Optional `limit`/`offset` paginate.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPublisherControllerListPlacementsRequest
@@ -783,16 +1019,18 @@ func (a *PublisherAPIService) PublisherControllerListPlacements(ctx context.Cont
 }
 
 // Execute executes the request
-func (a *PublisherAPIService) PublisherControllerListPlacementsExecute(r ApiPublisherControllerListPlacementsRequest) (*http.Response, error) {
+//  @return []PubPlacement
+func (a *PublisherAPIService) PublisherControllerListPlacementsExecute(r ApiPublisherControllerListPlacementsRequest) ([]PubPlacement, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []PubPlacement
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherAPIService.PublisherControllerListPlacements")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/placements"
@@ -811,28 +1049,42 @@ func (a *PublisherAPIService) PublisherControllerListPlacementsExecute(r ApiPubl
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -840,10 +1092,19 @@ func (a *PublisherAPIService) PublisherControllerListPlacementsExecute(r ApiPubl
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPublisherControllerListPropertiesRequest struct {
@@ -851,12 +1112,16 @@ type ApiPublisherControllerListPropertiesRequest struct {
 	ApiService *PublisherAPIService
 }
 
-func (r ApiPublisherControllerListPropertiesRequest) Execute() (*http.Response, error) {
+func (r ApiPublisherControllerListPropertiesRequest) Execute() ([]PubProperty, *http.Response, error) {
 	return r.ApiService.PublisherControllerListPropertiesExecute(r)
 }
 
 /*
-PublisherControllerListProperties Method for PublisherControllerListProperties
+PublisherControllerListProperties List your properties
+
+Returns every non-deleted property (websites, CLI tools, mobile apps, CTV apps) owned by the publisher, newest first. Optional `limit` (1-500) and `offset` query params paginate; without `limit` the full set is returned.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPublisherControllerListPropertiesRequest
@@ -869,16 +1134,18 @@ func (a *PublisherAPIService) PublisherControllerListProperties(ctx context.Cont
 }
 
 // Execute executes the request
-func (a *PublisherAPIService) PublisherControllerListPropertiesExecute(r ApiPublisherControllerListPropertiesRequest) (*http.Response, error) {
+//  @return []PubProperty
+func (a *PublisherAPIService) PublisherControllerListPropertiesExecute(r ApiPublisherControllerListPropertiesRequest) ([]PubProperty, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []PubProperty
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherAPIService.PublisherControllerListProperties")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/properties"
@@ -897,28 +1164,42 @@ func (a *PublisherAPIService) PublisherControllerListPropertiesExecute(r ApiPubl
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -926,10 +1207,138 @@ func (a *PublisherAPIService) PublisherControllerListPropertiesExecute(r ApiPubl
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiPublisherControllerPropertyAdsTxtRequest struct {
+	ctx context.Context
+	ApiService *PublisherAPIService
+	id string
+}
+
+func (r ApiPublisherControllerPropertyAdsTxtRequest) Execute() (string, *http.Response, error) {
+	return r.ApiService.PublisherControllerPropertyAdsTxtExecute(r)
+}
+
+/*
+PublisherControllerPropertyAdsTxt Get the ads.txt lines for a property
+
+Returns the plain-text ads.txt content to publish at `https://<domain>/ads.txt`: a comment line plus `adviverse.com, <publisherAccountId>, DIRECT` (the seller id matches sellers.json). 404 if not found, 403 if not yours.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param id
+ @return ApiPublisherControllerPropertyAdsTxtRequest
+*/
+func (a *PublisherAPIService) PublisherControllerPropertyAdsTxt(ctx context.Context, id string) ApiPublisherControllerPropertyAdsTxtRequest {
+	return ApiPublisherControllerPropertyAdsTxtRequest{
+		ApiService: a,
+		ctx: ctx,
+		id: id,
+	}
+}
+
+// Execute executes the request
+//  @return string
+func (a *PublisherAPIService) PublisherControllerPropertyAdsTxtExecute(r ApiPublisherControllerPropertyAdsTxtRequest) (string, *http.Response, error) {
+	var (
+		localVarHTTPMethod   = http.MethodGet
+		localVarPostBody     interface{}
+		formFiles            []formFile
+		localVarReturnValue  string
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherAPIService.PublisherControllerPropertyAdsTxt")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v1/publisher/properties/{id}/ads.txt"
+	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", url.PathEscape(parameterValueToString(r.id, "id")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"text/plain"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPublisherControllerRemovePropertyRequest struct {
@@ -938,12 +1347,16 @@ type ApiPublisherControllerRemovePropertyRequest struct {
 	id string
 }
 
-func (r ApiPublisherControllerRemovePropertyRequest) Execute() (*http.Response, error) {
+func (r ApiPublisherControllerRemovePropertyRequest) Execute() (*AuthControllerResendVerification201Response, *http.Response, error) {
 	return r.ApiService.PublisherControllerRemovePropertyExecute(r)
 }
 
 /*
-PublisherControllerRemoveProperty Method for PublisherControllerRemoveProperty
+PublisherControllerRemoveProperty Delete a property
+
+Soft-deletes the property and all of its placements, then republishes the serving index so ads stop promptly. 404 if not found, 403 if not yours.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -958,16 +1371,18 @@ func (a *PublisherAPIService) PublisherControllerRemoveProperty(ctx context.Cont
 }
 
 // Execute executes the request
-func (a *PublisherAPIService) PublisherControllerRemovePropertyExecute(r ApiPublisherControllerRemovePropertyRequest) (*http.Response, error) {
+//  @return AuthControllerResendVerification201Response
+func (a *PublisherAPIService) PublisherControllerRemovePropertyExecute(r ApiPublisherControllerRemovePropertyRequest) (*AuthControllerResendVerification201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AuthControllerResendVerification201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherAPIService.PublisherControllerRemoveProperty")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/properties/{id}"
@@ -987,28 +1402,42 @@ func (a *PublisherAPIService) PublisherControllerRemovePropertyExecute(r ApiPubl
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1016,10 +1445,19 @@ func (a *PublisherAPIService) PublisherControllerRemovePropertyExecute(r ApiPubl
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPublisherControllerRemoveServingDomainRequest struct {
@@ -1028,12 +1466,16 @@ type ApiPublisherControllerRemoveServingDomainRequest struct {
 	id string
 }
 
-func (r ApiPublisherControllerRemoveServingDomainRequest) Execute() (*http.Response, error) {
+func (r ApiPublisherControllerRemoveServingDomainRequest) Execute() (*PubServingDomain, *http.Response, error) {
 	return r.ApiService.PublisherControllerRemoveServingDomainExecute(r)
 }
 
 /*
-PublisherControllerRemoveServingDomain Method for PublisherControllerRemoveServingDomain
+PublisherControllerRemoveServingDomain Remove the first-party serving domain
+
+Clears the property's custom serving domain; tags fall back to the default serving edge and the edge stops issuing certificates for the old host. 404/403 if the property is not found or not yours.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1048,16 +1490,18 @@ func (a *PublisherAPIService) PublisherControllerRemoveServingDomain(ctx context
 }
 
 // Execute executes the request
-func (a *PublisherAPIService) PublisherControllerRemoveServingDomainExecute(r ApiPublisherControllerRemoveServingDomainRequest) (*http.Response, error) {
+//  @return PubServingDomain
+func (a *PublisherAPIService) PublisherControllerRemoveServingDomainExecute(r ApiPublisherControllerRemoveServingDomainRequest) (*PubServingDomain, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PubServingDomain
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherAPIService.PublisherControllerRemoveServingDomain")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/properties/{id}/serving-domain"
@@ -1077,28 +1521,42 @@ func (a *PublisherAPIService) PublisherControllerRemoveServingDomainExecute(r Ap
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1106,10 +1564,19 @@ func (a *PublisherAPIService) PublisherControllerRemoveServingDomainExecute(r Ap
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPublisherControllerRotateSigningSecretRequest struct {
@@ -1118,12 +1585,16 @@ type ApiPublisherControllerRotateSigningSecretRequest struct {
 	id string
 }
 
-func (r ApiPublisherControllerRotateSigningSecretRequest) Execute() (*http.Response, error) {
+func (r ApiPublisherControllerRotateSigningSecretRequest) Execute() (*PublisherControllerRotateSigningSecret201Response, *http.Response, error) {
 	return r.ApiService.PublisherControllerRotateSigningSecretExecute(r)
 }
 
 /*
-PublisherControllerRotateSigningSecret Method for PublisherControllerRotateSigningSecret
+PublisherControllerRotateSigningSecret Generate or rotate a placement signing secret
+
+Creates a new `tsk_…` HMAC secret for the placement, replacing any previous one, and republishes the index. With a secret set, the engine only serves terminal requests (and accepts integrity pings) that carry a valid signature, so embed it in your signing client. The secret is returned only once. 404 if not your placement.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1138,16 +1609,18 @@ func (a *PublisherAPIService) PublisherControllerRotateSigningSecret(ctx context
 }
 
 // Execute executes the request
-func (a *PublisherAPIService) PublisherControllerRotateSigningSecretExecute(r ApiPublisherControllerRotateSigningSecretRequest) (*http.Response, error) {
+//  @return PublisherControllerRotateSigningSecret201Response
+func (a *PublisherAPIService) PublisherControllerRotateSigningSecretExecute(r ApiPublisherControllerRotateSigningSecretRequest) (*PublisherControllerRotateSigningSecret201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PublisherControllerRotateSigningSecret201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherAPIService.PublisherControllerRotateSigningSecret")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/placements/{id}/signing-secret"
@@ -1167,28 +1640,42 @@ func (a *PublisherAPIService) PublisherControllerRotateSigningSecretExecute(r Ap
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1196,10 +1683,19 @@ func (a *PublisherAPIService) PublisherControllerRotateSigningSecretExecute(r Ap
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPublisherControllerSetServingDomainRequest struct {
@@ -1214,12 +1710,16 @@ func (r ApiPublisherControllerSetServingDomainRequest) ServingDomainDto(servingD
 	return r
 }
 
-func (r ApiPublisherControllerSetServingDomainRequest) Execute() (*http.Response, error) {
+func (r ApiPublisherControllerSetServingDomainRequest) Execute() (*PubServingDomain, *http.Response, error) {
 	return r.ApiService.PublisherControllerSetServingDomainExecute(r)
 }
 
 /*
-PublisherControllerSetServingDomain Method for PublisherControllerSetServingDomain
+PublisherControllerSetServingDomain Set a first-party serving domain
+
+Sets the property's custom ad-serving hostname (anti-adblock). Body `{ domain }` is normalized to a bare hostname; an empty/missing domain clears it. The domain starts unverified: the publisher must CNAME it to `cname_target` and call the verify endpoint before tags use it. 400 for an invalid hostname or one already held by another property.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1234,16 +1734,18 @@ func (a *PublisherAPIService) PublisherControllerSetServingDomain(ctx context.Co
 }
 
 // Execute executes the request
-func (a *PublisherAPIService) PublisherControllerSetServingDomainExecute(r ApiPublisherControllerSetServingDomainRequest) (*http.Response, error) {
+//  @return PubServingDomain
+func (a *PublisherAPIService) PublisherControllerSetServingDomainExecute(r ApiPublisherControllerSetServingDomainRequest) (*PubServingDomain, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PubServingDomain
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherAPIService.PublisherControllerSetServingDomain")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/properties/{id}/serving-domain"
@@ -1253,7 +1755,7 @@ func (a *PublisherAPIService) PublisherControllerSetServingDomainExecute(r ApiPu
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.servingDomainDto == nil {
-		return nil, reportError("servingDomainDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("servingDomainDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1266,7 +1768,7 @@ func (a *PublisherAPIService) PublisherControllerSetServingDomainExecute(r ApiPu
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1275,21 +1777,35 @@ func (a *PublisherAPIService) PublisherControllerSetServingDomainExecute(r ApiPu
 	}
 	// body params
 	localVarPostBody = r.servingDomainDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1297,10 +1813,19 @@ func (a *PublisherAPIService) PublisherControllerSetServingDomainExecute(r ApiPu
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPublisherControllerTagRequest struct {
@@ -1309,12 +1834,16 @@ type ApiPublisherControllerTagRequest struct {
 	id string
 }
 
-func (r ApiPublisherControllerTagRequest) Execute() (*http.Response, error) {
+func (r ApiPublisherControllerTagRequest) Execute() (*PublisherControllerTag200Response, *http.Response, error) {
 	return r.ApiService.PublisherControllerTagExecute(r)
 }
 
 /*
-PublisherControllerTag Method for PublisherControllerTag
+PublisherControllerTag Get the embed code for a placement
+
+Returns the integration snippet for the placement, shaped by format: `script` (SDK `<script>` loader) for web formats, `directUrl` for `direct_link`, `emailSnippet` (tracked image + link with a `{{RECIPIENT}}` merge field) for `email`, and an HTTP `endpoint` for `terminal`. If the property has a verified first-party serving domain the snippet points at it and `firstParty` is true. 404 if not your placement.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1329,16 +1858,18 @@ func (a *PublisherAPIService) PublisherControllerTag(ctx context.Context, id str
 }
 
 // Execute executes the request
-func (a *PublisherAPIService) PublisherControllerTagExecute(r ApiPublisherControllerTagRequest) (*http.Response, error) {
+//  @return PublisherControllerTag200Response
+func (a *PublisherAPIService) PublisherControllerTagExecute(r ApiPublisherControllerTagRequest) (*PublisherControllerTag200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PublisherControllerTag200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherAPIService.PublisherControllerTag")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/placements/{id}/tag"
@@ -1358,28 +1889,42 @@ func (a *PublisherAPIService) PublisherControllerTagExecute(r ApiPublisherContro
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1387,10 +1932,19 @@ func (a *PublisherAPIService) PublisherControllerTagExecute(r ApiPublisherContro
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPublisherControllerUpdateAppRequest struct {
@@ -1405,12 +1959,16 @@ func (r ApiPublisherControllerUpdateAppRequest) UpdateAppDto(updateAppDto Update
 	return r
 }
 
-func (r ApiPublisherControllerUpdateAppRequest) Execute() (*http.Response, error) {
+func (r ApiPublisherControllerUpdateAppRequest) Execute() (*PubProperty, *http.Response, error) {
 	return r.ApiService.PublisherControllerUpdateAppExecute(r)
 }
 
 /*
-PublisherControllerUpdateApp Method for PublisherControllerUpdateApp
+PublisherControllerUpdateApp Update app-ads.txt, SKAdNetwork and CTV metadata
+
+Patches only the fields sent: `appAdsTxt` (authorized-seller entries `{domain, sellerId, relationship?, certId?}`, normalized and invalid ones dropped), `skadnetworkIds`, `ctvMeta`, `storeUrl`, `platform`. Republishes the serving index. 404/403 as for get.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1425,16 +1983,18 @@ func (a *PublisherAPIService) PublisherControllerUpdateApp(ctx context.Context, 
 }
 
 // Execute executes the request
-func (a *PublisherAPIService) PublisherControllerUpdateAppExecute(r ApiPublisherControllerUpdateAppRequest) (*http.Response, error) {
+//  @return PubProperty
+func (a *PublisherAPIService) PublisherControllerUpdateAppExecute(r ApiPublisherControllerUpdateAppRequest) (*PubProperty, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPatch
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PubProperty
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherAPIService.PublisherControllerUpdateApp")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/apps/{id}"
@@ -1444,7 +2004,7 @@ func (a *PublisherAPIService) PublisherControllerUpdateAppExecute(r ApiPublisher
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.updateAppDto == nil {
-		return nil, reportError("updateAppDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("updateAppDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1457,7 +2017,7 @@ func (a *PublisherAPIService) PublisherControllerUpdateAppExecute(r ApiPublisher
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1466,21 +2026,35 @@ func (a *PublisherAPIService) PublisherControllerUpdateAppExecute(r ApiPublisher
 	}
 	// body params
 	localVarPostBody = r.updateAppDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1488,10 +2062,19 @@ func (a *PublisherAPIService) PublisherControllerUpdateAppExecute(r ApiPublisher
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPublisherControllerUpdatePlacementRequest struct {
@@ -1506,12 +2089,16 @@ func (r ApiPublisherControllerUpdatePlacementRequest) UpdatePlacementDto(updateP
 	return r
 }
 
-func (r ApiPublisherControllerUpdatePlacementRequest) Execute() (*http.Response, error) {
+func (r ApiPublisherControllerUpdatePlacementRequest) Execute() (*PubPlacement, *http.Response, error) {
 	return r.ApiService.PublisherControllerUpdatePlacementExecute(r)
 }
 
 /*
-PublisherControllerUpdatePlacement Method for PublisherControllerUpdatePlacement
+PublisherControllerUpdatePlacement Update a placement
+
+Patches `name`, `floorCpm`, `revShare`, `auctionType`, `passbackUrl`, `status` (`active`/`paused`), house/yield flags, and the dynamic-floor settings `floorAuto` (let the yield optimizer manage the floor) and `floorSoft` (soft reserve). Returns the updated row and republishes the serving index. 404 if the placement is not found among your properties.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1526,16 +2113,18 @@ func (a *PublisherAPIService) PublisherControllerUpdatePlacement(ctx context.Con
 }
 
 // Execute executes the request
-func (a *PublisherAPIService) PublisherControllerUpdatePlacementExecute(r ApiPublisherControllerUpdatePlacementRequest) (*http.Response, error) {
+//  @return PubPlacement
+func (a *PublisherAPIService) PublisherControllerUpdatePlacementExecute(r ApiPublisherControllerUpdatePlacementRequest) (*PubPlacement, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPatch
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PubPlacement
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherAPIService.PublisherControllerUpdatePlacement")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/placements/{id}"
@@ -1545,7 +2134,7 @@ func (a *PublisherAPIService) PublisherControllerUpdatePlacementExecute(r ApiPub
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.updatePlacementDto == nil {
-		return nil, reportError("updatePlacementDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("updatePlacementDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1558,7 +2147,7 @@ func (a *PublisherAPIService) PublisherControllerUpdatePlacementExecute(r ApiPub
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1567,21 +2156,35 @@ func (a *PublisherAPIService) PublisherControllerUpdatePlacementExecute(r ApiPub
 	}
 	// body params
 	localVarPostBody = r.updatePlacementDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1589,10 +2192,19 @@ func (a *PublisherAPIService) PublisherControllerUpdatePlacementExecute(r ApiPub
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPublisherControllerUpdatePropertyRequest struct {
@@ -1607,12 +2219,16 @@ func (r ApiPublisherControllerUpdatePropertyRequest) UpdatePropertyDto(updatePro
 	return r
 }
 
-func (r ApiPublisherControllerUpdatePropertyRequest) Execute() (*http.Response, error) {
+func (r ApiPublisherControllerUpdatePropertyRequest) Execute() (*PubProperty, *http.Response, error) {
 	return r.ApiService.PublisherControllerUpdatePropertyExecute(r)
 }
 
 /*
-PublisherControllerUpdateProperty Method for PublisherControllerUpdateProperty
+PublisherControllerUpdateProperty Update a property
+
+Patches `name`, `domain`, `category`, `verificationMethod` and `crossFill` (opt in to filling this property with other-network demand). Changing `domain` resets `verification_status` to `unverified`, so the property must be re-verified. Returns the updated row (unchanged row if no fields were sent) and republishes the serving index. 404 if the property does not exist, 403 if another publisher owns it.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1627,16 +2243,18 @@ func (a *PublisherAPIService) PublisherControllerUpdateProperty(ctx context.Cont
 }
 
 // Execute executes the request
-func (a *PublisherAPIService) PublisherControllerUpdatePropertyExecute(r ApiPublisherControllerUpdatePropertyRequest) (*http.Response, error) {
+//  @return PubProperty
+func (a *PublisherAPIService) PublisherControllerUpdatePropertyExecute(r ApiPublisherControllerUpdatePropertyRequest) (*PubProperty, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPatch
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PubProperty
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherAPIService.PublisherControllerUpdateProperty")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/properties/{id}"
@@ -1646,7 +2264,7 @@ func (a *PublisherAPIService) PublisherControllerUpdatePropertyExecute(r ApiPubl
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.updatePropertyDto == nil {
-		return nil, reportError("updatePropertyDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("updatePropertyDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1659,7 +2277,7 @@ func (a *PublisherAPIService) PublisherControllerUpdatePropertyExecute(r ApiPubl
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1668,21 +2286,35 @@ func (a *PublisherAPIService) PublisherControllerUpdatePropertyExecute(r ApiPubl
 	}
 	// body params
 	localVarPostBody = r.updatePropertyDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1690,10 +2322,19 @@ func (a *PublisherAPIService) PublisherControllerUpdatePropertyExecute(r ApiPubl
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPublisherControllerVerifyRequest struct {
@@ -1702,12 +2343,16 @@ type ApiPublisherControllerVerifyRequest struct {
 	id string
 }
 
-func (r ApiPublisherControllerVerifyRequest) Execute() (*http.Response, error) {
+func (r ApiPublisherControllerVerifyRequest) Execute() (*PublisherControllerVerify201Response, *http.Response, error) {
 	return r.ApiService.PublisherControllerVerifyExecute(r)
 }
 
 /*
-PublisherControllerVerify Method for PublisherControllerVerify
+PublisherControllerVerify Verify property ownership
+
+Checks the property for its verification token using its method: `dns` looks up a TXT record at `adviverse-verify.<domain>`, `file` fetches `http://<domain>/.well-known/adviverse-verify.txt`, `meta` fetches the homepage and looks for the token. On success the property becomes `verified`, a `pending` property is auto-approved, and the serving index is republished so its placements start serving. A failed check is not an error: it returns `verified: false` with the token and method to show the publisher.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1722,16 +2367,18 @@ func (a *PublisherAPIService) PublisherControllerVerify(ctx context.Context, id 
 }
 
 // Execute executes the request
-func (a *PublisherAPIService) PublisherControllerVerifyExecute(r ApiPublisherControllerVerifyRequest) (*http.Response, error) {
+//  @return PublisherControllerVerify201Response
+func (a *PublisherAPIService) PublisherControllerVerifyExecute(r ApiPublisherControllerVerifyRequest) (*PublisherControllerVerify201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PublisherControllerVerify201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherAPIService.PublisherControllerVerify")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/properties/{id}/verify"
@@ -1751,28 +2398,42 @@ func (a *PublisherAPIService) PublisherControllerVerifyExecute(r ApiPublisherCon
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1780,10 +2441,19 @@ func (a *PublisherAPIService) PublisherControllerVerifyExecute(r ApiPublisherCon
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPublisherControllerVerifyServingDomainRequest struct {
@@ -1792,12 +2462,16 @@ type ApiPublisherControllerVerifyServingDomainRequest struct {
 	id string
 }
 
-func (r ApiPublisherControllerVerifyServingDomainRequest) Execute() (*http.Response, error) {
+func (r ApiPublisherControllerVerifyServingDomainRequest) Execute() (*PublisherControllerVerifyServingDomain201Response, *http.Response, error) {
 	return r.ApiService.PublisherControllerVerifyServingDomainExecute(r)
 }
 
 /*
-PublisherControllerVerifyServingDomain Method for PublisherControllerVerifyServingDomain
+PublisherControllerVerifyServingDomain Verify the first-party serving domain
+
+Checks that the serving domain CNAMEs to the serving edge (or, for flattened CNAME/ALIAS records, resolves to the same A records). Stores the result and refreshes the edge router config; once verified, generated tags load from `https://<serving_domain>` and the edge will issue TLS for it. 400 if no serving domain is set.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1812,16 +2486,18 @@ func (a *PublisherAPIService) PublisherControllerVerifyServingDomain(ctx context
 }
 
 // Execute executes the request
-func (a *PublisherAPIService) PublisherControllerVerifyServingDomainExecute(r ApiPublisherControllerVerifyServingDomainRequest) (*http.Response, error) {
+//  @return PublisherControllerVerifyServingDomain201Response
+func (a *PublisherAPIService) PublisherControllerVerifyServingDomainExecute(r ApiPublisherControllerVerifyServingDomainRequest) (*PublisherControllerVerifyServingDomain201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PublisherControllerVerifyServingDomain201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherAPIService.PublisherControllerVerifyServingDomain")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/properties/{id}/serving-domain/verify"
@@ -1841,28 +2517,42 @@ func (a *PublisherAPIService) PublisherControllerVerifyServingDomainExecute(r Ap
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1870,8 +2560,17 @@ func (a *PublisherAPIService) PublisherControllerVerifyServingDomainExecute(r Ap
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

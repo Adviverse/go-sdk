@@ -28,12 +28,16 @@ type ApiDoohControllerGetSetupRequest struct {
 	ApiService *DoohAPIService
 }
 
-func (r ApiDoohControllerGetSetupRequest) Execute() (*http.Response, error) {
+func (r ApiDoohControllerGetSetupRequest) Execute() (*SupDoohPartner, *http.Response, error) {
 	return r.ApiService.DoohControllerGetSetupExecute(r)
 }
 
 /*
-DoohControllerGetSetup Method for DoohControllerGetSetup
+DoohControllerGetSetup Get your DOOH network registration
+
+Returns the account's DOOH partner registration (company, contact, screen count, venue types, integration, onboarding status), or null if it has not registered one.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiDoohControllerGetSetupRequest
@@ -46,16 +50,18 @@ func (a *DoohAPIService) DoohControllerGetSetup(ctx context.Context) ApiDoohCont
 }
 
 // Execute executes the request
-func (a *DoohAPIService) DoohControllerGetSetupExecute(r ApiDoohControllerGetSetupRequest) (*http.Response, error) {
+//  @return SupDoohPartner
+func (a *DoohAPIService) DoohControllerGetSetupExecute(r ApiDoohControllerGetSetupRequest) (*SupDoohPartner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SupDoohPartner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DoohAPIService.DoohControllerGetSetup")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/dooh/setup"
@@ -74,28 +80,42 @@ func (a *DoohAPIService) DoohControllerGetSetupExecute(r ApiDoohControllerGetSet
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -103,10 +123,19 @@ func (a *DoohAPIService) DoohControllerGetSetupExecute(r ApiDoohControllerGetSet
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiDoohControllerListRequest struct {
@@ -120,12 +149,16 @@ func (r ApiDoohControllerListRequest) Status(status string) ApiDoohControllerLis
 	return r
 }
 
-func (r ApiDoohControllerListRequest) Execute() (*http.Response, error) {
+func (r ApiDoohControllerListRequest) Execute() ([]DoohControllerList200ResponseInner, *http.Response, error) {
 	return r.ApiService.DoohControllerListExecute(r)
 }
 
 /*
-DoohControllerList Method for DoohControllerList
+DoohControllerList List DOOH partner registrations
+
+Admin view of up to 500 DOOH registrations, newest first, each with the registering account's email. Optional `?status=` filters by new, contacted, onboarding, live or rejected (other values are ignored).
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiDoohControllerListRequest
@@ -138,16 +171,18 @@ func (a *DoohAPIService) DoohControllerList(ctx context.Context) ApiDoohControll
 }
 
 // Execute executes the request
-func (a *DoohAPIService) DoohControllerListExecute(r ApiDoohControllerListRequest) (*http.Response, error) {
+//  @return []DoohControllerList200ResponseInner
+func (a *DoohAPIService) DoohControllerListExecute(r ApiDoohControllerListRequest) ([]DoohControllerList200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []DoohControllerList200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DoohAPIService.DoohControllerList")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/dooh/partners"
@@ -156,7 +191,7 @@ func (a *DoohAPIService) DoohControllerListExecute(r ApiDoohControllerListReques
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.status == nil {
-		return nil, reportError("status is required and must be specified")
+		return localVarReturnValue, nil, reportError("status is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "status", r.status, "form", "")
@@ -170,28 +205,42 @@ func (a *DoohAPIService) DoohControllerListExecute(r ApiDoohControllerListReques
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -199,10 +248,19 @@ func (a *DoohAPIService) DoohControllerListExecute(r ApiDoohControllerListReques
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiDoohControllerSaveSetupRequest struct {
@@ -216,12 +274,16 @@ func (r ApiDoohControllerSaveSetupRequest) DoohSetupDto(doohSetupDto DoohSetupDt
 	return r
 }
 
-func (r ApiDoohControllerSaveSetupRequest) Execute() (*http.Response, error) {
+func (r ApiDoohControllerSaveSetupRequest) Execute() (*DoohControllerSaveSetup201Response, *http.Response, error) {
 	return r.ApiService.DoohControllerSaveSetupExecute(r)
 }
 
 /*
-DoohControllerSaveSetup Method for DoohControllerSaveSetup
+DoohControllerSaveSetup Create or update your DOOH network registration
+
+Upserts the account's single DOOH registration. `company` is required; `contactName`, `email`, `website`, `country`, `screenCount`, `venueTypes` (max 20), `integration` and `notes` are optional and trimmed to length limits. Returns the row id and its current onboarding status. 400 if `company` is empty.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiDoohControllerSaveSetupRequest
@@ -234,16 +296,18 @@ func (a *DoohAPIService) DoohControllerSaveSetup(ctx context.Context) ApiDoohCon
 }
 
 // Execute executes the request
-func (a *DoohAPIService) DoohControllerSaveSetupExecute(r ApiDoohControllerSaveSetupRequest) (*http.Response, error) {
+//  @return DoohControllerSaveSetup201Response
+func (a *DoohAPIService) DoohControllerSaveSetupExecute(r ApiDoohControllerSaveSetupRequest) (*DoohControllerSaveSetup201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *DoohControllerSaveSetup201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DoohAPIService.DoohControllerSaveSetup")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/dooh/setup"
@@ -252,7 +316,7 @@ func (a *DoohAPIService) DoohControllerSaveSetupExecute(r ApiDoohControllerSaveS
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.doohSetupDto == nil {
-		return nil, reportError("doohSetupDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("doohSetupDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -265,7 +329,7 @@ func (a *DoohAPIService) DoohControllerSaveSetupExecute(r ApiDoohControllerSaveS
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -274,21 +338,35 @@ func (a *DoohAPIService) DoohControllerSaveSetupExecute(r ApiDoohControllerSaveS
 	}
 	// body params
 	localVarPostBody = r.doohSetupDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -296,10 +374,19 @@ func (a *DoohAPIService) DoohControllerSaveSetupExecute(r ApiDoohControllerSaveS
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiDoohControllerSetStatusRequest struct {
@@ -308,12 +395,16 @@ type ApiDoohControllerSetStatusRequest struct {
 	id string
 }
 
-func (r ApiDoohControllerSetStatusRequest) Execute() (*http.Response, error) {
+func (r ApiDoohControllerSetStatusRequest) Execute() (*AuthControllerResendVerification201Response, *http.Response, error) {
 	return r.ApiService.DoohControllerSetStatusExecute(r)
 }
 
 /*
-DoohControllerSetStatus Method for DoohControllerSetStatus
+DoohControllerSetStatus Set a DOOH registration's onboarding status
+
+Moves a registration to `status` new, contacted, onboarding, live or rejected. 400 for any other value. Returns ok even if the id does not exist.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -328,16 +419,18 @@ func (a *DoohAPIService) DoohControllerSetStatus(ctx context.Context, id string)
 }
 
 // Execute executes the request
-func (a *DoohAPIService) DoohControllerSetStatusExecute(r ApiDoohControllerSetStatusRequest) (*http.Response, error) {
+//  @return AuthControllerResendVerification201Response
+func (a *DoohAPIService) DoohControllerSetStatusExecute(r ApiDoohControllerSetStatusRequest) (*AuthControllerResendVerification201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPatch
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AuthControllerResendVerification201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DoohAPIService.DoohControllerSetStatus")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/dooh/partners/{id}"
@@ -357,28 +450,42 @@ func (a *DoohAPIService) DoohControllerSetStatusExecute(r ApiDoohControllerSetSt
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -386,10 +493,19 @@ func (a *DoohAPIService) DoohControllerSetStatusExecute(r ApiDoohControllerSetSt
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiScreensControllerAdminScreensRequest struct {
@@ -397,12 +513,16 @@ type ApiScreensControllerAdminScreensRequest struct {
 	ApiService *DoohAPIService
 }
 
-func (r ApiScreensControllerAdminScreensRequest) Execute() (*http.Response, error) {
+func (r ApiScreensControllerAdminScreensRequest) Execute() ([]ScreensControllerAdminScreens200ResponseInner, *http.Response, error) {
 	return r.ApiService.ScreensControllerAdminScreensExecute(r)
 }
 
 /*
-ScreensControllerAdminScreens Method for ScreensControllerAdminScreens
+ScreensControllerAdminScreens List all paired DOOH screens
+
+Admin fleet overview: up to 2000 claimed screens across all accounts, newest first, with serving tag and owner email.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiScreensControllerAdminScreensRequest
@@ -415,16 +535,18 @@ func (a *DoohAPIService) ScreensControllerAdminScreens(ctx context.Context) ApiS
 }
 
 // Execute executes the request
-func (a *DoohAPIService) ScreensControllerAdminScreensExecute(r ApiScreensControllerAdminScreensRequest) (*http.Response, error) {
+//  @return []ScreensControllerAdminScreens200ResponseInner
+func (a *DoohAPIService) ScreensControllerAdminScreensExecute(r ApiScreensControllerAdminScreensRequest) ([]ScreensControllerAdminScreens200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []ScreensControllerAdminScreens200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DoohAPIService.ScreensControllerAdminScreens")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/dooh/screens"
@@ -443,28 +565,42 @@ func (a *DoohAPIService) ScreensControllerAdminScreensExecute(r ApiScreensContro
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -472,10 +608,19 @@ func (a *DoohAPIService) ScreensControllerAdminScreensExecute(r ApiScreensContro
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiScreensControllerAdvertiserPlaysRequest struct {
@@ -495,12 +640,16 @@ func (r ApiScreensControllerAdvertiserPlaysRequest) To(to string) ApiScreensCont
 	return r
 }
 
-func (r ApiScreensControllerAdvertiserPlaysRequest) Execute() (*http.Response, error) {
+func (r ApiScreensControllerAdvertiserPlaysRequest) Execute() (*SupDoohPlayReport, *http.Response, error) {
 	return r.ApiService.ScreensControllerAdvertiserPlaysExecute(r)
 }
 
 /*
-ScreensControllerAdvertiserPlays Method for ScreensControllerAdvertiserPlays
+ScreensControllerAdvertiserPlays Get DOOH proof-of-play for your campaigns
+
+Advertiser verification report over your campaigns' DOOH plays between `from` and `to` (default last 30 days), including venue name and any screenshot attestation per play. Same shape as the publisher report.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiScreensControllerAdvertiserPlaysRequest
@@ -513,16 +662,18 @@ func (a *DoohAPIService) ScreensControllerAdvertiserPlays(ctx context.Context) A
 }
 
 // Execute executes the request
-func (a *DoohAPIService) ScreensControllerAdvertiserPlaysExecute(r ApiScreensControllerAdvertiserPlaysRequest) (*http.Response, error) {
+//  @return SupDoohPlayReport
+func (a *DoohAPIService) ScreensControllerAdvertiserPlaysExecute(r ApiScreensControllerAdvertiserPlaysRequest) (*SupDoohPlayReport, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SupDoohPlayReport
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DoohAPIService.ScreensControllerAdvertiserPlays")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/dooh/plays"
@@ -531,10 +682,10 @@ func (a *DoohAPIService) ScreensControllerAdvertiserPlaysExecute(r ApiScreensCon
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.from == nil {
-		return nil, reportError("from is required and must be specified")
+		return localVarReturnValue, nil, reportError("from is required and must be specified")
 	}
 	if r.to == nil {
-		return nil, reportError("to is required and must be specified")
+		return localVarReturnValue, nil, reportError("to is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "from", r.from, "form", "")
@@ -549,28 +700,42 @@ func (a *DoohAPIService) ScreensControllerAdvertiserPlaysExecute(r ApiScreensCon
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -578,10 +743,19 @@ func (a *DoohAPIService) ScreensControllerAdvertiserPlaysExecute(r ApiScreensCon
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiScreensControllerAttestRequest struct {
@@ -589,12 +763,16 @@ type ApiScreensControllerAttestRequest struct {
 	ApiService *DoohAPIService
 }
 
-func (r ApiScreensControllerAttestRequest) Execute() (*http.Response, error) {
+func (r ApiScreensControllerAttestRequest) Execute() (*ScreensControllerAttest201Response, *http.Response, error) {
 	return r.ApiService.ScreensControllerAttestExecute(r)
 }
 
 /*
-ScreensControllerAttest Method for ScreensControllerAttest
+ScreensControllerAttest Upload a proof-of-play screenshot
+
+Public, rate-limited endpoint used by the native DOOH player, authenticated by the active screen's serving `tag`. Body `image` is a base64 JPEG (data-URL prefix allowed, max ~2.5 MB). The image is stored and attached to the play identified by `popToken`, or to the screen's most recent play if omitted, and also counts as a heartbeat. 400 if tag/image are missing or the image is invalid, 404 if the tag is not an active screen.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiScreensControllerAttestRequest
@@ -607,16 +785,18 @@ func (a *DoohAPIService) ScreensControllerAttest(ctx context.Context) ApiScreens
 }
 
 // Execute executes the request
-func (a *DoohAPIService) ScreensControllerAttestExecute(r ApiScreensControllerAttestRequest) (*http.Response, error) {
+//  @return ScreensControllerAttest201Response
+func (a *DoohAPIService) ScreensControllerAttestExecute(r ApiScreensControllerAttestRequest) (*ScreensControllerAttest201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ScreensControllerAttest201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DoohAPIService.ScreensControllerAttest")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/dooh/attest"
@@ -635,7 +815,7 @@ func (a *DoohAPIService) ScreensControllerAttestExecute(r ApiScreensControllerAt
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -644,19 +824,19 @@ func (a *DoohAPIService) ScreensControllerAttestExecute(r ApiScreensControllerAt
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -664,10 +844,19 @@ func (a *DoohAPIService) ScreensControllerAttestExecute(r ApiScreensControllerAt
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiScreensControllerClaimRequest struct {
@@ -681,12 +870,16 @@ func (r ApiScreensControllerClaimRequest) ClaimScreenDto(claimScreenDto ClaimScr
 	return r
 }
 
-func (r ApiScreensControllerClaimRequest) Execute() (*http.Response, error) {
+func (r ApiScreensControllerClaimRequest) Execute() (*SupDoohScreen, *http.Response, error) {
 	return r.ApiService.ScreensControllerClaimExecute(r)
 }
 
 /*
-ScreensControllerClaim Method for ScreensControllerClaim
+ScreensControllerClaim Claim a DOOH screen by its pairing code
+
+Attaches the pending screen showing `code` to your account and starts serving: creates a `dooh` placement under your DOOH property (created on first use) and stores venue details (`venueName`, `venueType`, `orientation`, resolution, `lat`/`lng`, `timezone`, `loopSeconds` default 8, `floorCpm`, `audienceMultiplier` default 1). Republishes the serving index. 404 if no screen is waiting for that code.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiScreensControllerClaimRequest
@@ -699,16 +892,18 @@ func (a *DoohAPIService) ScreensControllerClaim(ctx context.Context) ApiScreensC
 }
 
 // Execute executes the request
-func (a *DoohAPIService) ScreensControllerClaimExecute(r ApiScreensControllerClaimRequest) (*http.Response, error) {
+//  @return SupDoohScreen
+func (a *DoohAPIService) ScreensControllerClaimExecute(r ApiScreensControllerClaimRequest) (*SupDoohScreen, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SupDoohScreen
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DoohAPIService.ScreensControllerClaim")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/dooh/screens/claim"
@@ -717,7 +912,7 @@ func (a *DoohAPIService) ScreensControllerClaimExecute(r ApiScreensControllerCla
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.claimScreenDto == nil {
-		return nil, reportError("claimScreenDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("claimScreenDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -730,7 +925,7 @@ func (a *DoohAPIService) ScreensControllerClaimExecute(r ApiScreensControllerCla
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -739,21 +934,35 @@ func (a *DoohAPIService) ScreensControllerClaimExecute(r ApiScreensControllerCla
 	}
 	// body params
 	localVarPostBody = r.claimScreenDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -761,10 +970,19 @@ func (a *DoohAPIService) ScreensControllerClaimExecute(r ApiScreensControllerCla
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiScreensControllerGetRequest struct {
@@ -773,12 +991,16 @@ type ApiScreensControllerGetRequest struct {
 	id string
 }
 
-func (r ApiScreensControllerGetRequest) Execute() (*http.Response, error) {
+func (r ApiScreensControllerGetRequest) Execute() (*SupDoohScreen, *http.Response, error) {
 	return r.ApiService.ScreensControllerGetExecute(r)
 }
 
 /*
-ScreensControllerGet Method for ScreensControllerGet
+ScreensControllerGet Get a DOOH screen
+
+Returns one of your screens with its serving tag. 404 if it does not exist, 403 if another account owns it.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -793,16 +1015,18 @@ func (a *DoohAPIService) ScreensControllerGet(ctx context.Context, id string) Ap
 }
 
 // Execute executes the request
-func (a *DoohAPIService) ScreensControllerGetExecute(r ApiScreensControllerGetRequest) (*http.Response, error) {
+//  @return SupDoohScreen
+func (a *DoohAPIService) ScreensControllerGetExecute(r ApiScreensControllerGetRequest) (*SupDoohScreen, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SupDoohScreen
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DoohAPIService.ScreensControllerGet")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/dooh/screens/{id}"
@@ -822,28 +1046,42 @@ func (a *DoohAPIService) ScreensControllerGetExecute(r ApiScreensControllerGetRe
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -851,10 +1089,19 @@ func (a *DoohAPIService) ScreensControllerGetExecute(r ApiScreensControllerGetRe
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiScreensControllerListRequest struct {
@@ -862,12 +1109,16 @@ type ApiScreensControllerListRequest struct {
 	ApiService *DoohAPIService
 }
 
-func (r ApiScreensControllerListRequest) Execute() (*http.Response, error) {
+func (r ApiScreensControllerListRequest) Execute() ([]ScreensControllerList200ResponseInner, *http.Response, error) {
 	return r.ApiService.ScreensControllerListExecute(r)
 }
 
 /*
-ScreensControllerList Method for ScreensControllerList
+ScreensControllerList List your DOOH screens
+
+Returns your screen fleet, newest first, with `online` (heartbeat within 5 minutes) and the latest heartbeat time and player version taken from live heartbeat data when available.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiScreensControllerListRequest
@@ -880,16 +1131,18 @@ func (a *DoohAPIService) ScreensControllerList(ctx context.Context) ApiScreensCo
 }
 
 // Execute executes the request
-func (a *DoohAPIService) ScreensControllerListExecute(r ApiScreensControllerListRequest) (*http.Response, error) {
+//  @return []ScreensControllerList200ResponseInner
+func (a *DoohAPIService) ScreensControllerListExecute(r ApiScreensControllerListRequest) ([]ScreensControllerList200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []ScreensControllerList200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DoohAPIService.ScreensControllerList")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/dooh/screens"
@@ -908,28 +1161,42 @@ func (a *DoohAPIService) ScreensControllerListExecute(r ApiScreensControllerList
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -937,10 +1204,19 @@ func (a *DoohAPIService) ScreensControllerListExecute(r ApiScreensControllerList
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiScreensControllerPairInitRequest struct {
@@ -954,12 +1230,16 @@ func (r ApiScreensControllerPairInitRequest) PairInitDto(pairInitDto PairInitDto
 	return r
 }
 
-func (r ApiScreensControllerPairInitRequest) Execute() (*http.Response, error) {
+func (r ApiScreensControllerPairInitRequest) Execute() (*ScreensControllerPairInit201Response, *http.Response, error) {
 	return r.ApiService.ScreensControllerPairInitExecute(r)
 }
 
 /*
-ScreensControllerPairInit Method for ScreensControllerPairInit
+ScreensControllerPairInit Start pairing a DOOH screen
+
+Public, rate-limited endpoint the DOOH player calls on first boot. Creates a pending screen and returns a human-readable `pairingCode` to show on the display plus a secret `pollToken`. Optional body `version` records the player version.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiScreensControllerPairInitRequest
@@ -972,16 +1252,18 @@ func (a *DoohAPIService) ScreensControllerPairInit(ctx context.Context) ApiScree
 }
 
 // Execute executes the request
-func (a *DoohAPIService) ScreensControllerPairInitExecute(r ApiScreensControllerPairInitRequest) (*http.Response, error) {
+//  @return ScreensControllerPairInit201Response
+func (a *DoohAPIService) ScreensControllerPairInitExecute(r ApiScreensControllerPairInitRequest) (*ScreensControllerPairInit201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ScreensControllerPairInit201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DoohAPIService.ScreensControllerPairInit")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/dooh/pair-init"
@@ -990,7 +1272,7 @@ func (a *DoohAPIService) ScreensControllerPairInitExecute(r ApiScreensController
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.pairInitDto == nil {
-		return nil, reportError("pairInitDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("pairInitDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1003,7 +1285,7 @@ func (a *DoohAPIService) ScreensControllerPairInitExecute(r ApiScreensController
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1014,19 +1296,19 @@ func (a *DoohAPIService) ScreensControllerPairInitExecute(r ApiScreensController
 	localVarPostBody = r.pairInitDto
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1034,10 +1316,19 @@ func (a *DoohAPIService) ScreensControllerPairInitExecute(r ApiScreensController
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiScreensControllerPairStatusRequest struct {
@@ -1051,12 +1342,16 @@ func (r ApiScreensControllerPairStatusRequest) PollToken(pollToken string) ApiSc
 	return r
 }
 
-func (r ApiScreensControllerPairStatusRequest) Execute() (*http.Response, error) {
+func (r ApiScreensControllerPairStatusRequest) Execute() (*ScreensControllerPairStatus200Response, *http.Response, error) {
 	return r.ApiService.ScreensControllerPairStatusExecute(r)
 }
 
 /*
-ScreensControllerPairStatus Method for ScreensControllerPairStatus
+ScreensControllerPairStatus Poll a DOOH screen's pairing status
+
+Public, rate-limited. The player polls with `?pollToken=` until a publisher claims its code; then it receives its serving `tag` and `servingBase`. 404 for an unknown poll token.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiScreensControllerPairStatusRequest
@@ -1069,16 +1364,18 @@ func (a *DoohAPIService) ScreensControllerPairStatus(ctx context.Context) ApiScr
 }
 
 // Execute executes the request
-func (a *DoohAPIService) ScreensControllerPairStatusExecute(r ApiScreensControllerPairStatusRequest) (*http.Response, error) {
+//  @return ScreensControllerPairStatus200Response
+func (a *DoohAPIService) ScreensControllerPairStatusExecute(r ApiScreensControllerPairStatusRequest) (*ScreensControllerPairStatus200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ScreensControllerPairStatus200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DoohAPIService.ScreensControllerPairStatus")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/dooh/pair-status"
@@ -1087,7 +1384,7 @@ func (a *DoohAPIService) ScreensControllerPairStatusExecute(r ApiScreensControll
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.pollToken == nil {
-		return nil, reportError("pollToken is required and must be specified")
+		return localVarReturnValue, nil, reportError("pollToken is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "pollToken", r.pollToken, "form", "")
@@ -1101,7 +1398,7 @@ func (a *DoohAPIService) ScreensControllerPairStatusExecute(r ApiScreensControll
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1110,19 +1407,19 @@ func (a *DoohAPIService) ScreensControllerPairStatusExecute(r ApiScreensControll
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1130,10 +1427,19 @@ func (a *DoohAPIService) ScreensControllerPairStatusExecute(r ApiScreensControll
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiScreensControllerPublisherPlaysRequest struct {
@@ -1153,12 +1459,16 @@ func (r ApiScreensControllerPublisherPlaysRequest) To(to string) ApiScreensContr
 	return r
 }
 
-func (r ApiScreensControllerPublisherPlaysRequest) Execute() (*http.Response, error) {
+func (r ApiScreensControllerPublisherPlaysRequest) Execute() (*SupDoohPlayReport, *http.Response, error) {
 	return r.ApiService.ScreensControllerPublisherPlaysExecute(r)
 }
 
 /*
-ScreensControllerPublisherPlays Method for ScreensControllerPublisherPlays
+ScreensControllerPublisherPlays Get your DOOH proof-of-play report
+
+Summarizes and lists (up to 2000) plays on your screens between `from` and `to` (ISO dates; default last 30 days): play and completion counts, completion rate (0-1), spend on completed plays, and distinct screens.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiScreensControllerPublisherPlaysRequest
@@ -1171,16 +1481,18 @@ func (a *DoohAPIService) ScreensControllerPublisherPlays(ctx context.Context) Ap
 }
 
 // Execute executes the request
-func (a *DoohAPIService) ScreensControllerPublisherPlaysExecute(r ApiScreensControllerPublisherPlaysRequest) (*http.Response, error) {
+//  @return SupDoohPlayReport
+func (a *DoohAPIService) ScreensControllerPublisherPlaysExecute(r ApiScreensControllerPublisherPlaysRequest) (*SupDoohPlayReport, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SupDoohPlayReport
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DoohAPIService.ScreensControllerPublisherPlays")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/dooh/plays"
@@ -1189,10 +1501,10 @@ func (a *DoohAPIService) ScreensControllerPublisherPlaysExecute(r ApiScreensCont
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.from == nil {
-		return nil, reportError("from is required and must be specified")
+		return localVarReturnValue, nil, reportError("from is required and must be specified")
 	}
 	if r.to == nil {
-		return nil, reportError("to is required and must be specified")
+		return localVarReturnValue, nil, reportError("to is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "from", r.from, "form", "")
@@ -1207,28 +1519,42 @@ func (a *DoohAPIService) ScreensControllerPublisherPlaysExecute(r ApiScreensCont
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1236,10 +1562,19 @@ func (a *DoohAPIService) ScreensControllerPublisherPlaysExecute(r ApiScreensCont
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiScreensControllerSetStatusRequest struct {
@@ -1254,12 +1589,16 @@ func (r ApiScreensControllerSetStatusRequest) SetScreenStatusDto(setScreenStatus
 	return r
 }
 
-func (r ApiScreensControllerSetStatusRequest) Execute() (*http.Response, error) {
+func (r ApiScreensControllerSetStatusRequest) Execute() (*ScreensControllerSetStatus201Response, *http.Response, error) {
 	return r.ApiService.ScreensControllerSetStatusExecute(r)
 }
 
 /*
-ScreensControllerSetStatus Method for ScreensControllerSetStatus
+ScreensControllerSetStatus Pause or activate a DOOH screen
+
+Sets `status` (`active` or `paused`) on both the screen and its placement, then republishes the index so serving stops or resumes. 400 if not paired yet; 404/403 as for get.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1274,16 +1613,18 @@ func (a *DoohAPIService) ScreensControllerSetStatus(ctx context.Context, id stri
 }
 
 // Execute executes the request
-func (a *DoohAPIService) ScreensControllerSetStatusExecute(r ApiScreensControllerSetStatusRequest) (*http.Response, error) {
+//  @return ScreensControllerSetStatus201Response
+func (a *DoohAPIService) ScreensControllerSetStatusExecute(r ApiScreensControllerSetStatusRequest) (*ScreensControllerSetStatus201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ScreensControllerSetStatus201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DoohAPIService.ScreensControllerSetStatus")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/dooh/screens/{id}/status"
@@ -1293,7 +1634,7 @@ func (a *DoohAPIService) ScreensControllerSetStatusExecute(r ApiScreensControlle
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.setScreenStatusDto == nil {
-		return nil, reportError("setScreenStatusDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("setScreenStatusDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1306,7 +1647,7 @@ func (a *DoohAPIService) ScreensControllerSetStatusExecute(r ApiScreensControlle
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1315,21 +1656,35 @@ func (a *DoohAPIService) ScreensControllerSetStatusExecute(r ApiScreensControlle
 	}
 	// body params
 	localVarPostBody = r.setScreenStatusDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1337,10 +1692,19 @@ func (a *DoohAPIService) ScreensControllerSetStatusExecute(r ApiScreensControlle
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiScreensControllerUpdateRequest struct {
@@ -1355,12 +1719,16 @@ func (r ApiScreensControllerUpdateRequest) UpdateScreenDto(updateScreenDto Updat
 	return r
 }
 
-func (r ApiScreensControllerUpdateRequest) Execute() (*http.Response, error) {
+func (r ApiScreensControllerUpdateRequest) Execute() (*SupDoohScreen, *http.Response, error) {
 	return r.ApiService.ScreensControllerUpdateExecute(r)
 }
 
 /*
-ScreensControllerUpdate Method for ScreensControllerUpdate
+ScreensControllerUpdate Update a DOOH screen
+
+Edits `venueName`, `venueType`, `orientation`, `loopSeconds`, `floorCpm` and `audienceMultiplier` on a paired screen, keeping its placement settings in sync, and republishes the index. 400 if the screen is not paired yet; 404/403 as for get.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1375,16 +1743,18 @@ func (a *DoohAPIService) ScreensControllerUpdate(ctx context.Context, id string)
 }
 
 // Execute executes the request
-func (a *DoohAPIService) ScreensControllerUpdateExecute(r ApiScreensControllerUpdateRequest) (*http.Response, error) {
+//  @return SupDoohScreen
+func (a *DoohAPIService) ScreensControllerUpdateExecute(r ApiScreensControllerUpdateRequest) (*SupDoohScreen, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPatch
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SupDoohScreen
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DoohAPIService.ScreensControllerUpdate")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/dooh/screens/{id}"
@@ -1394,7 +1764,7 @@ func (a *DoohAPIService) ScreensControllerUpdateExecute(r ApiScreensControllerUp
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.updateScreenDto == nil {
-		return nil, reportError("updateScreenDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("updateScreenDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1407,7 +1777,7 @@ func (a *DoohAPIService) ScreensControllerUpdateExecute(r ApiScreensControllerUp
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1416,21 +1786,35 @@ func (a *DoohAPIService) ScreensControllerUpdateExecute(r ApiScreensControllerUp
 	}
 	// body params
 	localVarPostBody = r.updateScreenDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1438,8 +1822,17 @@ func (a *DoohAPIService) ScreensControllerUpdateExecute(r ApiScreensControllerUp
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

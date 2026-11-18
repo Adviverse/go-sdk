@@ -34,12 +34,16 @@ func (r ApiGuidesControllerAdminListRequest) Locale(locale string) ApiGuidesCont
 	return r
 }
 
-func (r ApiGuidesControllerAdminListRequest) Execute() (*http.Response, error) {
+func (r ApiGuidesControllerAdminListRequest) Execute() ([]Guide, *http.Response, error) {
 	return r.ApiService.GuidesControllerAdminListExecute(r)
 }
 
 /*
-GuidesControllerAdminList Method for GuidesControllerAdminList
+GuidesControllerAdminList List all guides
+
+Returns every guide, including unpublished ones, optionally filtered by `locale`.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiGuidesControllerAdminListRequest
@@ -52,16 +56,18 @@ func (a *GuidesAPIService) GuidesControllerAdminList(ctx context.Context) ApiGui
 }
 
 // Execute executes the request
-func (a *GuidesAPIService) GuidesControllerAdminListExecute(r ApiGuidesControllerAdminListRequest) (*http.Response, error) {
+//  @return []Guide
+func (a *GuidesAPIService) GuidesControllerAdminListExecute(r ApiGuidesControllerAdminListRequest) ([]Guide, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []Guide
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "GuidesAPIService.GuidesControllerAdminList")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/guides"
@@ -70,7 +76,7 @@ func (a *GuidesAPIService) GuidesControllerAdminListExecute(r ApiGuidesControlle
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.locale == nil {
-		return nil, reportError("locale is required and must be specified")
+		return localVarReturnValue, nil, reportError("locale is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "locale", r.locale, "form", "")
@@ -84,28 +90,42 @@ func (a *GuidesAPIService) GuidesControllerAdminListExecute(r ApiGuidesControlle
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -113,10 +133,19 @@ func (a *GuidesAPIService) GuidesControllerAdminListExecute(r ApiGuidesControlle
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiGuidesControllerCreateRequest struct {
@@ -130,12 +159,16 @@ func (r ApiGuidesControllerCreateRequest) CreateGuideDto(createGuideDto CreateGu
 	return r
 }
 
-func (r ApiGuidesControllerCreateRequest) Execute() (*http.Response, error) {
+func (r ApiGuidesControllerCreateRequest) Execute() (*Guide, *http.Response, error) {
 	return r.ApiService.GuidesControllerCreateExecute(r)
 }
 
 /*
-GuidesControllerCreate Method for GuidesControllerCreate
+GuidesControllerCreate Create or replace a guide
+
+Creates a guide from `slug` and `title` with optional `locale` (`en`), `category` (`Guides`), `summary`, Markdown `body`, `position` (0) and `published` (true). An existing guide with the same slug and locale is overwritten (upsert). Clears the public read cache.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiGuidesControllerCreateRequest
@@ -148,16 +181,18 @@ func (a *GuidesAPIService) GuidesControllerCreate(ctx context.Context) ApiGuides
 }
 
 // Execute executes the request
-func (a *GuidesAPIService) GuidesControllerCreateExecute(r ApiGuidesControllerCreateRequest) (*http.Response, error) {
+//  @return Guide
+func (a *GuidesAPIService) GuidesControllerCreateExecute(r ApiGuidesControllerCreateRequest) (*Guide, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *Guide
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "GuidesAPIService.GuidesControllerCreate")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/guides"
@@ -166,7 +201,7 @@ func (a *GuidesAPIService) GuidesControllerCreateExecute(r ApiGuidesControllerCr
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.createGuideDto == nil {
-		return nil, reportError("createGuideDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("createGuideDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -179,7 +214,7 @@ func (a *GuidesAPIService) GuidesControllerCreateExecute(r ApiGuidesControllerCr
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -188,21 +223,35 @@ func (a *GuidesAPIService) GuidesControllerCreateExecute(r ApiGuidesControllerCr
 	}
 	// body params
 	localVarPostBody = r.createGuideDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -210,10 +259,19 @@ func (a *GuidesAPIService) GuidesControllerCreateExecute(r ApiGuidesControllerCr
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiGuidesControllerGetRequest struct {
@@ -228,12 +286,16 @@ func (r ApiGuidesControllerGetRequest) Locale(locale string) ApiGuidesController
 	return r
 }
 
-func (r ApiGuidesControllerGetRequest) Execute() (*http.Response, error) {
+func (r ApiGuidesControllerGetRequest) Execute() (*GuidesControllerGet200Response, *http.Response, error) {
 	return r.ApiService.GuidesControllerGetExecute(r)
 }
 
 /*
-GuidesControllerGet Method for GuidesControllerGet
+GuidesControllerGet Get a published guide
+
+Public. Returns a published guide by `slug` and `locale` (default `en`). An unknown or unpublished slug returns HTTP 200 with `{ error: "not_found" }`, not 404.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param slug
@@ -248,16 +310,18 @@ func (a *GuidesAPIService) GuidesControllerGet(ctx context.Context, slug string)
 }
 
 // Execute executes the request
-func (a *GuidesAPIService) GuidesControllerGetExecute(r ApiGuidesControllerGetRequest) (*http.Response, error) {
+//  @return GuidesControllerGet200Response
+func (a *GuidesAPIService) GuidesControllerGetExecute(r ApiGuidesControllerGetRequest) (*GuidesControllerGet200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *GuidesControllerGet200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "GuidesAPIService.GuidesControllerGet")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/guides/{slug}"
@@ -267,7 +331,7 @@ func (a *GuidesAPIService) GuidesControllerGetExecute(r ApiGuidesControllerGetRe
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.locale == nil {
-		return nil, reportError("locale is required and must be specified")
+		return localVarReturnValue, nil, reportError("locale is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "locale", r.locale, "form", "")
@@ -281,7 +345,7 @@ func (a *GuidesAPIService) GuidesControllerGetExecute(r ApiGuidesControllerGetRe
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -290,19 +354,19 @@ func (a *GuidesAPIService) GuidesControllerGetExecute(r ApiGuidesControllerGetRe
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -310,10 +374,19 @@ func (a *GuidesAPIService) GuidesControllerGetExecute(r ApiGuidesControllerGetRe
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiGuidesControllerIndexHtmlRequest struct {
@@ -321,12 +394,16 @@ type ApiGuidesControllerIndexHtmlRequest struct {
 	ApiService *GuidesAPIService
 }
 
-func (r ApiGuidesControllerIndexHtmlRequest) Execute() (*http.Response, error) {
+func (r ApiGuidesControllerIndexHtmlRequest) Execute() (string, *http.Response, error) {
 	return r.ApiService.GuidesControllerIndexHtmlExecute(r)
 }
 
 /*
-GuidesControllerIndexHtml Method for GuidesControllerIndexHtml
+GuidesControllerIndexHtml Render the public docs index page
+
+Public, server-rendered HTML for /guides: a card per published English guide plus category navigation. Cached (max-age 300, s-maxage 3600) for search engines.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiGuidesControllerIndexHtmlRequest
@@ -339,16 +416,18 @@ func (a *GuidesAPIService) GuidesControllerIndexHtml(ctx context.Context) ApiGui
 }
 
 // Execute executes the request
-func (a *GuidesAPIService) GuidesControllerIndexHtmlExecute(r ApiGuidesControllerIndexHtmlRequest) (*http.Response, error) {
+//  @return string
+func (a *GuidesAPIService) GuidesControllerIndexHtmlExecute(r ApiGuidesControllerIndexHtmlRequest) (string, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  string
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "GuidesAPIService.GuidesControllerIndexHtml")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/guides"
@@ -367,7 +446,7 @@ func (a *GuidesAPIService) GuidesControllerIndexHtmlExecute(r ApiGuidesControlle
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"text/html"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -376,19 +455,19 @@ func (a *GuidesAPIService) GuidesControllerIndexHtmlExecute(r ApiGuidesControlle
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -396,10 +475,19 @@ func (a *GuidesAPIService) GuidesControllerIndexHtmlExecute(r ApiGuidesControlle
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiGuidesControllerListRequest struct {
@@ -419,12 +507,16 @@ func (r ApiGuidesControllerListRequest) Category(category string) ApiGuidesContr
 	return r
 }
 
-func (r ApiGuidesControllerListRequest) Execute() (*http.Response, error) {
+func (r ApiGuidesControllerListRequest) Execute() ([]Guide, *http.Response, error) {
 	return r.ApiService.GuidesControllerListExecute(r)
 }
 
 /*
-GuidesControllerList Method for GuidesControllerList
+GuidesControllerList List published guides
+
+Public. Returns published guides for `locale` (default `en`), ordered by category, position and title, optionally filtered by `category`. Reads are cached in Redis for 60 seconds. This is the in-app docs feed, separate from the OpenAPI reference at /v1/docs.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiGuidesControllerListRequest
@@ -437,16 +529,18 @@ func (a *GuidesAPIService) GuidesControllerList(ctx context.Context) ApiGuidesCo
 }
 
 // Execute executes the request
-func (a *GuidesAPIService) GuidesControllerListExecute(r ApiGuidesControllerListRequest) (*http.Response, error) {
+//  @return []Guide
+func (a *GuidesAPIService) GuidesControllerListExecute(r ApiGuidesControllerListRequest) ([]Guide, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []Guide
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "GuidesAPIService.GuidesControllerList")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/guides"
@@ -455,10 +549,10 @@ func (a *GuidesAPIService) GuidesControllerListExecute(r ApiGuidesControllerList
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.locale == nil {
-		return nil, reportError("locale is required and must be specified")
+		return localVarReturnValue, nil, reportError("locale is required and must be specified")
 	}
 	if r.category == nil {
-		return nil, reportError("category is required and must be specified")
+		return localVarReturnValue, nil, reportError("category is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "locale", r.locale, "form", "")
@@ -473,7 +567,7 @@ func (a *GuidesAPIService) GuidesControllerListExecute(r ApiGuidesControllerList
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -482,19 +576,19 @@ func (a *GuidesAPIService) GuidesControllerListExecute(r ApiGuidesControllerList
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -502,10 +596,19 @@ func (a *GuidesAPIService) GuidesControllerListExecute(r ApiGuidesControllerList
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiGuidesControllerPageHtmlRequest struct {
@@ -514,12 +617,16 @@ type ApiGuidesControllerPageHtmlRequest struct {
 	slug string
 }
 
-func (r ApiGuidesControllerPageHtmlRequest) Execute() (*http.Response, error) {
+func (r ApiGuidesControllerPageHtmlRequest) Execute() (string, *http.Response, error) {
 	return r.ApiService.GuidesControllerPageHtmlExecute(r)
 }
 
 /*
-GuidesControllerPageHtml Method for GuidesControllerPageHtml
+GuidesControllerPageHtml Render a public guide page
+
+Public, server-rendered HTML for one English guide, with its Markdown body rendered escape-first (raw HTML is neutralized), TechArticle JSON-LD and canonical URL. Unknown slugs return a 404 HTML page.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param slug
@@ -534,16 +641,18 @@ func (a *GuidesAPIService) GuidesControllerPageHtml(ctx context.Context, slug st
 }
 
 // Execute executes the request
-func (a *GuidesAPIService) GuidesControllerPageHtmlExecute(r ApiGuidesControllerPageHtmlRequest) (*http.Response, error) {
+//  @return string
+func (a *GuidesAPIService) GuidesControllerPageHtmlExecute(r ApiGuidesControllerPageHtmlRequest) (string, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  string
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "GuidesAPIService.GuidesControllerPageHtml")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/guides/{slug}"
@@ -563,7 +672,7 @@ func (a *GuidesAPIService) GuidesControllerPageHtmlExecute(r ApiGuidesController
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"text/html"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -572,19 +681,19 @@ func (a *GuidesAPIService) GuidesControllerPageHtmlExecute(r ApiGuidesController
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -592,10 +701,19 @@ func (a *GuidesAPIService) GuidesControllerPageHtmlExecute(r ApiGuidesController
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiGuidesControllerRemoveRequest struct {
@@ -604,12 +722,16 @@ type ApiGuidesControllerRemoveRequest struct {
 	id string
 }
 
-func (r ApiGuidesControllerRemoveRequest) Execute() (*http.Response, error) {
+func (r ApiGuidesControllerRemoveRequest) Execute() (*AdminControllerSetStatus201Response, *http.Response, error) {
 	return r.ApiService.GuidesControllerRemoveExecute(r)
 }
 
 /*
-GuidesControllerRemove Method for GuidesControllerRemove
+GuidesControllerRemove Delete a guide
+
+Deletes the guide and clears the public cache. Returns `{ ok: true }` even for an unknown id.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -624,16 +746,18 @@ func (a *GuidesAPIService) GuidesControllerRemove(ctx context.Context, id string
 }
 
 // Execute executes the request
-func (a *GuidesAPIService) GuidesControllerRemoveExecute(r ApiGuidesControllerRemoveRequest) (*http.Response, error) {
+//  @return AdminControllerSetStatus201Response
+func (a *GuidesAPIService) GuidesControllerRemoveExecute(r ApiGuidesControllerRemoveRequest) (*AdminControllerSetStatus201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *AdminControllerSetStatus201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "GuidesAPIService.GuidesControllerRemove")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/guides/{id}"
@@ -653,28 +777,42 @@ func (a *GuidesAPIService) GuidesControllerRemoveExecute(r ApiGuidesControllerRe
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -682,10 +820,19 @@ func (a *GuidesAPIService) GuidesControllerRemoveExecute(r ApiGuidesControllerRe
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiGuidesControllerSitemapRequest struct {
@@ -693,12 +840,16 @@ type ApiGuidesControllerSitemapRequest struct {
 	ApiService *GuidesAPIService
 }
 
-func (r ApiGuidesControllerSitemapRequest) Execute() (*http.Response, error) {
+func (r ApiGuidesControllerSitemapRequest) Execute() (string, *http.Response, error) {
 	return r.ApiService.GuidesControllerSitemapExecute(r)
 }
 
 /*
-GuidesControllerSitemap Method for GuidesControllerSitemap
+GuidesControllerSitemap Get the docs sitemap
+
+Public XML sitemap listing /guides and every published English guide page.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiGuidesControllerSitemapRequest
@@ -711,16 +862,18 @@ func (a *GuidesAPIService) GuidesControllerSitemap(ctx context.Context) ApiGuide
 }
 
 // Execute executes the request
-func (a *GuidesAPIService) GuidesControllerSitemapExecute(r ApiGuidesControllerSitemapRequest) (*http.Response, error) {
+//  @return string
+func (a *GuidesAPIService) GuidesControllerSitemapExecute(r ApiGuidesControllerSitemapRequest) (string, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  string
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "GuidesAPIService.GuidesControllerSitemap")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/guides/sitemap.xml"
@@ -739,7 +892,7 @@ func (a *GuidesAPIService) GuidesControllerSitemapExecute(r ApiGuidesControllerS
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/xml"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -748,19 +901,19 @@ func (a *GuidesAPIService) GuidesControllerSitemapExecute(r ApiGuidesControllerS
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -768,10 +921,19 @@ func (a *GuidesAPIService) GuidesControllerSitemapExecute(r ApiGuidesControllerS
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiGuidesControllerUpdateRequest struct {
@@ -786,12 +948,16 @@ func (r ApiGuidesControllerUpdateRequest) UpdateGuideDto(updateGuideDto UpdateGu
 	return r
 }
 
-func (r ApiGuidesControllerUpdateRequest) Execute() (*http.Response, error) {
+func (r ApiGuidesControllerUpdateRequest) Execute() (*Guide, *http.Response, error) {
 	return r.ApiService.GuidesControllerUpdateExecute(r)
 }
 
 /*
-GuidesControllerUpdate Method for GuidesControllerUpdate
+GuidesControllerUpdate Update a guide
+
+Partially updates any of slug, locale, title, category, summary, body, position and published, and clears the public cache. Returns the updated guide, or null for an unknown id.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -806,16 +972,18 @@ func (a *GuidesAPIService) GuidesControllerUpdate(ctx context.Context, id string
 }
 
 // Execute executes the request
-func (a *GuidesAPIService) GuidesControllerUpdateExecute(r ApiGuidesControllerUpdateRequest) (*http.Response, error) {
+//  @return Guide
+func (a *GuidesAPIService) GuidesControllerUpdateExecute(r ApiGuidesControllerUpdateRequest) (*Guide, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPatch
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *Guide
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "GuidesAPIService.GuidesControllerUpdate")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/guides/{id}"
@@ -825,7 +993,7 @@ func (a *GuidesAPIService) GuidesControllerUpdateExecute(r ApiGuidesControllerUp
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.updateGuideDto == nil {
-		return nil, reportError("updateGuideDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("updateGuideDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -838,7 +1006,7 @@ func (a *GuidesAPIService) GuidesControllerUpdateExecute(r ApiGuidesControllerUp
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -847,21 +1015,35 @@ func (a *GuidesAPIService) GuidesControllerUpdateExecute(r ApiGuidesControllerUp
 	}
 	// body params
 	localVarPostBody = r.updateGuideDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -869,8 +1051,17 @@ func (a *GuidesAPIService) GuidesControllerUpdateExecute(r ApiGuidesControllerUp
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

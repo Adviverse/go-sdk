@@ -34,12 +34,16 @@ func (r ApiBillingControllerGenerateRequest) GenerateInvoiceDto(generateInvoiceD
 	return r
 }
 
-func (r ApiBillingControllerGenerateRequest) Execute() (*http.Response, error) {
+func (r ApiBillingControllerGenerateRequest) Execute() (*BillingControllerGenerate201Response, *http.Response, error) {
 	return r.ApiService.BillingControllerGenerateExecute(r)
 }
 
 /*
-BillingControllerGenerate Method for BillingControllerGenerate
+BillingControllerGenerate Generate a draft invoice for an account (admin)
+
+Creates a draft invoice for `accountId` over `periodStart`..`periodEnd` (YYYY-MM-DD, inclusive). The charge equals the account's ledger 'spend' for the period; ClickHouse impression/click counts only label zero-amount detail lines. Tax comes from tax_rates for the account's tax_country (0 if none). Numbered INV-YYYY-NNNNNN. 404 if the account does not exist.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiBillingControllerGenerateRequest
@@ -52,16 +56,18 @@ func (a *BillingAPIService) BillingControllerGenerate(ctx context.Context) ApiBi
 }
 
 // Execute executes the request
-func (a *BillingAPIService) BillingControllerGenerateExecute(r ApiBillingControllerGenerateRequest) (*http.Response, error) {
+//  @return BillingControllerGenerate201Response
+func (a *BillingAPIService) BillingControllerGenerateExecute(r ApiBillingControllerGenerateRequest) (*BillingControllerGenerate201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *BillingControllerGenerate201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "BillingAPIService.BillingControllerGenerate")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/billing/invoices/generate"
@@ -70,7 +76,7 @@ func (a *BillingAPIService) BillingControllerGenerateExecute(r ApiBillingControl
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.generateInvoiceDto == nil {
-		return nil, reportError("generateInvoiceDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("generateInvoiceDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -83,7 +89,7 @@ func (a *BillingAPIService) BillingControllerGenerateExecute(r ApiBillingControl
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -92,21 +98,35 @@ func (a *BillingAPIService) BillingControllerGenerateExecute(r ApiBillingControl
 	}
 	// body params
 	localVarPostBody = r.generateInvoiceDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -114,10 +134,19 @@ func (a *BillingAPIService) BillingControllerGenerateExecute(r ApiBillingControl
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiBillingControllerGetRequest struct {
@@ -126,12 +155,16 @@ type ApiBillingControllerGetRequest struct {
 	id string
 }
 
-func (r ApiBillingControllerGetRequest) Execute() (*http.Response, error) {
+func (r ApiBillingControllerGetRequest) Execute() (*BillingInvoiceWithLines, *http.Response, error) {
 	return r.ApiService.BillingControllerGetExecute(r)
 }
 
 /*
-BillingControllerGet Method for BillingControllerGet
+BillingControllerGet Get an invoice with its line items
+
+Returns one invoice by id with its lines. Advertisers may only read their own invoices (403 otherwise); 404 if not found.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -146,16 +179,18 @@ func (a *BillingAPIService) BillingControllerGet(ctx context.Context, id string)
 }
 
 // Execute executes the request
-func (a *BillingAPIService) BillingControllerGetExecute(r ApiBillingControllerGetRequest) (*http.Response, error) {
+//  @return BillingInvoiceWithLines
+func (a *BillingAPIService) BillingControllerGetExecute(r ApiBillingControllerGetRequest) (*BillingInvoiceWithLines, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *BillingInvoiceWithLines
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "BillingAPIService.BillingControllerGet")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/billing/invoices/{id}"
@@ -175,28 +210,42 @@ func (a *BillingAPIService) BillingControllerGetExecute(r ApiBillingControllerGe
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -204,10 +253,19 @@ func (a *BillingAPIService) BillingControllerGetExecute(r ApiBillingControllerGe
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiBillingControllerIssueRequest struct {
@@ -216,12 +274,16 @@ type ApiBillingControllerIssueRequest struct {
 	id string
 }
 
-func (r ApiBillingControllerIssueRequest) Execute() (*http.Response, error) {
+func (r ApiBillingControllerIssueRequest) Execute() (*BillingInvoice, *http.Response, error) {
 	return r.ApiService.BillingControllerIssueExecute(r)
 }
 
 /*
-BillingControllerIssue Method for BillingControllerIssue
+BillingControllerIssue Issue a draft invoice (admin)
+
+Moves a draft invoice to 'issued', setting issued_at to now and due_date from the account's payment_terms_days. 400 if the invoice is not a draft.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -236,16 +298,18 @@ func (a *BillingAPIService) BillingControllerIssue(ctx context.Context, id strin
 }
 
 // Execute executes the request
-func (a *BillingAPIService) BillingControllerIssueExecute(r ApiBillingControllerIssueRequest) (*http.Response, error) {
+//  @return BillingInvoice
+func (a *BillingAPIService) BillingControllerIssueExecute(r ApiBillingControllerIssueRequest) (*BillingInvoice, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *BillingInvoice
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "BillingAPIService.BillingControllerIssue")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/billing/invoices/{id}/issue"
@@ -265,28 +329,42 @@ func (a *BillingAPIService) BillingControllerIssueExecute(r ApiBillingController
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -294,10 +372,19 @@ func (a *BillingAPIService) BillingControllerIssueExecute(r ApiBillingController
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiBillingControllerListRequest struct {
@@ -311,12 +398,16 @@ func (r ApiBillingControllerListRequest) AccountId(accountId string) ApiBillingC
 	return r
 }
 
-func (r ApiBillingControllerListRequest) Execute() (*http.Response, error) {
+func (r ApiBillingControllerListRequest) Execute() ([]BillingInvoice, *http.Response, error) {
 	return r.ApiService.BillingControllerListExecute(r)
 }
 
 /*
-BillingControllerList Method for BillingControllerList
+BillingControllerList List invoices
+
+Returns up to 500 invoices, newest first. Advertisers see only their own; admins see all and may filter with `?accountId=`.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiBillingControllerListRequest
@@ -329,16 +420,18 @@ func (a *BillingAPIService) BillingControllerList(ctx context.Context) ApiBillin
 }
 
 // Execute executes the request
-func (a *BillingAPIService) BillingControllerListExecute(r ApiBillingControllerListRequest) (*http.Response, error) {
+//  @return []BillingInvoice
+func (a *BillingAPIService) BillingControllerListExecute(r ApiBillingControllerListRequest) ([]BillingInvoice, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []BillingInvoice
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "BillingAPIService.BillingControllerList")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/billing/invoices"
@@ -347,7 +440,7 @@ func (a *BillingAPIService) BillingControllerListExecute(r ApiBillingControllerL
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.accountId == nil {
-		return nil, reportError("accountId is required and must be specified")
+		return localVarReturnValue, nil, reportError("accountId is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "accountId", r.accountId, "form", "")
@@ -361,28 +454,42 @@ func (a *BillingAPIService) BillingControllerListExecute(r ApiBillingControllerL
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -390,10 +497,19 @@ func (a *BillingAPIService) BillingControllerListExecute(r ApiBillingControllerL
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiBillingControllerPayRequest struct {
@@ -402,12 +518,16 @@ type ApiBillingControllerPayRequest struct {
 	id string
 }
 
-func (r ApiBillingControllerPayRequest) Execute() (*http.Response, error) {
+func (r ApiBillingControllerPayRequest) Execute() (*BillingInvoice, *http.Response, error) {
 	return r.ApiService.BillingControllerPayExecute(r)
 }
 
 /*
-BillingControllerPay Method for BillingControllerPay
+BillingControllerPay Pay an issued invoice from the balance
+
+Posts an 'invoice_payment' debit for the invoice total against the account's available balance (idempotent per invoice) and marks the invoice paid. Already-paid invoices are returned unchanged; other non-issued statuses return 400, and insufficient funds return 400. Advertisers may pay only their own invoices.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -422,16 +542,18 @@ func (a *BillingAPIService) BillingControllerPay(ctx context.Context, id string)
 }
 
 // Execute executes the request
-func (a *BillingAPIService) BillingControllerPayExecute(r ApiBillingControllerPayRequest) (*http.Response, error) {
+//  @return BillingInvoice
+func (a *BillingAPIService) BillingControllerPayExecute(r ApiBillingControllerPayRequest) (*BillingInvoice, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *BillingInvoice
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "BillingAPIService.BillingControllerPay")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/billing/invoices/{id}/pay"
@@ -451,28 +573,42 @@ func (a *BillingAPIService) BillingControllerPayExecute(r ApiBillingControllerPa
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -480,10 +616,19 @@ func (a *BillingAPIService) BillingControllerPayExecute(r ApiBillingControllerPa
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiBillingControllerRenderRequest struct {
@@ -492,12 +637,16 @@ type ApiBillingControllerRenderRequest struct {
 	id string
 }
 
-func (r ApiBillingControllerRenderRequest) Execute() (*http.Response, error) {
+func (r ApiBillingControllerRenderRequest) Execute() (string, *http.Response, error) {
 	return r.ApiService.BillingControllerRenderExecute(r)
 }
 
 /*
-BillingControllerRender Method for BillingControllerRender
+BillingControllerRender Render an invoice as HTML
+
+Returns a self-contained printable HTML document for the invoice (number, status, period, dates, line items and totals). Same access rules as fetching the invoice.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -512,16 +661,18 @@ func (a *BillingAPIService) BillingControllerRender(ctx context.Context, id stri
 }
 
 // Execute executes the request
-func (a *BillingAPIService) BillingControllerRenderExecute(r ApiBillingControllerRenderRequest) (*http.Response, error) {
+//  @return string
+func (a *BillingAPIService) BillingControllerRenderExecute(r ApiBillingControllerRenderRequest) (string, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  string
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "BillingAPIService.BillingControllerRender")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/billing/invoices/{id}/render"
@@ -541,28 +692,42 @@ func (a *BillingAPIService) BillingControllerRenderExecute(r ApiBillingControlle
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"text/html"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -570,10 +735,19 @@ func (a *BillingAPIService) BillingControllerRenderExecute(r ApiBillingControlle
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiBillingControllerStatementRequest struct {
@@ -581,12 +755,16 @@ type ApiBillingControllerStatementRequest struct {
 	ApiService *BillingAPIService
 }
 
-func (r ApiBillingControllerStatementRequest) Execute() (*http.Response, error) {
+func (r ApiBillingControllerStatementRequest) Execute() (*BillingControllerStatement200Response, *http.Response, error) {
 	return r.ApiService.BillingControllerStatementExecute(r)
 }
 
 /*
-BillingControllerStatement Method for BillingControllerStatement
+BillingControllerStatement Get an account statement from the ledger
+
+Derives a statement over `from`..`to` (YYYY-MM-DD; defaults 2020-01-01 to today) from ledger entries that touched the available balance: opening balance, charges (debits), payments (credits), closing balance, and up to 1000 entries in the window. Admins may pass `?accountId=`; advertisers always get their own.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiBillingControllerStatementRequest
@@ -599,16 +777,18 @@ func (a *BillingAPIService) BillingControllerStatement(ctx context.Context) ApiB
 }
 
 // Execute executes the request
-func (a *BillingAPIService) BillingControllerStatementExecute(r ApiBillingControllerStatementRequest) (*http.Response, error) {
+//  @return BillingControllerStatement200Response
+func (a *BillingAPIService) BillingControllerStatementExecute(r ApiBillingControllerStatementRequest) (*BillingControllerStatement200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *BillingControllerStatement200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "BillingAPIService.BillingControllerStatement")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/billing/statement"
@@ -627,28 +807,42 @@ func (a *BillingAPIService) BillingControllerStatementExecute(r ApiBillingContro
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -656,10 +850,19 @@ func (a *BillingAPIService) BillingControllerStatementExecute(r ApiBillingContro
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiBillingControllerVoidRequest struct {
@@ -668,12 +871,16 @@ type ApiBillingControllerVoidRequest struct {
 	id string
 }
 
-func (r ApiBillingControllerVoidRequest) Execute() (*http.Response, error) {
+func (r ApiBillingControllerVoidRequest) Execute() (*BillingInvoice, *http.Response, error) {
 	return r.ApiService.BillingControllerVoidExecute(r)
 }
 
 /*
-BillingControllerVoid Method for BillingControllerVoid
+BillingControllerVoid Void an invoice (admin)
+
+Marks any unpaid invoice as 'void'. Paid invoices cannot be voided (400); an already-void invoice is returned unchanged.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -688,16 +895,18 @@ func (a *BillingAPIService) BillingControllerVoid(ctx context.Context, id string
 }
 
 // Execute executes the request
-func (a *BillingAPIService) BillingControllerVoidExecute(r ApiBillingControllerVoidRequest) (*http.Response, error) {
+//  @return BillingInvoice
+func (a *BillingAPIService) BillingControllerVoidExecute(r ApiBillingControllerVoidRequest) (*BillingInvoice, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *BillingInvoice
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "BillingAPIService.BillingControllerVoid")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/billing/invoices/{id}/void"
@@ -717,28 +926,42 @@ func (a *BillingAPIService) BillingControllerVoidExecute(r ApiBillingControllerV
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -746,8 +969,17 @@ func (a *BillingAPIService) BillingControllerVoidExecute(r ApiBillingControllerV
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

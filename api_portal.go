@@ -34,12 +34,16 @@ func (r ApiPortalTemplatesControllerCreateConfigRequest) CreatePortalConfigDto(c
 	return r
 }
 
-func (r ApiPortalTemplatesControllerCreateConfigRequest) Execute() (*http.Response, error) {
+func (r ApiPortalTemplatesControllerCreateConfigRequest) Execute() (*PortalTemplatesControllerCreateConfig201Response, *http.Response, error) {
 	return r.ApiService.PortalTemplatesControllerCreateConfigExecute(r)
 }
 
 /*
-PortalTemplatesControllerCreateConfig Method for PortalTemplatesControllerCreateConfig
+PortalTemplatesControllerCreateConfig Save a portal template config
+
+Stores a `config` object for template key `template` and returns its id and the hosted template URL that renders it. Use the URL as an `html5` creative's asset URL (for example on a metaverse portal surface). 400 for an unknown template.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPortalTemplatesControllerCreateConfigRequest
@@ -52,16 +56,18 @@ func (a *PortalAPIService) PortalTemplatesControllerCreateConfig(ctx context.Con
 }
 
 // Execute executes the request
-func (a *PortalAPIService) PortalTemplatesControllerCreateConfigExecute(r ApiPortalTemplatesControllerCreateConfigRequest) (*http.Response, error) {
+//  @return PortalTemplatesControllerCreateConfig201Response
+func (a *PortalAPIService) PortalTemplatesControllerCreateConfigExecute(r ApiPortalTemplatesControllerCreateConfigRequest) (*PortalTemplatesControllerCreateConfig201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PortalTemplatesControllerCreateConfig201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PortalAPIService.PortalTemplatesControllerCreateConfig")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/portal/configs"
@@ -70,7 +76,7 @@ func (a *PortalAPIService) PortalTemplatesControllerCreateConfigExecute(r ApiPor
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.createPortalConfigDto == nil {
-		return nil, reportError("createPortalConfigDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("createPortalConfigDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -83,7 +89,7 @@ func (a *PortalAPIService) PortalTemplatesControllerCreateConfigExecute(r ApiPor
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -92,21 +98,35 @@ func (a *PortalAPIService) PortalTemplatesControllerCreateConfigExecute(r ApiPor
 	}
 	// body params
 	localVarPostBody = r.createPortalConfigDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -114,10 +134,19 @@ func (a *PortalAPIService) PortalTemplatesControllerCreateConfigExecute(r ApiPor
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPortalTemplatesControllerGetConfigRequest struct {
@@ -126,12 +155,16 @@ type ApiPortalTemplatesControllerGetConfigRequest struct {
 	id string
 }
 
-func (r ApiPortalTemplatesControllerGetConfigRequest) Execute() (*http.Response, error) {
+func (r ApiPortalTemplatesControllerGetConfigRequest) Execute() (*PortalTemplatesControllerGetConfig200Response, *http.Response, error) {
 	return r.ApiService.PortalTemplatesControllerGetConfigExecute(r)
 }
 
 /*
-PortalTemplatesControllerGetConfig Method for PortalTemplatesControllerGetConfig
+PortalTemplatesControllerGetConfig Fetch a portal config
+
+Public endpoint the hosted template calls at runtime to load its saved configuration. 404 if the config id does not exist.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -146,16 +179,18 @@ func (a *PortalAPIService) PortalTemplatesControllerGetConfig(ctx context.Contex
 }
 
 // Execute executes the request
-func (a *PortalAPIService) PortalTemplatesControllerGetConfigExecute(r ApiPortalTemplatesControllerGetConfigRequest) (*http.Response, error) {
+//  @return PortalTemplatesControllerGetConfig200Response
+func (a *PortalAPIService) PortalTemplatesControllerGetConfigExecute(r ApiPortalTemplatesControllerGetConfigRequest) (*PortalTemplatesControllerGetConfig200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PortalTemplatesControllerGetConfig200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PortalAPIService.PortalTemplatesControllerGetConfig")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/portal/config/{id}"
@@ -175,7 +210,7 @@ func (a *PortalAPIService) PortalTemplatesControllerGetConfigExecute(r ApiPortal
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -184,19 +219,19 @@ func (a *PortalAPIService) PortalTemplatesControllerGetConfigExecute(r ApiPortal
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -204,10 +239,19 @@ func (a *PortalAPIService) PortalTemplatesControllerGetConfigExecute(r ApiPortal
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPortalTemplatesControllerListTemplatesRequest struct {
@@ -215,12 +259,16 @@ type ApiPortalTemplatesControllerListTemplatesRequest struct {
 	ApiService *PortalAPIService
 }
 
-func (r ApiPortalTemplatesControllerListTemplatesRequest) Execute() (*http.Response, error) {
+func (r ApiPortalTemplatesControllerListTemplatesRequest) Execute() ([]PortalTemplatesControllerListTemplates200ResponseInner, *http.Response, error) {
 	return r.ApiService.PortalTemplatesControllerListTemplatesExecute(r)
 }
 
 /*
-PortalTemplatesControllerListTemplates Method for PortalTemplatesControllerListTemplates
+PortalTemplatesControllerListTemplates List portal experience templates
+
+Returns the catalog of prebuilt HTML5 portal templates (product-showcase, spin-to-win, 360-viewer, reward-to-play, reward-onchain), each with the config fields it accepts.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPortalTemplatesControllerListTemplatesRequest
@@ -233,16 +281,18 @@ func (a *PortalAPIService) PortalTemplatesControllerListTemplates(ctx context.Co
 }
 
 // Execute executes the request
-func (a *PortalAPIService) PortalTemplatesControllerListTemplatesExecute(r ApiPortalTemplatesControllerListTemplatesRequest) (*http.Response, error) {
+//  @return []PortalTemplatesControllerListTemplates200ResponseInner
+func (a *PortalAPIService) PortalTemplatesControllerListTemplatesExecute(r ApiPortalTemplatesControllerListTemplatesRequest) ([]PortalTemplatesControllerListTemplates200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []PortalTemplatesControllerListTemplates200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PortalAPIService.PortalTemplatesControllerListTemplates")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/portal/templates"
@@ -261,28 +311,42 @@ func (a *PortalAPIService) PortalTemplatesControllerListTemplatesExecute(r ApiPo
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -290,8 +354,17 @@ func (a *PortalAPIService) PortalTemplatesControllerListTemplatesExecute(r ApiPo
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

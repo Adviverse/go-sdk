@@ -29,12 +29,16 @@ type ApiDealsControllerAcceptRequest struct {
 	id string
 }
 
-func (r ApiDealsControllerAcceptRequest) Execute() (*http.Response, error) {
+func (r ApiDealsControllerAcceptRequest) Execute() (*DealsControllerClaim201Response, *http.Response, error) {
 	return r.ApiService.DealsControllerAcceptExecute(r)
 }
 
 /*
-DealsControllerAccept Method for DealsControllerAccept
+DealsControllerAccept Accept a deal offered to you
+
+The targeted advertiser accepts the deal, which becomes `active` and is published to the engine index; the publisher is emailed. Returns 403 if the caller is not the deal's advertiser and 404 if the deal is unknown.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -49,16 +53,18 @@ func (a *DealsAPIService) DealsControllerAccept(ctx context.Context, id string) 
 }
 
 // Execute executes the request
-func (a *DealsAPIService) DealsControllerAcceptExecute(r ApiDealsControllerAcceptRequest) (*http.Response, error) {
+//  @return DealsControllerClaim201Response
+func (a *DealsAPIService) DealsControllerAcceptExecute(r ApiDealsControllerAcceptRequest) (*DealsControllerClaim201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *DealsControllerClaim201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DealsAPIService.DealsControllerAccept")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/deals/{id}/accept"
@@ -78,28 +84,42 @@ func (a *DealsAPIService) DealsControllerAcceptExecute(r ApiDealsControllerAccep
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -107,10 +127,19 @@ func (a *DealsAPIService) DealsControllerAcceptExecute(r ApiDealsControllerAccep
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiDealsControllerClaimRequest struct {
@@ -119,12 +148,16 @@ type ApiDealsControllerClaimRequest struct {
 	token string
 }
 
-func (r ApiDealsControllerClaimRequest) Execute() (*http.Response, error) {
+func (r ApiDealsControllerClaimRequest) Execute() (*DealsControllerClaim201Response, *http.Response, error) {
 	return r.ApiService.DealsControllerClaimExecute(r)
 }
 
 /*
-DealsControllerClaim Method for DealsControllerClaim
+DealsControllerClaim Claim an open deal
+
+The caller becomes the deal's advertiser; the deal goes `active`, the claim token is cleared and the publisher is emailed. Returns 400 if the deal already has an advertiser or the caller is its publisher, and 404 for an unknown token.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param token
@@ -139,16 +172,18 @@ func (a *DealsAPIService) DealsControllerClaim(ctx context.Context, token string
 }
 
 // Execute executes the request
-func (a *DealsAPIService) DealsControllerClaimExecute(r ApiDealsControllerClaimRequest) (*http.Response, error) {
+//  @return DealsControllerClaim201Response
+func (a *DealsAPIService) DealsControllerClaimExecute(r ApiDealsControllerClaimRequest) (*DealsControllerClaim201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *DealsControllerClaim201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DealsAPIService.DealsControllerClaim")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/deals/claim/{token}"
@@ -168,28 +203,42 @@ func (a *DealsAPIService) DealsControllerClaimExecute(r ApiDealsControllerClaimR
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -197,10 +246,19 @@ func (a *DealsAPIService) DealsControllerClaimExecute(r ApiDealsControllerClaimR
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiDealsControllerCreateRequest struct {
@@ -214,12 +272,16 @@ func (r ApiDealsControllerCreateRequest) CreateDealDto(createDealDto CreateDealD
 	return r
 }
 
-func (r ApiDealsControllerCreateRequest) Execute() (*http.Response, error) {
+func (r ApiDealsControllerCreateRequest) Execute() (*Deal, *http.Response, error) {
 	return r.ApiService.DealsControllerCreateExecute(r)
 }
 
 /*
-DealsControllerCreate Method for DealsControllerCreate
+DealsControllerCreate Create a deal
+
+Creates a `pending` deal with `name` (required), `dealType` (`pmp` default, `preferred`, `guaranteed`), `floorCpm`, `currency` (USD), optional `placementId` and `startsAt`/`endsAt`. Fields are also accepted in snake_case. With `advertiserId` (must be an advertiser account) the advertiser is emailed an invite; without it the deal is open and gets a `claim_token` to share. The placement must belong to the creating publisher (403); its owner becomes the deal's publisher. Active deals are republished to the engine index.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiDealsControllerCreateRequest
@@ -232,16 +294,18 @@ func (a *DealsAPIService) DealsControllerCreate(ctx context.Context) ApiDealsCon
 }
 
 // Execute executes the request
-func (a *DealsAPIService) DealsControllerCreateExecute(r ApiDealsControllerCreateRequest) (*http.Response, error) {
+//  @return Deal
+func (a *DealsAPIService) DealsControllerCreateExecute(r ApiDealsControllerCreateRequest) (*Deal, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *Deal
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DealsAPIService.DealsControllerCreate")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/deals"
@@ -250,7 +314,7 @@ func (a *DealsAPIService) DealsControllerCreateExecute(r ApiDealsControllerCreat
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.createDealDto == nil {
-		return nil, reportError("createDealDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("createDealDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -263,7 +327,7 @@ func (a *DealsAPIService) DealsControllerCreateExecute(r ApiDealsControllerCreat
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -272,21 +336,35 @@ func (a *DealsAPIService) DealsControllerCreateExecute(r ApiDealsControllerCreat
 	}
 	// body params
 	localVarPostBody = r.createDealDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -294,10 +372,19 @@ func (a *DealsAPIService) DealsControllerCreateExecute(r ApiDealsControllerCreat
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiDealsControllerListRequest struct {
@@ -305,12 +392,16 @@ type ApiDealsControllerListRequest struct {
 	ApiService *DealsAPIService
 }
 
-func (r ApiDealsControllerListRequest) Execute() (*http.Response, error) {
+func (r ApiDealsControllerListRequest) Execute() ([]Deal, *http.Response, error) {
 	return r.ApiService.DealsControllerListExecute(r)
 }
 
 /*
-DealsControllerList Method for DealsControllerList
+DealsControllerList List deals
+
+Lists private-marketplace deals for the caller. Accounts can act on both sides, so `role=publisher` returns deals the account sells and `role=advertiser` returns deals offered to it. Without `role` the account type decides. Admins see all deals (capped at 500 when unpaginated). Supports optional `limit`/`offset`.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiDealsControllerListRequest
@@ -323,16 +414,18 @@ func (a *DealsAPIService) DealsControllerList(ctx context.Context) ApiDealsContr
 }
 
 // Execute executes the request
-func (a *DealsAPIService) DealsControllerListExecute(r ApiDealsControllerListRequest) (*http.Response, error) {
+//  @return []Deal
+func (a *DealsAPIService) DealsControllerListExecute(r ApiDealsControllerListRequest) ([]Deal, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []Deal
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DealsAPIService.DealsControllerList")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/deals"
@@ -351,28 +444,42 @@ func (a *DealsAPIService) DealsControllerListExecute(r ApiDealsControllerListReq
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -380,10 +487,19 @@ func (a *DealsAPIService) DealsControllerListExecute(r ApiDealsControllerListReq
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiDealsControllerLookupAdvertiserRequest struct {
@@ -397,12 +513,16 @@ func (r ApiDealsControllerLookupAdvertiserRequest) Email(email string) ApiDealsC
 	return r
 }
 
-func (r ApiDealsControllerLookupAdvertiserRequest) Execute() (*http.Response, error) {
+func (r ApiDealsControllerLookupAdvertiserRequest) Execute() (*DealsControllerLookupAdvertiser200Response, *http.Response, error) {
 	return r.ApiService.DealsControllerLookupAdvertiserExecute(r)
 }
 
 /*
-DealsControllerLookupAdvertiser Method for DealsControllerLookupAdvertiser
+DealsControllerLookupAdvertiser Find an advertiser by email
+
+Resolves an advertiser account by exact, case-insensitive `email` so a publisher can target a deal without knowing the account id. Exact match only, to avoid account enumeration. Returns 400 without an email and 404 when no advertiser matches.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiDealsControllerLookupAdvertiserRequest
@@ -415,16 +535,18 @@ func (a *DealsAPIService) DealsControllerLookupAdvertiser(ctx context.Context) A
 }
 
 // Execute executes the request
-func (a *DealsAPIService) DealsControllerLookupAdvertiserExecute(r ApiDealsControllerLookupAdvertiserRequest) (*http.Response, error) {
+//  @return DealsControllerLookupAdvertiser200Response
+func (a *DealsAPIService) DealsControllerLookupAdvertiserExecute(r ApiDealsControllerLookupAdvertiserRequest) (*DealsControllerLookupAdvertiser200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *DealsControllerLookupAdvertiser200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DealsAPIService.DealsControllerLookupAdvertiser")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/deals/advertiser-lookup"
@@ -433,7 +555,7 @@ func (a *DealsAPIService) DealsControllerLookupAdvertiserExecute(r ApiDealsContr
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.email == nil {
-		return nil, reportError("email is required and must be specified")
+		return localVarReturnValue, nil, reportError("email is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "email", r.email, "form", "")
@@ -447,28 +569,42 @@ func (a *DealsAPIService) DealsControllerLookupAdvertiserExecute(r ApiDealsContr
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -476,10 +612,19 @@ func (a *DealsAPIService) DealsControllerLookupAdvertiserExecute(r ApiDealsContr
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiDealsControllerPreviewClaimRequest struct {
@@ -488,12 +633,16 @@ type ApiDealsControllerPreviewClaimRequest struct {
 	token string
 }
 
-func (r ApiDealsControllerPreviewClaimRequest) Execute() (*http.Response, error) {
+func (r ApiDealsControllerPreviewClaimRequest) Execute() (*DealsControllerPreviewClaim200Response, *http.Response, error) {
 	return r.ApiService.DealsControllerPreviewClaimExecute(r)
 }
 
 /*
-DealsControllerPreviewClaim Method for DealsControllerPreviewClaim
+DealsControllerPreviewClaim Preview an open deal from its claim link
+
+Returns the deal behind a claim token (code, name, type, floor, currency, status and publisher company name) plus `claimable`, which is true while no advertiser is attached. 404 when the token is unknown or already used.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param token
@@ -508,16 +657,18 @@ func (a *DealsAPIService) DealsControllerPreviewClaim(ctx context.Context, token
 }
 
 // Execute executes the request
-func (a *DealsAPIService) DealsControllerPreviewClaimExecute(r ApiDealsControllerPreviewClaimRequest) (*http.Response, error) {
+//  @return DealsControllerPreviewClaim200Response
+func (a *DealsAPIService) DealsControllerPreviewClaimExecute(r ApiDealsControllerPreviewClaimRequest) (*DealsControllerPreviewClaim200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *DealsControllerPreviewClaim200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DealsAPIService.DealsControllerPreviewClaim")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/deals/claim/{token}"
@@ -537,28 +688,42 @@ func (a *DealsAPIService) DealsControllerPreviewClaimExecute(r ApiDealsControlle
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -566,10 +731,19 @@ func (a *DealsAPIService) DealsControllerPreviewClaimExecute(r ApiDealsControlle
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiDealsControllerStatusRequest struct {
@@ -578,12 +752,16 @@ type ApiDealsControllerStatusRequest struct {
 	id string
 }
 
-func (r ApiDealsControllerStatusRequest) Execute() (*http.Response, error) {
+func (r ApiDealsControllerStatusRequest) Execute() (*DealsControllerStatus201Response, *http.Response, error) {
 	return r.ApiService.DealsControllerStatusExecute(r)
 }
 
 /*
-DealsControllerStatus Method for DealsControllerStatus
+DealsControllerStatus Change a deal's status
+
+Sets `status` to `active`, `paused`, `pending` or `expired`. Only the deal's publisher or an admin may do this (403 otherwise). The engine's active-deal index is republished, so pausing takes effect for serving right away.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -598,16 +776,18 @@ func (a *DealsAPIService) DealsControllerStatus(ctx context.Context, id string) 
 }
 
 // Execute executes the request
-func (a *DealsAPIService) DealsControllerStatusExecute(r ApiDealsControllerStatusRequest) (*http.Response, error) {
+//  @return DealsControllerStatus201Response
+func (a *DealsAPIService) DealsControllerStatusExecute(r ApiDealsControllerStatusRequest) (*DealsControllerStatus201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *DealsControllerStatus201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DealsAPIService.DealsControllerStatus")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/deals/{id}/status"
@@ -627,28 +807,42 @@ func (a *DealsAPIService) DealsControllerStatusExecute(r ApiDealsControllerStatu
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -656,8 +850,17 @@ func (a *DealsAPIService) DealsControllerStatusExecute(r ApiDealsControllerStatu
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

@@ -33,12 +33,16 @@ func (r ApiPublisherInsightsControllerClearingRequest) PlacementId(placementId s
 	return r
 }
 
-func (r ApiPublisherInsightsControllerClearingRequest) Execute() (*http.Response, error) {
+func (r ApiPublisherInsightsControllerClearingRequest) Execute() (*PublisherInsightsControllerClearing200Response, *http.Response, error) {
 	return r.ApiService.PublisherInsightsControllerClearingExecute(r)
 }
 
 /*
-PublisherInsightsControllerClearing Method for PublisherInsightsControllerClearing
+PublisherInsightsControllerClearing Get the clearing-price distribution for a placement
+
+For about 10 candidate floors across the placement's observed clearing range, returns `fillRate` (share of bids clearing at or above the floor) and `expectedRevenue` (floor x fillRate), plus clearing p50/p90 and sample size. Requires `?placementId=`; only your own revenue data is exposed. 404 if the placement is not yours.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPublisherInsightsControllerClearingRequest
@@ -51,16 +55,18 @@ func (a *PublisherInsightsAPIService) PublisherInsightsControllerClearing(ctx co
 }
 
 // Execute executes the request
-func (a *PublisherInsightsAPIService) PublisherInsightsControllerClearingExecute(r ApiPublisherInsightsControllerClearingRequest) (*http.Response, error) {
+//  @return PublisherInsightsControllerClearing200Response
+func (a *PublisherInsightsAPIService) PublisherInsightsControllerClearingExecute(r ApiPublisherInsightsControllerClearingRequest) (*PublisherInsightsControllerClearing200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PublisherInsightsControllerClearing200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherInsightsAPIService.PublisherInsightsControllerClearing")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/insights/clearing"
@@ -69,7 +75,7 @@ func (a *PublisherInsightsAPIService) PublisherInsightsControllerClearingExecute
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.placementId == nil {
-		return nil, reportError("placementId is required and must be specified")
+		return localVarReturnValue, nil, reportError("placementId is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "placementId", r.placementId, "form", "")
@@ -83,28 +89,42 @@ func (a *PublisherInsightsAPIService) PublisherInsightsControllerClearingExecute
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -112,10 +132,19 @@ func (a *PublisherInsightsAPIService) PublisherInsightsControllerClearingExecute
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPublisherInsightsControllerDealsRequest struct {
@@ -123,12 +152,16 @@ type ApiPublisherInsightsControllerDealsRequest struct {
 	ApiService *PublisherInsightsAPIService
 }
 
-func (r ApiPublisherInsightsControllerDealsRequest) Execute() (*http.Response, error) {
+func (r ApiPublisherInsightsControllerDealsRequest) Execute() (*PublisherInsightsControllerDeals200Response, *http.Response, error) {
 	return r.ApiService.PublisherInsightsControllerDealsExecute(r)
 }
 
 /*
-PublisherInsightsControllerDeals Method for PublisherInsightsControllerDeals
+PublisherInsightsControllerDeals Get performance of your deals
+
+Returns every deal you own with attributed impressions, clicks, revenue and eCPM, sorted by revenue. Deals with no delivery show zeros; if analytics is unavailable metrics fall back to zero rather than failing.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPublisherInsightsControllerDealsRequest
@@ -141,16 +174,18 @@ func (a *PublisherInsightsAPIService) PublisherInsightsControllerDeals(ctx conte
 }
 
 // Execute executes the request
-func (a *PublisherInsightsAPIService) PublisherInsightsControllerDealsExecute(r ApiPublisherInsightsControllerDealsRequest) (*http.Response, error) {
+//  @return PublisherInsightsControllerDeals200Response
+func (a *PublisherInsightsAPIService) PublisherInsightsControllerDealsExecute(r ApiPublisherInsightsControllerDealsRequest) (*PublisherInsightsControllerDeals200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PublisherInsightsControllerDeals200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherInsightsAPIService.PublisherInsightsControllerDeals")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/insights/deals"
@@ -169,28 +204,42 @@ func (a *PublisherInsightsAPIService) PublisherInsightsControllerDealsExecute(r 
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -198,10 +247,19 @@ func (a *PublisherInsightsAPIService) PublisherInsightsControllerDealsExecute(r 
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPublisherInsightsControllerFloorRecommendationRequest struct {
@@ -215,12 +273,16 @@ func (r ApiPublisherInsightsControllerFloorRecommendationRequest) PlacementId(pl
 	return r
 }
 
-func (r ApiPublisherInsightsControllerFloorRecommendationRequest) Execute() (*http.Response, error) {
+func (r ApiPublisherInsightsControllerFloorRecommendationRequest) Execute() (*PublisherInsightsControllerFloorRecommendation200Response, *http.Response, error) {
 	return r.ApiService.PublisherInsightsControllerFloorRecommendationExecute(r)
 }
 
 /*
-PublisherInsightsControllerFloorRecommendation Method for PublisherInsightsControllerFloorRecommendation
+PublisherInsightsControllerFloorRecommendation Get a revenue-maximizing floor recommendation
+
+Picks the floor that maximizes expected revenue on the placement's empirical fill curve and a matching soft reserve, with the expected revenue lift versus the current floor. With fewer than 500 recent cleared impressions it keeps the current floor and explains why in `note`. Requires `?placementId=`; 404 if not yours.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPublisherInsightsControllerFloorRecommendationRequest
@@ -233,16 +295,18 @@ func (a *PublisherInsightsAPIService) PublisherInsightsControllerFloorRecommenda
 }
 
 // Execute executes the request
-func (a *PublisherInsightsAPIService) PublisherInsightsControllerFloorRecommendationExecute(r ApiPublisherInsightsControllerFloorRecommendationRequest) (*http.Response, error) {
+//  @return PublisherInsightsControllerFloorRecommendation200Response
+func (a *PublisherInsightsAPIService) PublisherInsightsControllerFloorRecommendationExecute(r ApiPublisherInsightsControllerFloorRecommendationRequest) (*PublisherInsightsControllerFloorRecommendation200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PublisherInsightsControllerFloorRecommendation200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherInsightsAPIService.PublisherInsightsControllerFloorRecommendation")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/insights/floor-recommendation"
@@ -251,7 +315,7 @@ func (a *PublisherInsightsAPIService) PublisherInsightsControllerFloorRecommenda
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.placementId == nil {
-		return nil, reportError("placementId is required and must be specified")
+		return localVarReturnValue, nil, reportError("placementId is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "placementId", r.placementId, "form", "")
@@ -265,28 +329,42 @@ func (a *PublisherInsightsAPIService) PublisherInsightsControllerFloorRecommenda
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -294,10 +372,19 @@ func (a *PublisherInsightsAPIService) PublisherInsightsControllerFloorRecommenda
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiPublisherInsightsControllerNoFillRequest struct {
@@ -311,12 +398,16 @@ func (r ApiPublisherInsightsControllerNoFillRequest) PlacementId(placementId str
 	return r
 }
 
-func (r ApiPublisherInsightsControllerNoFillRequest) Execute() (*http.Response, error) {
+func (r ApiPublisherInsightsControllerNoFillRequest) Execute() (*PublisherInsightsControllerNoFill200Response, *http.Response, error) {
 	return r.ApiService.PublisherInsightsControllerNoFillExecute(r)
 }
 
 /*
-PublisherInsightsControllerNoFill Method for PublisherInsightsControllerNoFill
+PublisherInsightsControllerNoFill Get no-fill reasons for a placement
+
+Breaks down the placement's last 30 days of requests into filled vs. no-fill, with each no-fill reason's count and percentage share. `fillRate` and `pct` are percentages (0-100). Requires `?placementId=`; 404 if not yours.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiPublisherInsightsControllerNoFillRequest
@@ -329,16 +420,18 @@ func (a *PublisherInsightsAPIService) PublisherInsightsControllerNoFill(ctx cont
 }
 
 // Execute executes the request
-func (a *PublisherInsightsAPIService) PublisherInsightsControllerNoFillExecute(r ApiPublisherInsightsControllerNoFillRequest) (*http.Response, error) {
+//  @return PublisherInsightsControllerNoFill200Response
+func (a *PublisherInsightsAPIService) PublisherInsightsControllerNoFillExecute(r ApiPublisherInsightsControllerNoFillRequest) (*PublisherInsightsControllerNoFill200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *PublisherInsightsControllerNoFill200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherInsightsAPIService.PublisherInsightsControllerNoFill")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/publisher/insights/no-fill"
@@ -347,7 +440,7 @@ func (a *PublisherInsightsAPIService) PublisherInsightsControllerNoFillExecute(r
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.placementId == nil {
-		return nil, reportError("placementId is required and must be specified")
+		return localVarReturnValue, nil, reportError("placementId is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "placementId", r.placementId, "form", "")
@@ -361,28 +454,42 @@ func (a *PublisherInsightsAPIService) PublisherInsightsControllerNoFillExecute(r
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -390,8 +497,17 @@ func (a *PublisherInsightsAPIService) PublisherInsightsControllerNoFillExecute(r
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

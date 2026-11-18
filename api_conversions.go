@@ -32,7 +32,11 @@ func (r ApiConversionsControllerTrackAudienceRequest) Execute() (*http.Response,
 }
 
 /*
-ConversionsControllerTrackAudience Method for ConversionsControllerTrackAudience
+ConversionsControllerTrackAudience Retargeting pixel: add the visitor to an audience
+
+Adds the visitor's `adnet_uid` first-party cookie (minted on first contact) to audience `aud`, plus an advertiser-supplied `uid` when given. Only existing audiences accept members, and each audience has a size cap. GPC or `ac=0`/`ac=n` opts the visitor out: no cookie is set and no membership is recorded. Always responds with a 1x1 GIF.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiConversionsControllerTrackAudienceRequest
@@ -113,12 +117,16 @@ type ApiConversionsControllerTrackGetRequest struct {
 	ApiService *ConversionsAPIService
 }
 
-func (r ApiConversionsControllerTrackGetRequest) Execute() (*http.Response, error) {
+func (r ApiConversionsControllerTrackGetRequest) Execute() (*ConversionsControllerTrackGet200Response, *http.Response, error) {
 	return r.ApiService.ConversionsControllerTrackGetExecute(r)
 }
 
 /*
-ConversionsControllerTrackGet Method for ConversionsControllerTrackGet
+ConversionsControllerTrackGet Record an S2S conversion postback (GET)
+
+Advertiser server-to-server postback keyed by `click_id`, with optional `value`, `order_id` and `order_value` query params. The click context cached by the ad engine resolves the campaign; the billed payout always comes from the campaign's server-side CPA config (flat or percent of order), never from the request. One conversion per click and one per (advertiser, order_id); orders below the configured minimum are rejected, and sponsored CPC clicks are skipped because they bill on the click. A recorded conversion emits the conversion event and fires the advertiser's outbound postback if one is configured.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiConversionsControllerTrackGetRequest
@@ -131,16 +139,18 @@ func (a *ConversionsAPIService) ConversionsControllerTrackGet(ctx context.Contex
 }
 
 // Execute executes the request
-func (a *ConversionsAPIService) ConversionsControllerTrackGetExecute(r ApiConversionsControllerTrackGetRequest) (*http.Response, error) {
+//  @return ConversionsControllerTrackGet200Response
+func (a *ConversionsAPIService) ConversionsControllerTrackGetExecute(r ApiConversionsControllerTrackGetRequest) (*ConversionsControllerTrackGet200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ConversionsControllerTrackGet200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ConversionsAPIService.ConversionsControllerTrackGet")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/track/conversion"
@@ -159,7 +169,7 @@ func (a *ConversionsAPIService) ConversionsControllerTrackGetExecute(r ApiConver
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -168,19 +178,19 @@ func (a *ConversionsAPIService) ConversionsControllerTrackGetExecute(r ApiConver
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -188,10 +198,19 @@ func (a *ConversionsAPIService) ConversionsControllerTrackGetExecute(r ApiConver
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiConversionsControllerTrackPostRequest struct {
@@ -205,12 +224,16 @@ func (r ApiConversionsControllerTrackPostRequest) TrackConversionDto(trackConver
 	return r
 }
 
-func (r ApiConversionsControllerTrackPostRequest) Execute() (*http.Response, error) {
+func (r ApiConversionsControllerTrackPostRequest) Execute() (*ConversionsControllerTrackPost201Response, *http.Response, error) {
 	return r.ApiService.ConversionsControllerTrackPostExecute(r)
 }
 
 /*
-ConversionsControllerTrackPost Method for ConversionsControllerTrackPost
+ConversionsControllerTrackPost Record an S2S conversion postback (POST)
+
+JSON form of the conversion postback. Accepts `clickId`/`click_id`, `value`, `orderId`/`order_id` and `orderValue`/`order_value`, in camelCase or snake_case. Behaviour matches the GET form: dedup per click and per order, payout from the server-side CPA config, minimum-order check, and a `postbackId` returned when recorded. Unknown body fields are rejected with 400.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiConversionsControllerTrackPostRequest
@@ -223,16 +246,18 @@ func (a *ConversionsAPIService) ConversionsControllerTrackPost(ctx context.Conte
 }
 
 // Execute executes the request
-func (a *ConversionsAPIService) ConversionsControllerTrackPostExecute(r ApiConversionsControllerTrackPostRequest) (*http.Response, error) {
+//  @return ConversionsControllerTrackPost201Response
+func (a *ConversionsAPIService) ConversionsControllerTrackPostExecute(r ApiConversionsControllerTrackPostRequest) (*ConversionsControllerTrackPost201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ConversionsControllerTrackPost201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ConversionsAPIService.ConversionsControllerTrackPost")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/track/conversion"
@@ -241,7 +266,7 @@ func (a *ConversionsAPIService) ConversionsControllerTrackPostExecute(r ApiConve
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.trackConversionDto == nil {
-		return nil, reportError("trackConversionDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("trackConversionDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -254,7 +279,7 @@ func (a *ConversionsAPIService) ConversionsControllerTrackPostExecute(r ApiConve
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -265,19 +290,19 @@ func (a *ConversionsAPIService) ConversionsControllerTrackPostExecute(r ApiConve
 	localVarPostBody = r.trackConversionDto
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -285,10 +310,19 @@ func (a *ConversionsAPIService) ConversionsControllerTrackPostExecute(r ApiConve
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiConversionsControllerTrackRefundRequest struct {
@@ -302,12 +336,16 @@ func (r ApiConversionsControllerTrackRefundRequest) RefundDto(refundDto RefundDt
 	return r
 }
 
-func (r ApiConversionsControllerTrackRefundRequest) Execute() (*http.Response, error) {
+func (r ApiConversionsControllerTrackRefundRequest) Execute() (*ConversionsControllerTrackRefund201Response, *http.Response, error) {
 	return r.ApiService.ConversionsControllerTrackRefundExecute(r)
 }
 
 /*
-ConversionsControllerTrackRefund Method for ConversionsControllerTrackRefund
+ConversionsControllerTrackRefund Report a refund or chargeback for an order
+
+Claws back a held or settled per-checkout CPA conversion identified by `orderId`/`order_id`, optionally narrowed by `advertiserId`/`advertiser_id`. Emits a compensating conversion event carrying the original payout and publisher earnings so the ledger posts exact reversing entries, then marks the row refunded. A missing order id returns `error`, an unknown order `not_found`, and a repeat call `already_refunded`.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiConversionsControllerTrackRefundRequest
@@ -320,16 +358,18 @@ func (a *ConversionsAPIService) ConversionsControllerTrackRefund(ctx context.Con
 }
 
 // Execute executes the request
-func (a *ConversionsAPIService) ConversionsControllerTrackRefundExecute(r ApiConversionsControllerTrackRefundRequest) (*http.Response, error) {
+//  @return ConversionsControllerTrackRefund201Response
+func (a *ConversionsAPIService) ConversionsControllerTrackRefundExecute(r ApiConversionsControllerTrackRefundRequest) (*ConversionsControllerTrackRefund201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ConversionsControllerTrackRefund201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ConversionsAPIService.ConversionsControllerTrackRefund")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/track/refund"
@@ -338,7 +378,7 @@ func (a *ConversionsAPIService) ConversionsControllerTrackRefundExecute(r ApiCon
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.refundDto == nil {
-		return nil, reportError("refundDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("refundDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -351,7 +391,7 @@ func (a *ConversionsAPIService) ConversionsControllerTrackRefundExecute(r ApiCon
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -362,19 +402,19 @@ func (a *ConversionsAPIService) ConversionsControllerTrackRefundExecute(r ApiCon
 	localVarPostBody = r.refundDto
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -382,8 +422,17 @@ func (a *ConversionsAPIService) ConversionsControllerTrackRefundExecute(r ApiCon
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

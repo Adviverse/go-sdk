@@ -28,12 +28,16 @@ type ApiMetaverseControllerAdminWorldsRequest struct {
 	ApiService *MetaverseAPIService
 }
 
-func (r ApiMetaverseControllerAdminWorldsRequest) Execute() (*http.Response, error) {
+func (r ApiMetaverseControllerAdminWorldsRequest) Execute() ([]MetaverseControllerAdminWorlds200ResponseInner, *http.Response, error) {
 	return r.ApiService.MetaverseControllerAdminWorldsExecute(r)
 }
 
 /*
-MetaverseControllerAdminWorlds Method for MetaverseControllerAdminWorlds
+MetaverseControllerAdminWorlds List all world integrations
+
+Admin view of up to 1000 world integrations across all accounts, with the operator's email.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiMetaverseControllerAdminWorldsRequest
@@ -46,16 +50,18 @@ func (a *MetaverseAPIService) MetaverseControllerAdminWorlds(ctx context.Context
 }
 
 // Execute executes the request
-func (a *MetaverseAPIService) MetaverseControllerAdminWorldsExecute(r ApiMetaverseControllerAdminWorldsRequest) (*http.Response, error) {
+//  @return []MetaverseControllerAdminWorlds200ResponseInner
+func (a *MetaverseAPIService) MetaverseControllerAdminWorldsExecute(r ApiMetaverseControllerAdminWorldsRequest) ([]MetaverseControllerAdminWorlds200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []MetaverseControllerAdminWorlds200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MetaverseAPIService.MetaverseControllerAdminWorlds")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/metaverse/worlds"
@@ -74,28 +80,42 @@ func (a *MetaverseAPIService) MetaverseControllerAdminWorldsExecute(r ApiMetaver
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -103,10 +123,19 @@ func (a *MetaverseAPIService) MetaverseControllerAdminWorldsExecute(r ApiMetaver
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiMetaverseControllerAdvertiserViewsRequest struct {
@@ -126,12 +155,16 @@ func (r ApiMetaverseControllerAdvertiserViewsRequest) To(to string) ApiMetaverse
 	return r
 }
 
-func (r ApiMetaverseControllerAdvertiserViewsRequest) Execute() (*http.Response, error) {
+func (r ApiMetaverseControllerAdvertiserViewsRequest) Execute() (*SupSurfaceReport, *http.Response, error) {
 	return r.ApiService.MetaverseControllerAdvertiserViewsExecute(r)
 }
 
 /*
-MetaverseControllerAdvertiserViews Method for MetaverseControllerAdvertiserViews
+MetaverseControllerAdvertiserViews Get metaverse proof-of-view for your campaigns
+
+Same report as the publisher view, scoped to surface events on your campaigns between `from` and `to` (default last 30 days).
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiMetaverseControllerAdvertiserViewsRequest
@@ -144,16 +177,18 @@ func (a *MetaverseAPIService) MetaverseControllerAdvertiserViews(ctx context.Con
 }
 
 // Execute executes the request
-func (a *MetaverseAPIService) MetaverseControllerAdvertiserViewsExecute(r ApiMetaverseControllerAdvertiserViewsRequest) (*http.Response, error) {
+//  @return SupSurfaceReport
+func (a *MetaverseAPIService) MetaverseControllerAdvertiserViewsExecute(r ApiMetaverseControllerAdvertiserViewsRequest) (*SupSurfaceReport, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SupSurfaceReport
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MetaverseAPIService.MetaverseControllerAdvertiserViews")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/advertiser/metaverse/views"
@@ -162,10 +197,10 @@ func (a *MetaverseAPIService) MetaverseControllerAdvertiserViewsExecute(r ApiMet
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.from == nil {
-		return nil, reportError("from is required and must be specified")
+		return localVarReturnValue, nil, reportError("from is required and must be specified")
 	}
 	if r.to == nil {
-		return nil, reportError("to is required and must be specified")
+		return localVarReturnValue, nil, reportError("to is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "from", r.from, "form", "")
@@ -180,28 +215,42 @@ func (a *MetaverseAPIService) MetaverseControllerAdvertiserViewsExecute(r ApiMet
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -209,10 +258,19 @@ func (a *MetaverseAPIService) MetaverseControllerAdvertiserViewsExecute(r ApiMet
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiMetaverseControllerClaimRequest struct {
@@ -226,12 +284,16 @@ func (r ApiMetaverseControllerClaimRequest) ClaimSurfaceDto(claimSurfaceDto Clai
 	return r
 }
 
-func (r ApiMetaverseControllerClaimRequest) Execute() (*http.Response, error) {
+func (r ApiMetaverseControllerClaimRequest) Execute() (*SupSurface, *http.Response, error) {
 	return r.ApiService.MetaverseControllerClaimExecute(r)
 }
 
 /*
-MetaverseControllerClaim Method for MetaverseControllerClaim
+MetaverseControllerClaim Claim a metaverse surface by its pairing code
+
+Attaches the pending surface showing `code` to your account and starts serving: creates a `surface` placement (signed with the world's attestation key) under a per-world property that inherits the world's trust tier. Optional spatial details: `shopId`, `world`, `surfaceType`, `posX/Y/Z`, `widthM`, `heightM`, `floorCpm`, `audienceMultiplier` (default 1), `maxDistanceM`. 404 if no surface is waiting for that code.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiMetaverseControllerClaimRequest
@@ -244,16 +306,18 @@ func (a *MetaverseAPIService) MetaverseControllerClaim(ctx context.Context) ApiM
 }
 
 // Execute executes the request
-func (a *MetaverseAPIService) MetaverseControllerClaimExecute(r ApiMetaverseControllerClaimRequest) (*http.Response, error) {
+//  @return SupSurface
+func (a *MetaverseAPIService) MetaverseControllerClaimExecute(r ApiMetaverseControllerClaimRequest) (*SupSurface, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SupSurface
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MetaverseAPIService.MetaverseControllerClaim")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/metaverse/surfaces/claim"
@@ -262,7 +326,7 @@ func (a *MetaverseAPIService) MetaverseControllerClaimExecute(r ApiMetaverseCont
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.claimSurfaceDto == nil {
-		return nil, reportError("claimSurfaceDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("claimSurfaceDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -275,7 +339,7 @@ func (a *MetaverseAPIService) MetaverseControllerClaimExecute(r ApiMetaverseCont
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -284,21 +348,35 @@ func (a *MetaverseAPIService) MetaverseControllerClaimExecute(r ApiMetaverseCont
 	}
 	// body params
 	localVarPostBody = r.claimSurfaceDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -306,10 +384,19 @@ func (a *MetaverseAPIService) MetaverseControllerClaimExecute(r ApiMetaverseCont
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiMetaverseControllerCreateWorldRequest struct {
@@ -323,12 +410,16 @@ func (r ApiMetaverseControllerCreateWorldRequest) CreateWorldDto(createWorldDto 
 	return r
 }
 
-func (r ApiMetaverseControllerCreateWorldRequest) Execute() (*http.Response, error) {
+func (r ApiMetaverseControllerCreateWorldRequest) Execute() (*MetaverseControllerCreateWorld201Response, *http.Response, error) {
 	return r.ApiService.MetaverseControllerCreateWorldExecute(r)
 }
 
 /*
-MetaverseControllerCreateWorld Method for MetaverseControllerCreateWorld
+MetaverseControllerCreateWorld Register a metaverse world integration
+
+Creates a world integration for a metaverse operator from `name` (required) and optional `networkId`. New worlds start `unverified` (their surfaces serve CPA-only until trusted). The response includes `signing_secret`, which the world's server uses to attest proofs of view; it is returned only here. 400 if name is empty.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiMetaverseControllerCreateWorldRequest
@@ -341,16 +432,18 @@ func (a *MetaverseAPIService) MetaverseControllerCreateWorld(ctx context.Context
 }
 
 // Execute executes the request
-func (a *MetaverseAPIService) MetaverseControllerCreateWorldExecute(r ApiMetaverseControllerCreateWorldRequest) (*http.Response, error) {
+//  @return MetaverseControllerCreateWorld201Response
+func (a *MetaverseAPIService) MetaverseControllerCreateWorldExecute(r ApiMetaverseControllerCreateWorldRequest) (*MetaverseControllerCreateWorld201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *MetaverseControllerCreateWorld201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MetaverseAPIService.MetaverseControllerCreateWorld")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/metaverse/worlds"
@@ -359,7 +452,7 @@ func (a *MetaverseAPIService) MetaverseControllerCreateWorldExecute(r ApiMetaver
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.createWorldDto == nil {
-		return nil, reportError("createWorldDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("createWorldDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -372,7 +465,7 @@ func (a *MetaverseAPIService) MetaverseControllerCreateWorldExecute(r ApiMetaver
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -381,21 +474,35 @@ func (a *MetaverseAPIService) MetaverseControllerCreateWorldExecute(r ApiMetaver
 	}
 	// body params
 	localVarPostBody = r.createWorldDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -403,10 +510,19 @@ func (a *MetaverseAPIService) MetaverseControllerCreateWorldExecute(r ApiMetaver
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiMetaverseControllerGetRequest struct {
@@ -415,12 +531,16 @@ type ApiMetaverseControllerGetRequest struct {
 	id string
 }
 
-func (r ApiMetaverseControllerGetRequest) Execute() (*http.Response, error) {
+func (r ApiMetaverseControllerGetRequest) Execute() (*SupSurface, *http.Response, error) {
 	return r.ApiService.MetaverseControllerGetExecute(r)
 }
 
 /*
-MetaverseControllerGet Method for MetaverseControllerGet
+MetaverseControllerGet Get a metaverse surface
+
+Returns one of your surfaces with its serving tag. 404 if not found, 403 if another account owns it.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -435,16 +555,18 @@ func (a *MetaverseAPIService) MetaverseControllerGet(ctx context.Context, id str
 }
 
 // Execute executes the request
-func (a *MetaverseAPIService) MetaverseControllerGetExecute(r ApiMetaverseControllerGetRequest) (*http.Response, error) {
+//  @return SupSurface
+func (a *MetaverseAPIService) MetaverseControllerGetExecute(r ApiMetaverseControllerGetRequest) (*SupSurface, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SupSurface
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MetaverseAPIService.MetaverseControllerGet")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/metaverse/surfaces/{id}"
@@ -464,28 +586,42 @@ func (a *MetaverseAPIService) MetaverseControllerGetExecute(r ApiMetaverseContro
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -493,10 +629,19 @@ func (a *MetaverseAPIService) MetaverseControllerGetExecute(r ApiMetaverseContro
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiMetaverseControllerListRequest struct {
@@ -504,12 +649,16 @@ type ApiMetaverseControllerListRequest struct {
 	ApiService *MetaverseAPIService
 }
 
-func (r ApiMetaverseControllerListRequest) Execute() (*http.Response, error) {
+func (r ApiMetaverseControllerListRequest) Execute() ([]MetaverseControllerList200ResponseInner, *http.Response, error) {
 	return r.ApiService.MetaverseControllerListExecute(r)
 }
 
 /*
-MetaverseControllerList Method for MetaverseControllerList
+MetaverseControllerList List your metaverse surfaces
+
+Returns your surfaces, newest first, with `online` (heartbeat within 5 minutes) and the latest heartbeat time.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiMetaverseControllerListRequest
@@ -522,16 +671,18 @@ func (a *MetaverseAPIService) MetaverseControllerList(ctx context.Context) ApiMe
 }
 
 // Execute executes the request
-func (a *MetaverseAPIService) MetaverseControllerListExecute(r ApiMetaverseControllerListRequest) (*http.Response, error) {
+//  @return []MetaverseControllerList200ResponseInner
+func (a *MetaverseAPIService) MetaverseControllerListExecute(r ApiMetaverseControllerListRequest) ([]MetaverseControllerList200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []MetaverseControllerList200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MetaverseAPIService.MetaverseControllerList")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/metaverse/surfaces"
@@ -550,28 +701,42 @@ func (a *MetaverseAPIService) MetaverseControllerListExecute(r ApiMetaverseContr
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -579,10 +744,19 @@ func (a *MetaverseAPIService) MetaverseControllerListExecute(r ApiMetaverseContr
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiMetaverseControllerListWorldsRequest struct {
@@ -590,12 +764,16 @@ type ApiMetaverseControllerListWorldsRequest struct {
 	ApiService *MetaverseAPIService
 }
 
-func (r ApiMetaverseControllerListWorldsRequest) Execute() (*http.Response, error) {
+func (r ApiMetaverseControllerListWorldsRequest) Execute() ([]SupWorld, *http.Response, error) {
 	return r.ApiService.MetaverseControllerListWorldsExecute(r)
 }
 
 /*
-MetaverseControllerListWorlds Method for MetaverseControllerListWorlds
+MetaverseControllerListWorlds List your world integrations
+
+Returns the caller's world integrations (without signing secrets), newest first.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiMetaverseControllerListWorldsRequest
@@ -608,16 +786,18 @@ func (a *MetaverseAPIService) MetaverseControllerListWorlds(ctx context.Context)
 }
 
 // Execute executes the request
-func (a *MetaverseAPIService) MetaverseControllerListWorldsExecute(r ApiMetaverseControllerListWorldsRequest) (*http.Response, error) {
+//  @return []SupWorld
+func (a *MetaverseAPIService) MetaverseControllerListWorldsExecute(r ApiMetaverseControllerListWorldsRequest) ([]SupWorld, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []SupWorld
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MetaverseAPIService.MetaverseControllerListWorlds")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/metaverse/worlds"
@@ -636,28 +816,42 @@ func (a *MetaverseAPIService) MetaverseControllerListWorldsExecute(r ApiMetavers
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -665,10 +859,19 @@ func (a *MetaverseAPIService) MetaverseControllerListWorldsExecute(r ApiMetavers
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiMetaverseControllerPairInitRequest struct {
@@ -682,12 +885,16 @@ func (r ApiMetaverseControllerPairInitRequest) SurfacePairInitDto(surfacePairIni
 	return r
 }
 
-func (r ApiMetaverseControllerPairInitRequest) Execute() (*http.Response, error) {
+func (r ApiMetaverseControllerPairInitRequest) Execute() (*ScreensControllerPairInit201Response, *http.Response, error) {
 	return r.ApiService.MetaverseControllerPairInitExecute(r)
 }
 
 /*
-MetaverseControllerPairInit Method for MetaverseControllerPairInit
+MetaverseControllerPairInit Start pairing a metaverse ad surface
+
+Public, rate-limited. A world client calls this with `worldId` (must be an active world) and optional `surfaceType` (screen, poster, portal; default screen). Returns a pairing code to show in-world and a poll token. 404 for an unknown world.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiMetaverseControllerPairInitRequest
@@ -700,16 +907,18 @@ func (a *MetaverseAPIService) MetaverseControllerPairInit(ctx context.Context) A
 }
 
 // Execute executes the request
-func (a *MetaverseAPIService) MetaverseControllerPairInitExecute(r ApiMetaverseControllerPairInitRequest) (*http.Response, error) {
+//  @return ScreensControllerPairInit201Response
+func (a *MetaverseAPIService) MetaverseControllerPairInitExecute(r ApiMetaverseControllerPairInitRequest) (*ScreensControllerPairInit201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ScreensControllerPairInit201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MetaverseAPIService.MetaverseControllerPairInit")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/metaverse/pair-init"
@@ -718,7 +927,7 @@ func (a *MetaverseAPIService) MetaverseControllerPairInitExecute(r ApiMetaverseC
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.surfacePairInitDto == nil {
-		return nil, reportError("surfacePairInitDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("surfacePairInitDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -731,7 +940,7 @@ func (a *MetaverseAPIService) MetaverseControllerPairInitExecute(r ApiMetaverseC
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -742,19 +951,19 @@ func (a *MetaverseAPIService) MetaverseControllerPairInitExecute(r ApiMetaverseC
 	localVarPostBody = r.surfacePairInitDto
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -762,10 +971,19 @@ func (a *MetaverseAPIService) MetaverseControllerPairInitExecute(r ApiMetaverseC
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiMetaverseControllerPairStatusRequest struct {
@@ -779,12 +997,16 @@ func (r ApiMetaverseControllerPairStatusRequest) PollToken(pollToken string) Api
 	return r
 }
 
-func (r ApiMetaverseControllerPairStatusRequest) Execute() (*http.Response, error) {
+func (r ApiMetaverseControllerPairStatusRequest) Execute() (*ScreensControllerPairStatus200Response, *http.Response, error) {
 	return r.ApiService.MetaverseControllerPairStatusExecute(r)
 }
 
 /*
-MetaverseControllerPairStatus Method for MetaverseControllerPairStatus
+MetaverseControllerPairStatus Poll a metaverse surface's pairing status
+
+Public, rate-limited. Poll with `?pollToken=` until a shop owner claims the code, then receive the serving `tag`. 404 for an unknown token.
+
+Auth: public, no credentials required.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiMetaverseControllerPairStatusRequest
@@ -797,16 +1019,18 @@ func (a *MetaverseAPIService) MetaverseControllerPairStatus(ctx context.Context)
 }
 
 // Execute executes the request
-func (a *MetaverseAPIService) MetaverseControllerPairStatusExecute(r ApiMetaverseControllerPairStatusRequest) (*http.Response, error) {
+//  @return ScreensControllerPairStatus200Response
+func (a *MetaverseAPIService) MetaverseControllerPairStatusExecute(r ApiMetaverseControllerPairStatusRequest) (*ScreensControllerPairStatus200Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ScreensControllerPairStatus200Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MetaverseAPIService.MetaverseControllerPairStatus")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/metaverse/pair-status"
@@ -815,7 +1039,7 @@ func (a *MetaverseAPIService) MetaverseControllerPairStatusExecute(r ApiMetavers
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.pollToken == nil {
-		return nil, reportError("pollToken is required and must be specified")
+		return localVarReturnValue, nil, reportError("pollToken is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "pollToken", r.pollToken, "form", "")
@@ -829,7 +1053,7 @@ func (a *MetaverseAPIService) MetaverseControllerPairStatusExecute(r ApiMetavers
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -838,19 +1062,19 @@ func (a *MetaverseAPIService) MetaverseControllerPairStatusExecute(r ApiMetavers
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -858,10 +1082,19 @@ func (a *MetaverseAPIService) MetaverseControllerPairStatusExecute(r ApiMetavers
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiMetaverseControllerPublisherViewsRequest struct {
@@ -881,12 +1114,16 @@ func (r ApiMetaverseControllerPublisherViewsRequest) To(to string) ApiMetaverseC
 	return r
 }
 
-func (r ApiMetaverseControllerPublisherViewsRequest) Execute() (*http.Response, error) {
+func (r ApiMetaverseControllerPublisherViewsRequest) Execute() (*SupSurfaceReport, *http.Response, error) {
 	return r.ApiService.MetaverseControllerPublisherViewsExecute(r)
 }
 
 /*
-MetaverseControllerPublisherViews Method for MetaverseControllerPublisherViews
+MetaverseControllerPublisherViews Get your metaverse proof-of-view report
+
+Summarizes and lists (up to 2000) surface events on your surfaces between `from` and `to` (default last 30 days): views, valid views, portal enters and completes, spend, and distinct surfaces.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiMetaverseControllerPublisherViewsRequest
@@ -899,16 +1136,18 @@ func (a *MetaverseAPIService) MetaverseControllerPublisherViews(ctx context.Cont
 }
 
 // Execute executes the request
-func (a *MetaverseAPIService) MetaverseControllerPublisherViewsExecute(r ApiMetaverseControllerPublisherViewsRequest) (*http.Response, error) {
+//  @return SupSurfaceReport
+func (a *MetaverseAPIService) MetaverseControllerPublisherViewsExecute(r ApiMetaverseControllerPublisherViewsRequest) (*SupSurfaceReport, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SupSurfaceReport
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MetaverseAPIService.MetaverseControllerPublisherViews")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/metaverse/views"
@@ -917,10 +1156,10 @@ func (a *MetaverseAPIService) MetaverseControllerPublisherViewsExecute(r ApiMeta
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.from == nil {
-		return nil, reportError("from is required and must be specified")
+		return localVarReturnValue, nil, reportError("from is required and must be specified")
 	}
 	if r.to == nil {
-		return nil, reportError("to is required and must be specified")
+		return localVarReturnValue, nil, reportError("to is required and must be specified")
 	}
 
 	parameterAddToHeaderOrQuery(localVarQueryParams, "from", r.from, "form", "")
@@ -935,28 +1174,42 @@ func (a *MetaverseAPIService) MetaverseControllerPublisherViewsExecute(r ApiMeta
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -964,10 +1217,19 @@ func (a *MetaverseAPIService) MetaverseControllerPublisherViewsExecute(r ApiMeta
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiMetaverseControllerScoreNowRequest struct {
@@ -975,12 +1237,16 @@ type ApiMetaverseControllerScoreNowRequest struct {
 	ApiService *MetaverseAPIService
 }
 
-func (r ApiMetaverseControllerScoreNowRequest) Execute() (*http.Response, error) {
+func (r ApiMetaverseControllerScoreNowRequest) Execute() (*MetaverseControllerScoreNow201Response, *http.Response, error) {
 	return r.ApiService.MetaverseControllerScoreNowExecute(r)
 }
 
 /*
-MetaverseControllerScoreNow Method for MetaverseControllerScoreNow
+MetaverseControllerScoreNow Run world trust scoring now
+
+Scores every active world's last 7 days of surface traffic immediately (normally a scheduled job), stores the snapshots, and promotes or demotes worlds whose computed tier differs from their current one.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiMetaverseControllerScoreNowRequest
@@ -993,16 +1259,18 @@ func (a *MetaverseAPIService) MetaverseControllerScoreNow(ctx context.Context) A
 }
 
 // Execute executes the request
-func (a *MetaverseAPIService) MetaverseControllerScoreNowExecute(r ApiMetaverseControllerScoreNowRequest) (*http.Response, error) {
+//  @return MetaverseControllerScoreNow201Response
+func (a *MetaverseAPIService) MetaverseControllerScoreNowExecute(r ApiMetaverseControllerScoreNowRequest) (*MetaverseControllerScoreNow201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *MetaverseControllerScoreNow201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MetaverseAPIService.MetaverseControllerScoreNow")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/metaverse/score-now"
@@ -1021,28 +1289,42 @@ func (a *MetaverseAPIService) MetaverseControllerScoreNowExecute(r ApiMetaverseC
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1050,10 +1332,19 @@ func (a *MetaverseAPIService) MetaverseControllerScoreNowExecute(r ApiMetaverseC
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiMetaverseControllerSetStatusRequest struct {
@@ -1068,12 +1359,16 @@ func (r ApiMetaverseControllerSetStatusRequest) SetSurfaceStatusDto(setSurfaceSt
 	return r
 }
 
-func (r ApiMetaverseControllerSetStatusRequest) Execute() (*http.Response, error) {
+func (r ApiMetaverseControllerSetStatusRequest) Execute() (*ScreensControllerSetStatus201Response, *http.Response, error) {
 	return r.ApiService.MetaverseControllerSetStatusExecute(r)
 }
 
 /*
-MetaverseControllerSetStatus Method for MetaverseControllerSetStatus
+MetaverseControllerSetStatus Pause or activate a metaverse surface
+
+Sets `status` (`active`/`paused`) on the surface and its placement and republishes the index. 400 if not paired yet; 404/403 as for get.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1088,16 +1383,18 @@ func (a *MetaverseAPIService) MetaverseControllerSetStatus(ctx context.Context, 
 }
 
 // Execute executes the request
-func (a *MetaverseAPIService) MetaverseControllerSetStatusExecute(r ApiMetaverseControllerSetStatusRequest) (*http.Response, error) {
+//  @return ScreensControllerSetStatus201Response
+func (a *MetaverseAPIService) MetaverseControllerSetStatusExecute(r ApiMetaverseControllerSetStatusRequest) (*ScreensControllerSetStatus201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ScreensControllerSetStatus201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MetaverseAPIService.MetaverseControllerSetStatus")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/metaverse/surfaces/{id}/status"
@@ -1107,7 +1404,7 @@ func (a *MetaverseAPIService) MetaverseControllerSetStatusExecute(r ApiMetaverse
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.setSurfaceStatusDto == nil {
-		return nil, reportError("setSurfaceStatusDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("setSurfaceStatusDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1120,7 +1417,7 @@ func (a *MetaverseAPIService) MetaverseControllerSetStatusExecute(r ApiMetaverse
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1129,21 +1426,35 @@ func (a *MetaverseAPIService) MetaverseControllerSetStatusExecute(r ApiMetaverse
 	}
 	// body params
 	localVarPostBody = r.setSurfaceStatusDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1151,10 +1462,19 @@ func (a *MetaverseAPIService) MetaverseControllerSetStatusExecute(r ApiMetaverse
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiMetaverseControllerSetWorldTrustRequest struct {
@@ -1169,12 +1489,16 @@ func (r ApiMetaverseControllerSetWorldTrustRequest) SetWorldTrustDto(setWorldTru
 	return r
 }
 
-func (r ApiMetaverseControllerSetWorldTrustRequest) Execute() (*http.Response, error) {
+func (r ApiMetaverseControllerSetWorldTrustRequest) Execute() (*MetaverseControllerSetWorldTrust201Response, *http.Response, error) {
 	return r.ApiService.MetaverseControllerSetWorldTrustExecute(r)
 }
 
 /*
-MetaverseControllerSetWorldTrust Method for MetaverseControllerSetWorldTrust
+MetaverseControllerSetWorldTrust Set a world's trust tier
+
+Sets `trust` to `trusted` (surfaces may sell CPM) or `unverified` (CPA-only), cascades it to the world's surface properties, and republishes the index. 404 if the world does not exist.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1189,16 +1513,18 @@ func (a *MetaverseAPIService) MetaverseControllerSetWorldTrust(ctx context.Conte
 }
 
 // Execute executes the request
-func (a *MetaverseAPIService) MetaverseControllerSetWorldTrustExecute(r ApiMetaverseControllerSetWorldTrustRequest) (*http.Response, error) {
+//  @return MetaverseControllerSetWorldTrust201Response
+func (a *MetaverseAPIService) MetaverseControllerSetWorldTrustExecute(r ApiMetaverseControllerSetWorldTrustRequest) (*MetaverseControllerSetWorldTrust201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *MetaverseControllerSetWorldTrust201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MetaverseAPIService.MetaverseControllerSetWorldTrust")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/metaverse/worlds/{id}/trust"
@@ -1208,7 +1534,7 @@ func (a *MetaverseAPIService) MetaverseControllerSetWorldTrustExecute(r ApiMetav
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.setWorldTrustDto == nil {
-		return nil, reportError("setWorldTrustDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("setWorldTrustDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1221,7 +1547,7 @@ func (a *MetaverseAPIService) MetaverseControllerSetWorldTrustExecute(r ApiMetav
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1230,21 +1556,35 @@ func (a *MetaverseAPIService) MetaverseControllerSetWorldTrustExecute(r ApiMetav
 	}
 	// body params
 	localVarPostBody = r.setWorldTrustDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1252,10 +1592,19 @@ func (a *MetaverseAPIService) MetaverseControllerSetWorldTrustExecute(r ApiMetav
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiMetaverseControllerTrustScoresRequest struct {
@@ -1263,12 +1612,16 @@ type ApiMetaverseControllerTrustScoresRequest struct {
 	ApiService *MetaverseAPIService
 }
 
-func (r ApiMetaverseControllerTrustScoresRequest) Execute() (*http.Response, error) {
+func (r ApiMetaverseControllerTrustScoresRequest) Execute() ([]MetaverseControllerTrustScores200ResponseInner, *http.Response, error) {
 	return r.ApiService.MetaverseControllerTrustScoresExecute(r)
 }
 
 /*
-MetaverseControllerTrustScores Method for MetaverseControllerTrustScores
+MetaverseControllerTrustScores List world trust scores
+
+Admin view of the latest automatic trust-score snapshot per world (7-day view volume, valid and attested rates, unique-user ratio, dwell-time variation, the tier the scorer chose, and its factors).
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiMetaverseControllerTrustScoresRequest
@@ -1281,16 +1634,18 @@ func (a *MetaverseAPIService) MetaverseControllerTrustScores(ctx context.Context
 }
 
 // Execute executes the request
-func (a *MetaverseAPIService) MetaverseControllerTrustScoresExecute(r ApiMetaverseControllerTrustScoresRequest) (*http.Response, error) {
+//  @return []MetaverseControllerTrustScores200ResponseInner
+func (a *MetaverseAPIService) MetaverseControllerTrustScoresExecute(r ApiMetaverseControllerTrustScoresRequest) ([]MetaverseControllerTrustScores200ResponseInner, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []MetaverseControllerTrustScores200ResponseInner
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MetaverseAPIService.MetaverseControllerTrustScores")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/admin/metaverse/trust-scores"
@@ -1309,28 +1664,42 @@ func (a *MetaverseAPIService) MetaverseControllerTrustScoresExecute(r ApiMetaver
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1338,10 +1707,19 @@ func (a *MetaverseAPIService) MetaverseControllerTrustScoresExecute(r ApiMetaver
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiMetaverseControllerUpdateRequest struct {
@@ -1356,12 +1734,16 @@ func (r ApiMetaverseControllerUpdateRequest) UpdateSurfaceDto(updateSurfaceDto U
 	return r
 }
 
-func (r ApiMetaverseControllerUpdateRequest) Execute() (*http.Response, error) {
+func (r ApiMetaverseControllerUpdateRequest) Execute() (*SupSurface, *http.Response, error) {
 	return r.ApiService.MetaverseControllerUpdateExecute(r)
 }
 
 /*
-MetaverseControllerUpdate Method for MetaverseControllerUpdate
+MetaverseControllerUpdate Update a metaverse surface
+
+Edits `surfaceType`, `floorCpm`, `audienceMultiplier` and `maxDistanceM` on a paired surface (synced into its placement settings) and republishes the index. 400 if not paired yet; 404/403 as for get.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id
@@ -1376,16 +1758,18 @@ func (a *MetaverseAPIService) MetaverseControllerUpdate(ctx context.Context, id 
 }
 
 // Execute executes the request
-func (a *MetaverseAPIService) MetaverseControllerUpdateExecute(r ApiMetaverseControllerUpdateRequest) (*http.Response, error) {
+//  @return SupSurface
+func (a *MetaverseAPIService) MetaverseControllerUpdateExecute(r ApiMetaverseControllerUpdateRequest) (*SupSurface, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPatch
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *SupSurface
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MetaverseAPIService.MetaverseControllerUpdate")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/metaverse/surfaces/{id}"
@@ -1395,7 +1779,7 @@ func (a *MetaverseAPIService) MetaverseControllerUpdateExecute(r ApiMetaverseCon
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.updateSurfaceDto == nil {
-		return nil, reportError("updateSurfaceDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("updateSurfaceDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1408,7 +1792,7 @@ func (a *MetaverseAPIService) MetaverseControllerUpdateExecute(r ApiMetaverseCon
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -1417,21 +1801,35 @@ func (a *MetaverseAPIService) MetaverseControllerUpdateExecute(r ApiMetaverseCon
 	}
 	// body params
 	localVarPostBody = r.updateSurfaceDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -1439,8 +1837,17 @@ func (a *MetaverseAPIService) MetaverseControllerUpdateExecute(r ApiMetaverseCon
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

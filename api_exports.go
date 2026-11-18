@@ -27,12 +27,16 @@ type ApiExportsControllerListRequest struct {
 	ApiService *ExportsAPIService
 }
 
-func (r ApiExportsControllerListRequest) Execute() (*http.Response, error) {
+func (r ApiExportsControllerListRequest) Execute() ([]ExportJob, *http.Response, error) {
 	return r.ApiService.ExportsControllerListExecute(r)
 }
 
 /*
-ExportsControllerList Method for ExportsControllerList
+ExportsControllerList List export jobs
+
+Returns the 200 most recent export jobs, newest first: the caller's own for advertisers, all jobs for admins.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiExportsControllerListRequest
@@ -45,16 +49,18 @@ func (a *ExportsAPIService) ExportsControllerList(ctx context.Context) ApiExport
 }
 
 // Execute executes the request
-func (a *ExportsAPIService) ExportsControllerListExecute(r ApiExportsControllerListRequest) (*http.Response, error) {
+//  @return []ExportJob
+func (a *ExportsAPIService) ExportsControllerListExecute(r ApiExportsControllerListRequest) ([]ExportJob, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  []ExportJob
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ExportsAPIService.ExportsControllerList")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/exports"
@@ -73,28 +79,42 @@ func (a *ExportsAPIService) ExportsControllerListExecute(r ApiExportsControllerL
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -102,10 +122,19 @@ func (a *ExportsAPIService) ExportsControllerListExecute(r ApiExportsControllerL
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiExportsControllerRunRequest struct {
@@ -119,12 +148,16 @@ func (r ApiExportsControllerRunRequest) RunExportDto(runExportDto RunExportDto) 
 	return r
 }
 
-func (r ApiExportsControllerRunRequest) Execute() (*http.Response, error) {
+func (r ApiExportsControllerRunRequest) Execute() (*ExportsControllerRun201Response, *http.Response, error) {
 	return r.ApiService.ExportsControllerRunExecute(r)
 }
 
 /*
-ExportsControllerRun Method for ExportsControllerRun
+ExportsControllerRun Export an analytics dataset to object storage
+
+Pages a ClickHouse dataset into one NDJSON or CSV object plus a manifest JSON in object storage and returns a presigned download URL. Body: `dataset` (events = raw impressions, conversions, or spend = hourly rollup), `from` (inclusive) and `to` (exclusive) as ISO dates, optional `format` (ndjson default, csv). Advertisers export only their own rows; admins export network-wide. The job is recorded and marked failed if the export errors.
+
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiExportsControllerRunRequest
@@ -137,16 +170,18 @@ func (a *ExportsAPIService) ExportsControllerRun(ctx context.Context) ApiExports
 }
 
 // Execute executes the request
-func (a *ExportsAPIService) ExportsControllerRunExecute(r ApiExportsControllerRunRequest) (*http.Response, error) {
+//  @return ExportsControllerRun201Response
+func (a *ExportsAPIService) ExportsControllerRunExecute(r ApiExportsControllerRunRequest) (*ExportsControllerRun201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  *ExportsControllerRun201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ExportsAPIService.ExportsControllerRun")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
 	localVarPath := localBasePath + "/v1/exports/run"
@@ -155,7 +190,7 @@ func (a *ExportsAPIService) ExportsControllerRunExecute(r ApiExportsControllerRu
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 	if r.runExportDto == nil {
-		return nil, reportError("runExportDto is required and must be specified")
+		return localVarReturnValue, nil, reportError("runExportDto is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -168,7 +203,7 @@ func (a *ExportsAPIService) ExportsControllerRunExecute(r ApiExportsControllerRu
 	}
 
 	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{}
+	localVarHTTPHeaderAccepts := []string{"application/json"}
 
 	// set Accept header
 	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
@@ -177,21 +212,35 @@ func (a *ExportsAPIService) ExportsControllerRunExecute(r ApiExportsControllerRu
 	}
 	// body params
 	localVarPostBody = r.runExportDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -199,8 +248,17 @@ func (a *ExportsAPIService) ExportsControllerRunExecute(r ApiExportsControllerRu
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
