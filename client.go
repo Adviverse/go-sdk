@@ -103,6 +103,8 @@ type APIClient struct {
 
 	PortalAPI *PortalAPIService
 
+	PropertyTrustAPI *PropertyTrustAPIService
+
 	PublisherAPI *PublisherAPIService
 
 	PublisherInsightsAPI *PublisherInsightsAPIService
@@ -171,6 +173,7 @@ func NewAPIClient(cfg *Configuration) *APIClient {
 	c.OptimizationAPI = (*OptimizationAPIService)(&c.common)
 	c.PixelAPI = (*PixelAPIService)(&c.common)
 	c.PortalAPI = (*PortalAPIService)(&c.common)
+	c.PropertyTrustAPI = (*PropertyTrustAPIService)(&c.common)
 	c.PublisherAPI = (*PublisherAPIService)(&c.common)
 	c.PublisherInsightsAPI = (*PublisherInsightsAPIService)(&c.common)
 	c.ReferralsAPI = (*ReferralsAPIService)(&c.common)

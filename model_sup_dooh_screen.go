@@ -18,7 +18,7 @@ import (
 // checks if the SupDoohScreen type satisfies the MappedNullable interface at compile time
 var _ MappedNullable = &SupDoohScreen{}
 
-// SupDoohScreen A `dooh_screens` row plus its placement `tag_key`.
+// SupDoohScreen A `dooh_screens` row plus its placement `tag_key`. Player credentials (`poll_token`, `pairing_token`) are never returned.
 type SupDoohScreen struct {
 	Id *string `json:"id,omitempty"`
 	PlacementId NullableString `json:"placement_id,omitempty"`
@@ -36,8 +36,6 @@ type SupDoohScreen struct {
 	AudienceMultiplier *string `json:"audience_multiplier,omitempty"`
 	Status *string `json:"status,omitempty"`
 	PairingCode NullableString `json:"pairing_code,omitempty"`
-	PollToken NullableString `json:"poll_token,omitempty"`
-	PairingToken NullableString `json:"pairing_token,omitempty"`
 	PairedAt NullableTime `json:"paired_at,omitempty"`
 	LastHeartbeatAt NullableTime `json:"last_heartbeat_at,omitempty"`
 	PlayerVersion NullableString `json:"player_version,omitempty"`
@@ -656,90 +654,6 @@ func (o *SupDoohScreen) UnsetPairingCode() {
 	o.PairingCode.Unset()
 }
 
-// GetPollToken returns the PollToken field value if set, zero value otherwise (both if not set or set to explicit null).
-func (o *SupDoohScreen) GetPollToken() string {
-	if o == nil || IsNil(o.PollToken.Get()) {
-		var ret string
-		return ret
-	}
-	return *o.PollToken.Get()
-}
-
-// GetPollTokenOk returns a tuple with the PollToken field value if set, nil otherwise
-// and a boolean to check if the value has been set.
-// NOTE: If the value is an explicit nil, `nil, true` will be returned
-func (o *SupDoohScreen) GetPollTokenOk() (*string, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return o.PollToken.Get(), o.PollToken.IsSet()
-}
-
-// HasPollToken returns a boolean if a field has been set.
-func (o *SupDoohScreen) HasPollToken() bool {
-	if o != nil && o.PollToken.IsSet() {
-		return true
-	}
-
-	return false
-}
-
-// SetPollToken gets a reference to the given NullableString and assigns it to the PollToken field.
-func (o *SupDoohScreen) SetPollToken(v string) {
-	o.PollToken.Set(&v)
-}
-// SetPollTokenNil sets the value for PollToken to be an explicit nil
-func (o *SupDoohScreen) SetPollTokenNil() {
-	o.PollToken.Set(nil)
-}
-
-// UnsetPollToken ensures that no value is present for PollToken, not even an explicit nil
-func (o *SupDoohScreen) UnsetPollToken() {
-	o.PollToken.Unset()
-}
-
-// GetPairingToken returns the PairingToken field value if set, zero value otherwise (both if not set or set to explicit null).
-func (o *SupDoohScreen) GetPairingToken() string {
-	if o == nil || IsNil(o.PairingToken.Get()) {
-		var ret string
-		return ret
-	}
-	return *o.PairingToken.Get()
-}
-
-// GetPairingTokenOk returns a tuple with the PairingToken field value if set, nil otherwise
-// and a boolean to check if the value has been set.
-// NOTE: If the value is an explicit nil, `nil, true` will be returned
-func (o *SupDoohScreen) GetPairingTokenOk() (*string, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return o.PairingToken.Get(), o.PairingToken.IsSet()
-}
-
-// HasPairingToken returns a boolean if a field has been set.
-func (o *SupDoohScreen) HasPairingToken() bool {
-	if o != nil && o.PairingToken.IsSet() {
-		return true
-	}
-
-	return false
-}
-
-// SetPairingToken gets a reference to the given NullableString and assigns it to the PairingToken field.
-func (o *SupDoohScreen) SetPairingToken(v string) {
-	o.PairingToken.Set(&v)
-}
-// SetPairingTokenNil sets the value for PairingToken to be an explicit nil
-func (o *SupDoohScreen) SetPairingTokenNil() {
-	o.PairingToken.Set(nil)
-}
-
-// UnsetPairingToken ensures that no value is present for PairingToken, not even an explicit nil
-func (o *SupDoohScreen) UnsetPairingToken() {
-	o.PairingToken.Unset()
-}
-
 // GetPairedAt returns the PairedAt field value if set, zero value otherwise (both if not set or set to explicit null).
 func (o *SupDoohScreen) GetPairedAt() time.Time {
 	if o == nil || IsNil(o.PairedAt.Get()) {
@@ -1027,12 +941,6 @@ func (o SupDoohScreen) ToMap() (map[string]interface{}, error) {
 	if o.PairingCode.IsSet() {
 		toSerialize["pairing_code"] = o.PairingCode.Get()
 	}
-	if o.PollToken.IsSet() {
-		toSerialize["poll_token"] = o.PollToken.Get()
-	}
-	if o.PairingToken.IsSet() {
-		toSerialize["pairing_token"] = o.PairingToken.Get()
-	}
 	if o.PairedAt.IsSet() {
 		toSerialize["paired_at"] = o.PairedAt.Get()
 	}
@@ -1088,8 +996,6 @@ func (o *SupDoohScreen) UnmarshalJSON(data []byte) (err error) {
 		delete(additionalProperties, "audience_multiplier")
 		delete(additionalProperties, "status")
 		delete(additionalProperties, "pairing_code")
-		delete(additionalProperties, "poll_token")
-		delete(additionalProperties, "pairing_token")
 		delete(additionalProperties, "paired_at")
 		delete(additionalProperties, "last_heartbeat_at")
 		delete(additionalProperties, "player_version")

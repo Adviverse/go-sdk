@@ -26,7 +26,18 @@ type PubProperty struct {
 	Name NullableString `json:"name,omitempty"`
 	// Hostname, CLI slug, or app bundle id
 	Domain *string `json:"domain,omitempty"`
+	// Site-niche id (GET /v1/site-niches); null when unknown
 	Category NullableInt32 `json:"category,omitempty"`
+	CategorySource *string `json:"category_source,omitempty"`
+	Categories []PubPropertyCategoriesInner `json:"categories,omitempty"`
+	ClassifiedAt NullableTime `json:"classified_at,omitempty"`
+	ClassifyError NullableString `json:"classify_error,omitempty"`
+	// unverified = CPA-only demand; promoted automatically once proven clean
+	TrustTier *string `json:"trust_tier,omitempty"`
+	// An admin pinned the trust tier; automatic changes are off
+	TrustLocked *bool `json:"trust_locked,omitempty"`
+	VerifiedAt NullableTime `json:"verified_at,omitempty"`
+	TrustProgress *TrustProgress `json:"trust_progress,omitempty"`
 	VerificationStatus *string `json:"verification_status,omitempty"`
 	VerificationMethod NullableString `json:"verification_method,omitempty"`
 	VerificationToken NullableString `json:"verification_token,omitempty"`
@@ -279,6 +290,292 @@ func (o *PubProperty) SetCategoryNil() {
 // UnsetCategory ensures that no value is present for Category, not even an explicit nil
 func (o *PubProperty) UnsetCategory() {
 	o.Category.Unset()
+}
+
+// GetCategorySource returns the CategorySource field value if set, zero value otherwise.
+func (o *PubProperty) GetCategorySource() string {
+	if o == nil || IsNil(o.CategorySource) {
+		var ret string
+		return ret
+	}
+	return *o.CategorySource
+}
+
+// GetCategorySourceOk returns a tuple with the CategorySource field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *PubProperty) GetCategorySourceOk() (*string, bool) {
+	if o == nil || IsNil(o.CategorySource) {
+		return nil, false
+	}
+	return o.CategorySource, true
+}
+
+// HasCategorySource returns a boolean if a field has been set.
+func (o *PubProperty) HasCategorySource() bool {
+	if o != nil && !IsNil(o.CategorySource) {
+		return true
+	}
+
+	return false
+}
+
+// SetCategorySource gets a reference to the given string and assigns it to the CategorySource field.
+func (o *PubProperty) SetCategorySource(v string) {
+	o.CategorySource = &v
+}
+
+// GetCategories returns the Categories field value if set, zero value otherwise.
+func (o *PubProperty) GetCategories() []PubPropertyCategoriesInner {
+	if o == nil || IsNil(o.Categories) {
+		var ret []PubPropertyCategoriesInner
+		return ret
+	}
+	return o.Categories
+}
+
+// GetCategoriesOk returns a tuple with the Categories field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *PubProperty) GetCategoriesOk() ([]PubPropertyCategoriesInner, bool) {
+	if o == nil || IsNil(o.Categories) {
+		return nil, false
+	}
+	return o.Categories, true
+}
+
+// HasCategories returns a boolean if a field has been set.
+func (o *PubProperty) HasCategories() bool {
+	if o != nil && !IsNil(o.Categories) {
+		return true
+	}
+
+	return false
+}
+
+// SetCategories gets a reference to the given []PubPropertyCategoriesInner and assigns it to the Categories field.
+func (o *PubProperty) SetCategories(v []PubPropertyCategoriesInner) {
+	o.Categories = v
+}
+
+// GetClassifiedAt returns the ClassifiedAt field value if set, zero value otherwise (both if not set or set to explicit null).
+func (o *PubProperty) GetClassifiedAt() time.Time {
+	if o == nil || IsNil(o.ClassifiedAt.Get()) {
+		var ret time.Time
+		return ret
+	}
+	return *o.ClassifiedAt.Get()
+}
+
+// GetClassifiedAtOk returns a tuple with the ClassifiedAt field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+// NOTE: If the value is an explicit nil, `nil, true` will be returned
+func (o *PubProperty) GetClassifiedAtOk() (*time.Time, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return o.ClassifiedAt.Get(), o.ClassifiedAt.IsSet()
+}
+
+// HasClassifiedAt returns a boolean if a field has been set.
+func (o *PubProperty) HasClassifiedAt() bool {
+	if o != nil && o.ClassifiedAt.IsSet() {
+		return true
+	}
+
+	return false
+}
+
+// SetClassifiedAt gets a reference to the given NullableTime and assigns it to the ClassifiedAt field.
+func (o *PubProperty) SetClassifiedAt(v time.Time) {
+	o.ClassifiedAt.Set(&v)
+}
+// SetClassifiedAtNil sets the value for ClassifiedAt to be an explicit nil
+func (o *PubProperty) SetClassifiedAtNil() {
+	o.ClassifiedAt.Set(nil)
+}
+
+// UnsetClassifiedAt ensures that no value is present for ClassifiedAt, not even an explicit nil
+func (o *PubProperty) UnsetClassifiedAt() {
+	o.ClassifiedAt.Unset()
+}
+
+// GetClassifyError returns the ClassifyError field value if set, zero value otherwise (both if not set or set to explicit null).
+func (o *PubProperty) GetClassifyError() string {
+	if o == nil || IsNil(o.ClassifyError.Get()) {
+		var ret string
+		return ret
+	}
+	return *o.ClassifyError.Get()
+}
+
+// GetClassifyErrorOk returns a tuple with the ClassifyError field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+// NOTE: If the value is an explicit nil, `nil, true` will be returned
+func (o *PubProperty) GetClassifyErrorOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return o.ClassifyError.Get(), o.ClassifyError.IsSet()
+}
+
+// HasClassifyError returns a boolean if a field has been set.
+func (o *PubProperty) HasClassifyError() bool {
+	if o != nil && o.ClassifyError.IsSet() {
+		return true
+	}
+
+	return false
+}
+
+// SetClassifyError gets a reference to the given NullableString and assigns it to the ClassifyError field.
+func (o *PubProperty) SetClassifyError(v string) {
+	o.ClassifyError.Set(&v)
+}
+// SetClassifyErrorNil sets the value for ClassifyError to be an explicit nil
+func (o *PubProperty) SetClassifyErrorNil() {
+	o.ClassifyError.Set(nil)
+}
+
+// UnsetClassifyError ensures that no value is present for ClassifyError, not even an explicit nil
+func (o *PubProperty) UnsetClassifyError() {
+	o.ClassifyError.Unset()
+}
+
+// GetTrustTier returns the TrustTier field value if set, zero value otherwise.
+func (o *PubProperty) GetTrustTier() string {
+	if o == nil || IsNil(o.TrustTier) {
+		var ret string
+		return ret
+	}
+	return *o.TrustTier
+}
+
+// GetTrustTierOk returns a tuple with the TrustTier field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *PubProperty) GetTrustTierOk() (*string, bool) {
+	if o == nil || IsNil(o.TrustTier) {
+		return nil, false
+	}
+	return o.TrustTier, true
+}
+
+// HasTrustTier returns a boolean if a field has been set.
+func (o *PubProperty) HasTrustTier() bool {
+	if o != nil && !IsNil(o.TrustTier) {
+		return true
+	}
+
+	return false
+}
+
+// SetTrustTier gets a reference to the given string and assigns it to the TrustTier field.
+func (o *PubProperty) SetTrustTier(v string) {
+	o.TrustTier = &v
+}
+
+// GetTrustLocked returns the TrustLocked field value if set, zero value otherwise.
+func (o *PubProperty) GetTrustLocked() bool {
+	if o == nil || IsNil(o.TrustLocked) {
+		var ret bool
+		return ret
+	}
+	return *o.TrustLocked
+}
+
+// GetTrustLockedOk returns a tuple with the TrustLocked field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *PubProperty) GetTrustLockedOk() (*bool, bool) {
+	if o == nil || IsNil(o.TrustLocked) {
+		return nil, false
+	}
+	return o.TrustLocked, true
+}
+
+// HasTrustLocked returns a boolean if a field has been set.
+func (o *PubProperty) HasTrustLocked() bool {
+	if o != nil && !IsNil(o.TrustLocked) {
+		return true
+	}
+
+	return false
+}
+
+// SetTrustLocked gets a reference to the given bool and assigns it to the TrustLocked field.
+func (o *PubProperty) SetTrustLocked(v bool) {
+	o.TrustLocked = &v
+}
+
+// GetVerifiedAt returns the VerifiedAt field value if set, zero value otherwise (both if not set or set to explicit null).
+func (o *PubProperty) GetVerifiedAt() time.Time {
+	if o == nil || IsNil(o.VerifiedAt.Get()) {
+		var ret time.Time
+		return ret
+	}
+	return *o.VerifiedAt.Get()
+}
+
+// GetVerifiedAtOk returns a tuple with the VerifiedAt field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+// NOTE: If the value is an explicit nil, `nil, true` will be returned
+func (o *PubProperty) GetVerifiedAtOk() (*time.Time, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return o.VerifiedAt.Get(), o.VerifiedAt.IsSet()
+}
+
+// HasVerifiedAt returns a boolean if a field has been set.
+func (o *PubProperty) HasVerifiedAt() bool {
+	if o != nil && o.VerifiedAt.IsSet() {
+		return true
+	}
+
+	return false
+}
+
+// SetVerifiedAt gets a reference to the given NullableTime and assigns it to the VerifiedAt field.
+func (o *PubProperty) SetVerifiedAt(v time.Time) {
+	o.VerifiedAt.Set(&v)
+}
+// SetVerifiedAtNil sets the value for VerifiedAt to be an explicit nil
+func (o *PubProperty) SetVerifiedAtNil() {
+	o.VerifiedAt.Set(nil)
+}
+
+// UnsetVerifiedAt ensures that no value is present for VerifiedAt, not even an explicit nil
+func (o *PubProperty) UnsetVerifiedAt() {
+	o.VerifiedAt.Unset()
+}
+
+// GetTrustProgress returns the TrustProgress field value if set, zero value otherwise.
+func (o *PubProperty) GetTrustProgress() TrustProgress {
+	if o == nil || IsNil(o.TrustProgress) {
+		var ret TrustProgress
+		return ret
+	}
+	return *o.TrustProgress
+}
+
+// GetTrustProgressOk returns a tuple with the TrustProgress field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *PubProperty) GetTrustProgressOk() (*TrustProgress, bool) {
+	if o == nil || IsNil(o.TrustProgress) {
+		return nil, false
+	}
+	return o.TrustProgress, true
+}
+
+// HasTrustProgress returns a boolean if a field has been set.
+func (o *PubProperty) HasTrustProgress() bool {
+	if o != nil && !IsNil(o.TrustProgress) {
+		return true
+	}
+
+	return false
+}
+
+// SetTrustProgress gets a reference to the given TrustProgress and assigns it to the TrustProgress field.
+func (o *PubProperty) SetTrustProgress(v TrustProgress) {
+	o.TrustProgress = &v
 }
 
 // GetVerificationStatus returns the VerificationStatus field value if set, zero value otherwise.
@@ -1007,6 +1304,30 @@ func (o PubProperty) ToMap() (map[string]interface{}, error) {
 	if o.Category.IsSet() {
 		toSerialize["category"] = o.Category.Get()
 	}
+	if !IsNil(o.CategorySource) {
+		toSerialize["category_source"] = o.CategorySource
+	}
+	if !IsNil(o.Categories) {
+		toSerialize["categories"] = o.Categories
+	}
+	if o.ClassifiedAt.IsSet() {
+		toSerialize["classified_at"] = o.ClassifiedAt.Get()
+	}
+	if o.ClassifyError.IsSet() {
+		toSerialize["classify_error"] = o.ClassifyError.Get()
+	}
+	if !IsNil(o.TrustTier) {
+		toSerialize["trust_tier"] = o.TrustTier
+	}
+	if !IsNil(o.TrustLocked) {
+		toSerialize["trust_locked"] = o.TrustLocked
+	}
+	if o.VerifiedAt.IsSet() {
+		toSerialize["verified_at"] = o.VerifiedAt.Get()
+	}
+	if !IsNil(o.TrustProgress) {
+		toSerialize["trust_progress"] = o.TrustProgress
+	}
 	if !IsNil(o.VerificationStatus) {
 		toSerialize["verification_status"] = o.VerificationStatus
 	}
@@ -1092,6 +1413,14 @@ func (o *PubProperty) UnmarshalJSON(data []byte) (err error) {
 		delete(additionalProperties, "name")
 		delete(additionalProperties, "domain")
 		delete(additionalProperties, "category")
+		delete(additionalProperties, "category_source")
+		delete(additionalProperties, "categories")
+		delete(additionalProperties, "classified_at")
+		delete(additionalProperties, "classify_error")
+		delete(additionalProperties, "trust_tier")
+		delete(additionalProperties, "trust_locked")
+		delete(additionalProperties, "verified_at")
+		delete(additionalProperties, "trust_progress")
 		delete(additionalProperties, "verification_status")
 		delete(additionalProperties, "verification_method")
 		delete(additionalProperties, "verification_token")

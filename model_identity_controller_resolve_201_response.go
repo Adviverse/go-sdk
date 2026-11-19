@@ -20,6 +20,7 @@ var _ MappedNullable = &IdentityControllerResolve201Response{}
 // IdentityControllerResolve201Response struct for IdentityControllerResolve201Response
 type IdentityControllerResolve201Response struct {
 	CanonicalId *string `json:"canonicalId,omitempty"`
+	// Per-advertiser id for advertisers; the global email-derived id (or null) for admins
 	UnifiedId NullableString `json:"unifiedId,omitempty"`
 	ConsentState *string `json:"consentState,omitempty"`
 	// Signals actually linked from this request (all supplied by the caller).

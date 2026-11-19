@@ -31,6 +31,8 @@ type UpdateCampaignDto struct {
 	BidModifiers map[string]interface{} `json:"bidModifiers,omitempty"`
 	Targeting map[string]interface{} `json:"targeting,omitempty"`
 	HouseAd *bool `json:"houseAd,omitempty"`
+	AutoOwnPlacements *bool `json:"autoOwnPlacements,omitempty"`
+	NetworkExpansion *bool `json:"networkExpansion,omitempty"`
 	PriorityTier *string `json:"priorityTier,omitempty"`
 	DeliveryGoal *float32 `json:"deliveryGoal,omitempty"`
 	GoalType *string `json:"goalType,omitempty"`
@@ -444,6 +446,70 @@ func (o *UpdateCampaignDto) HasHouseAd() bool {
 // SetHouseAd gets a reference to the given bool and assigns it to the HouseAd field.
 func (o *UpdateCampaignDto) SetHouseAd(v bool) {
 	o.HouseAd = &v
+}
+
+// GetAutoOwnPlacements returns the AutoOwnPlacements field value if set, zero value otherwise.
+func (o *UpdateCampaignDto) GetAutoOwnPlacements() bool {
+	if o == nil || IsNil(o.AutoOwnPlacements) {
+		var ret bool
+		return ret
+	}
+	return *o.AutoOwnPlacements
+}
+
+// GetAutoOwnPlacementsOk returns a tuple with the AutoOwnPlacements field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *UpdateCampaignDto) GetAutoOwnPlacementsOk() (*bool, bool) {
+	if o == nil || IsNil(o.AutoOwnPlacements) {
+		return nil, false
+	}
+	return o.AutoOwnPlacements, true
+}
+
+// HasAutoOwnPlacements returns a boolean if a field has been set.
+func (o *UpdateCampaignDto) HasAutoOwnPlacements() bool {
+	if o != nil && !IsNil(o.AutoOwnPlacements) {
+		return true
+	}
+
+	return false
+}
+
+// SetAutoOwnPlacements gets a reference to the given bool and assigns it to the AutoOwnPlacements field.
+func (o *UpdateCampaignDto) SetAutoOwnPlacements(v bool) {
+	o.AutoOwnPlacements = &v
+}
+
+// GetNetworkExpansion returns the NetworkExpansion field value if set, zero value otherwise.
+func (o *UpdateCampaignDto) GetNetworkExpansion() bool {
+	if o == nil || IsNil(o.NetworkExpansion) {
+		var ret bool
+		return ret
+	}
+	return *o.NetworkExpansion
+}
+
+// GetNetworkExpansionOk returns a tuple with the NetworkExpansion field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *UpdateCampaignDto) GetNetworkExpansionOk() (*bool, bool) {
+	if o == nil || IsNil(o.NetworkExpansion) {
+		return nil, false
+	}
+	return o.NetworkExpansion, true
+}
+
+// HasNetworkExpansion returns a boolean if a field has been set.
+func (o *UpdateCampaignDto) HasNetworkExpansion() bool {
+	if o != nil && !IsNil(o.NetworkExpansion) {
+		return true
+	}
+
+	return false
+}
+
+// SetNetworkExpansion gets a reference to the given bool and assigns it to the NetworkExpansion field.
+func (o *UpdateCampaignDto) SetNetworkExpansion(v bool) {
+	o.NetworkExpansion = &v
 }
 
 // GetPriorityTier returns the PriorityTier field value if set, zero value otherwise.
@@ -875,6 +941,12 @@ func (o UpdateCampaignDto) ToMap() (map[string]interface{}, error) {
 	}
 	if !IsNil(o.HouseAd) {
 		toSerialize["houseAd"] = o.HouseAd
+	}
+	if !IsNil(o.AutoOwnPlacements) {
+		toSerialize["autoOwnPlacements"] = o.AutoOwnPlacements
+	}
+	if !IsNil(o.NetworkExpansion) {
+		toSerialize["networkExpansion"] = o.NetworkExpansion
 	}
 	if !IsNil(o.PriorityTier) {
 		toSerialize["priorityTier"] = o.PriorityTier

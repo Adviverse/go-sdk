@@ -22,8 +22,10 @@ var _ MappedNullable = &IdentityControllerGet200ResponseIdentity{}
 type IdentityControllerGet200ResponseIdentity struct {
 	CanonicalId *string `json:"canonical_id,omitempty"`
 	UnifiedId NullableString `json:"unified_id,omitempty"`
+	// Admins only
 	HouseholdId NullableString `json:"household_id,omitempty"`
 	ConsentState *string `json:"consent_state,omitempty"`
+	// Admins only
 	Attributes map[string]interface{} `json:"attributes,omitempty"`
 	FirstSeen *time.Time `json:"first_seen,omitempty"`
 	LastSeen *time.Time `json:"last_seen,omitempty"`

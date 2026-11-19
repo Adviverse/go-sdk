@@ -28,8 +28,12 @@ type WebhookEndpoint struct {
 	Active bool `json:"active"`
 	// Not returned on create.
 	CreatedAt *time.Time `json:"created_at,omitempty"`
-	// HMAC-SHA256 signing secret (whsec_...).
-	Secret string `json:"secret"`
+	// HMAC-SHA256 signing secret (whsec_...). Returned only by create and rotate-secret.
+	Secret *string `json:"secret,omitempty"`
+	// List/update only: whether a signing secret is set.
+	SecretSet *bool `json:"has_secret,omitempty"`
+	// List/update only: last 4 characters of the secret.
+	SecretHint NullableString `json:"secret_hint,omitempty"`
 }
 
 type _WebhookEndpoint WebhookEndpoint
@@ -38,13 +42,12 @@ type _WebhookEndpoint WebhookEndpoint
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewWebhookEndpoint(id string, url string, events []string, active bool, secret string) *WebhookEndpoint {
+func NewWebhookEndpoint(id string, url string, events []string, active bool) *WebhookEndpoint {
 	this := WebhookEndpoint{}
 	this.Id = id
 	this.Url = url
 	this.Events = events
 	this.Active = active
-	this.Secret = secret
 	return &this
 }
 
@@ -184,28 +187,110 @@ func (o *WebhookEndpoint) SetCreatedAt(v time.Time) {
 	o.CreatedAt = &v
 }
 
-// GetSecret returns the Secret field value
+// GetSecret returns the Secret field value if set, zero value otherwise.
 func (o *WebhookEndpoint) GetSecret() string {
-	if o == nil {
+	if o == nil || IsNil(o.Secret) {
 		var ret string
 		return ret
 	}
-
-	return o.Secret
+	return *o.Secret
 }
 
-// GetSecretOk returns a tuple with the Secret field value
+// GetSecretOk returns a tuple with the Secret field value if set, nil otherwise
 // and a boolean to check if the value has been set.
 func (o *WebhookEndpoint) GetSecretOk() (*string, bool) {
+	if o == nil || IsNil(o.Secret) {
+		return nil, false
+	}
+	return o.Secret, true
+}
+
+// HasSecret returns a boolean if a field has been set.
+func (o *WebhookEndpoint) HasSecret() bool {
+	if o != nil && !IsNil(o.Secret) {
+		return true
+	}
+
+	return false
+}
+
+// SetSecret gets a reference to the given string and assigns it to the Secret field.
+func (o *WebhookEndpoint) SetSecret(v string) {
+	o.Secret = &v
+}
+
+// GetSecretSet returns the SecretSet field value if set, zero value otherwise.
+func (o *WebhookEndpoint) GetSecretSet() bool {
+	if o == nil || IsNil(o.SecretSet) {
+		var ret bool
+		return ret
+	}
+	return *o.SecretSet
+}
+
+// GetSecretSetOk returns a tuple with the SecretSet field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *WebhookEndpoint) GetSecretSetOk() (*bool, bool) {
+	if o == nil || IsNil(o.SecretSet) {
+		return nil, false
+	}
+	return o.SecretSet, true
+}
+
+// HasSecretSet returns a boolean if a field has been set.
+func (o *WebhookEndpoint) HasSecretSet() bool {
+	if o != nil && !IsNil(o.SecretSet) {
+		return true
+	}
+
+	return false
+}
+
+// SetSecretSet gets a reference to the given bool and assigns it to the SecretSet field.
+func (o *WebhookEndpoint) SetSecretSet(v bool) {
+	o.SecretSet = &v
+}
+
+// GetSecretHint returns the SecretHint field value if set, zero value otherwise (both if not set or set to explicit null).
+func (o *WebhookEndpoint) GetSecretHint() string {
+	if o == nil || IsNil(o.SecretHint.Get()) {
+		var ret string
+		return ret
+	}
+	return *o.SecretHint.Get()
+}
+
+// GetSecretHintOk returns a tuple with the SecretHint field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+// NOTE: If the value is an explicit nil, `nil, true` will be returned
+func (o *WebhookEndpoint) GetSecretHintOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Secret, true
+	return o.SecretHint.Get(), o.SecretHint.IsSet()
 }
 
-// SetSecret sets field value
-func (o *WebhookEndpoint) SetSecret(v string) {
-	o.Secret = v
+// HasSecretHint returns a boolean if a field has been set.
+func (o *WebhookEndpoint) HasSecretHint() bool {
+	if o != nil && o.SecretHint.IsSet() {
+		return true
+	}
+
+	return false
+}
+
+// SetSecretHint gets a reference to the given NullableString and assigns it to the SecretHint field.
+func (o *WebhookEndpoint) SetSecretHint(v string) {
+	o.SecretHint.Set(&v)
+}
+// SetSecretHintNil sets the value for SecretHint to be an explicit nil
+func (o *WebhookEndpoint) SetSecretHintNil() {
+	o.SecretHint.Set(nil)
+}
+
+// UnsetSecretHint ensures that no value is present for SecretHint, not even an explicit nil
+func (o *WebhookEndpoint) UnsetSecretHint() {
+	o.SecretHint.Unset()
 }
 
 func (o WebhookEndpoint) MarshalJSON() ([]byte, error) {
@@ -225,7 +310,15 @@ func (o WebhookEndpoint) ToMap() (map[string]interface{}, error) {
 	if !IsNil(o.CreatedAt) {
 		toSerialize["created_at"] = o.CreatedAt
 	}
-	toSerialize["secret"] = o.Secret
+	if !IsNil(o.Secret) {
+		toSerialize["secret"] = o.Secret
+	}
+	if !IsNil(o.SecretSet) {
+		toSerialize["has_secret"] = o.SecretSet
+	}
+	if o.SecretHint.IsSet() {
+		toSerialize["secret_hint"] = o.SecretHint.Get()
+	}
 	return toSerialize, nil
 }
 
@@ -238,7 +331,6 @@ func (o *WebhookEndpoint) UnmarshalJSON(data []byte) (err error) {
 		"url",
 		"events",
 		"active",
-		"secret",
 	}
 
 	allProperties := make(map[string]interface{})

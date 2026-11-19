@@ -18,7 +18,7 @@ import (
 // checks if the PubPlacement type satisfies the MappedNullable interface at compile time
 var _ MappedNullable = &PubPlacement{}
 
-// PubPlacement A `placements` row. All columns are returned, including `signing_secret`.
+// PubPlacement A `placements` row. The signing secret itself is never returned here (only from POST /v1/publisher/placements/{id}/signing-secret); `has_signing_secret` says whether one is set.
 type PubPlacement struct {
 	Id *string `json:"id,omitempty"`
 	PropertyId *string `json:"property_id,omitempty"`
@@ -45,7 +45,8 @@ type PubPlacement struct {
 	HouseShare *string `json:"house_share,omitempty"`
 	HouseBackfill *bool `json:"house_backfill,omitempty"`
 	FloorFallback *bool `json:"floor_fallback,omitempty"`
-	SigningSecret NullableString `json:"signing_secret,omitempty"`
+	// True when a signing secret is set (signed-tag enforcement is on)
+	SigningSecretSet *bool `json:"has_signing_secret,omitempty"`
 	ComboId NullableString `json:"combo_id,omitempty"`
 	ComboLabel NullableString `json:"combo_label,omitempty"`
 	LastActiveAt NullableTime `json:"last_active_at,omitempty"`
@@ -777,46 +778,36 @@ func (o *PubPlacement) SetFloorFallback(v bool) {
 	o.FloorFallback = &v
 }
 
-// GetSigningSecret returns the SigningSecret field value if set, zero value otherwise (both if not set or set to explicit null).
-func (o *PubPlacement) GetSigningSecret() string {
-	if o == nil || IsNil(o.SigningSecret.Get()) {
-		var ret string
+// GetSigningSecretSet returns the SigningSecretSet field value if set, zero value otherwise.
+func (o *PubPlacement) GetSigningSecretSet() bool {
+	if o == nil || IsNil(o.SigningSecretSet) {
+		var ret bool
 		return ret
 	}
-	return *o.SigningSecret.Get()
+	return *o.SigningSecretSet
 }
 
-// GetSigningSecretOk returns a tuple with the SigningSecret field value if set, nil otherwise
+// GetSigningSecretSetOk returns a tuple with the SigningSecretSet field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-// NOTE: If the value is an explicit nil, `nil, true` will be returned
-func (o *PubPlacement) GetSigningSecretOk() (*string, bool) {
-	if o == nil {
+func (o *PubPlacement) GetSigningSecretSetOk() (*bool, bool) {
+	if o == nil || IsNil(o.SigningSecretSet) {
 		return nil, false
 	}
-	return o.SigningSecret.Get(), o.SigningSecret.IsSet()
+	return o.SigningSecretSet, true
 }
 
-// HasSigningSecret returns a boolean if a field has been set.
-func (o *PubPlacement) HasSigningSecret() bool {
-	if o != nil && o.SigningSecret.IsSet() {
+// HasSigningSecretSet returns a boolean if a field has been set.
+func (o *PubPlacement) HasSigningSecretSet() bool {
+	if o != nil && !IsNil(o.SigningSecretSet) {
 		return true
 	}
 
 	return false
 }
 
-// SetSigningSecret gets a reference to the given NullableString and assigns it to the SigningSecret field.
-func (o *PubPlacement) SetSigningSecret(v string) {
-	o.SigningSecret.Set(&v)
-}
-// SetSigningSecretNil sets the value for SigningSecret to be an explicit nil
-func (o *PubPlacement) SetSigningSecretNil() {
-	o.SigningSecret.Set(nil)
-}
-
-// UnsetSigningSecret ensures that no value is present for SigningSecret, not even an explicit nil
-func (o *PubPlacement) UnsetSigningSecret() {
-	o.SigningSecret.Unset()
+// SetSigningSecretSet gets a reference to the given bool and assigns it to the SigningSecretSet field.
+func (o *PubPlacement) SetSigningSecretSet(v bool) {
+	o.SigningSecretSet = &v
 }
 
 // GetComboId returns the ComboId field value if set, zero value otherwise (both if not set or set to explicit null).
@@ -1124,8 +1115,8 @@ func (o PubPlacement) ToMap() (map[string]interface{}, error) {
 	if !IsNil(o.FloorFallback) {
 		toSerialize["floor_fallback"] = o.FloorFallback
 	}
-	if o.SigningSecret.IsSet() {
-		toSerialize["signing_secret"] = o.SigningSecret.Get()
+	if !IsNil(o.SigningSecretSet) {
+		toSerialize["has_signing_secret"] = o.SigningSecretSet
 	}
 	if o.ComboId.IsSet() {
 		toSerialize["combo_id"] = o.ComboId.Get()
@@ -1188,7 +1179,7 @@ func (o *PubPlacement) UnmarshalJSON(data []byte) (err error) {
 		delete(additionalProperties, "house_share")
 		delete(additionalProperties, "house_backfill")
 		delete(additionalProperties, "floor_fallback")
-		delete(additionalProperties, "signing_secret")
+		delete(additionalProperties, "has_signing_secret")
 		delete(additionalProperties, "combo_id")
 		delete(additionalProperties, "combo_label")
 		delete(additionalProperties, "last_active_at")

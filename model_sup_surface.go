@@ -18,7 +18,7 @@ import (
 // checks if the SupSurface type satisfies the MappedNullable interface at compile time
 var _ MappedNullable = &SupSurface{}
 
-// SupSurface A `surfaces` row plus its placement `tag_key`.
+// SupSurface A `surfaces` row plus its placement `tag_key`. Player credentials (`poll_token`, `pairing_token`) are never returned.
 type SupSurface struct {
 	Id *string `json:"id,omitempty"`
 	PlacementId NullableString `json:"placement_id,omitempty"`
@@ -36,7 +36,6 @@ type SupSurface struct {
 	AudienceMultiplier *string `json:"audience_multiplier,omitempty"`
 	Status *string `json:"status,omitempty"`
 	PairingCode NullableString `json:"pairing_code,omitempty"`
-	PollToken NullableString `json:"poll_token,omitempty"`
 	LastHeartbeatAt NullableTime `json:"last_heartbeat_at,omitempty"`
 	TagKey NullableString `json:"tag_key,omitempty"`
 	CreatedAt *time.Time `json:"created_at,omitempty"`
@@ -652,48 +651,6 @@ func (o *SupSurface) UnsetPairingCode() {
 	o.PairingCode.Unset()
 }
 
-// GetPollToken returns the PollToken field value if set, zero value otherwise (both if not set or set to explicit null).
-func (o *SupSurface) GetPollToken() string {
-	if o == nil || IsNil(o.PollToken.Get()) {
-		var ret string
-		return ret
-	}
-	return *o.PollToken.Get()
-}
-
-// GetPollTokenOk returns a tuple with the PollToken field value if set, nil otherwise
-// and a boolean to check if the value has been set.
-// NOTE: If the value is an explicit nil, `nil, true` will be returned
-func (o *SupSurface) GetPollTokenOk() (*string, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return o.PollToken.Get(), o.PollToken.IsSet()
-}
-
-// HasPollToken returns a boolean if a field has been set.
-func (o *SupSurface) HasPollToken() bool {
-	if o != nil && o.PollToken.IsSet() {
-		return true
-	}
-
-	return false
-}
-
-// SetPollToken gets a reference to the given NullableString and assigns it to the PollToken field.
-func (o *SupSurface) SetPollToken(v string) {
-	o.PollToken.Set(&v)
-}
-// SetPollTokenNil sets the value for PollToken to be an explicit nil
-func (o *SupSurface) SetPollTokenNil() {
-	o.PollToken.Set(nil)
-}
-
-// UnsetPollToken ensures that no value is present for PollToken, not even an explicit nil
-func (o *SupSurface) UnsetPollToken() {
-	o.PollToken.Unset()
-}
-
 // GetLastHeartbeatAt returns the LastHeartbeatAt field value if set, zero value otherwise (both if not set or set to explicit null).
 func (o *SupSurface) GetLastHeartbeatAt() time.Time {
 	if o == nil || IsNil(o.LastHeartbeatAt.Get()) {
@@ -865,9 +822,6 @@ func (o SupSurface) ToMap() (map[string]interface{}, error) {
 	if o.PairingCode.IsSet() {
 		toSerialize["pairing_code"] = o.PairingCode.Get()
 	}
-	if o.PollToken.IsSet() {
-		toSerialize["poll_token"] = o.PollToken.Get()
-	}
 	if o.LastHeartbeatAt.IsSet() {
 		toSerialize["last_heartbeat_at"] = o.LastHeartbeatAt.Get()
 	}
@@ -914,7 +868,6 @@ func (o *SupSurface) UnmarshalJSON(data []byte) (err error) {
 		delete(additionalProperties, "audience_multiplier")
 		delete(additionalProperties, "status")
 		delete(additionalProperties, "pairing_code")
-		delete(additionalProperties, "poll_token")
 		delete(additionalProperties, "last_heartbeat_at")
 		delete(additionalProperties, "tag_key")
 		delete(additionalProperties, "created_at")

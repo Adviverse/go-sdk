@@ -343,9 +343,9 @@ func (r ApiConversionsControllerTrackRefundRequest) Execute() (*ConversionsContr
 /*
 ConversionsControllerTrackRefund Report a refund or chargeback for an order
 
-Claws back a held or settled per-checkout CPA conversion identified by `orderId`/`order_id`, optionally narrowed by `advertiserId`/`advertiser_id`. Emits a compensating conversion event carrying the original payout and publisher earnings so the ledger posts exact reversing entries, then marks the row refunded. A missing order id returns `error`, an unknown order `not_found`, and a repeat call `already_refunded`.
+Claws back a held or settled per-checkout CPA conversion identified by `orderId`/`order_id`. Requires the advertiser API key (scope `write`) or session, and only touches that advertiser’s own orders (admins may pass `advertiserId`). Emits a compensating conversion event carrying the original payout and publisher earnings so the ledger posts exact reversing entries, then marks the row refunded. A missing order id returns `error`, an unknown order `not_found`, and a repeat call `already_refunded`.
 
-Auth: public, no credentials required.
+Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiConversionsControllerTrackRefundRequest
@@ -400,6 +400,20 @@ func (a *ConversionsAPIService) ConversionsControllerTrackRefundExecute(r ApiCon
 	}
 	// body params
 	localVarPostBody = r.refundDto
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err

@@ -26,6 +26,7 @@ api_mfa.go
 api_optimization.go
 api_pixel.go
 api_portal.go
+api_property_trust.go
 api_publisher.go
 api_publisher_insights.go
 api_referrals.go
@@ -53,6 +54,7 @@ model_admin_controller_process_payout_201_response.go
 model_admin_controller_quality_200_response_inner.go
 model_admin_controller_rescan_201_response.go
 model_admin_controller_set_status_201_response.go
+model_admin_trust_dto.go
 model_adv_ad_set_summary.go
 model_adv_audience.go
 model_adv_audience_destination.go
@@ -275,6 +277,8 @@ model_mfa_controller_ranked_200_response_inner.go
 model_modeled_lookalike_dto.go
 model_moderation_decision_dto.go
 model_network_settings_dto.go
+model_niche_classification.go
+model_niche_score.go
 model_oauth_discord_dto.go
 model_oauth_google_dto.go
 model_oauth_start_dto.go
@@ -306,10 +310,13 @@ model_portal_templates_controller_list_templates_200_response_inner.go
 model_portal_templates_controller_list_templates_200_response_inner_fields_inner.go
 model_profile_dto.go
 model_promote_campaign_reporting_controller_summary_200_response.go
+model_property_trust_controller_admin_list_200_response_inner.go
+model_property_trust_controller_admin_set_201_response.go
 model_pub_combo_preset.go
 model_pub_combo_preset_units_inner.go
 model_pub_placement.go
 model_pub_property.go
+model_pub_property_categories_inner.go
 model_pub_serving_domain.go
 model_publisher_controller_disable_signing_200_response.go
 model_publisher_controller_domain_connect_201_response.go
@@ -460,6 +467,7 @@ model_settings_controller_rotate_terminal_token_201_response.go
 model_settings_controller_set_terminal_token_policy_200_response.go
 model_settings_controller_update_network_200_response.go
 model_signup_dto.go
+model_site_niche.go
 model_skadnetwork_controller_health_200_response.go
 model_skadnetwork_controller_postback_200_response.go
 model_stats_controller_get_200_response.go
@@ -478,6 +486,8 @@ model_surface_pair_init_dto.go
 model_tax_form_dto.go
 model_terminal_switch_dto.go
 model_track_conversion_dto.go
+model_trust_event.go
+model_trust_progress.go
 model_update_app_dto.go
 model_update_campaign_dto.go
 model_update_campaign_group_dto.go
@@ -496,6 +506,7 @@ model_webhook_delivery.go
 model_webhook_delivery_result.go
 model_webhook_endpoint.go
 model_webhooks_controller_events_200_response.go
+model_webhooks_controller_reveal_secret_201_response.go
 model_webhooks_controller_unsubscribe_200_response.go
 response.go
 utils.go

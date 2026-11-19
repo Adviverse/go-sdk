@@ -278,7 +278,7 @@ func (r ApiWebhooksControllerListRequest) Execute() ([]WebhookEndpoint, *http.Re
 /*
 WebhooksControllerList List webhook endpoints
 
-Lists the account's webhook subscriptions, newest first. Includes each endpoint's HMAC signing `secret` so the dashboard can show it for verifying the `X-Adviverse-Signature` header.
+Lists the account's webhook subscriptions, newest first. The signing secret is not returned: each endpoint has `has_secret` and `secret_hint` (its last 4 characters). Use POST /v1/webhooks/{id}/secret/reveal to fetch the secret.
 
 Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
 
@@ -546,6 +546,125 @@ func (a *WebhooksAPIService) WebhooksControllerRedeliverExecute(r ApiWebhooksCon
 
 	localVarPath := localBasePath + "/v1/webhooks/deliveries/{deliveryId}/redeliver"
 	localVarPath = strings.Replace(localVarPath, "{"+"deliveryId"+"}", url.PathEscape(parameterValueToString(r.deliveryId, "deliveryId")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiWebhooksControllerRevealSecretRequest struct {
+	ctx context.Context
+	ApiService *WebhooksAPIService
+	id string
+}
+
+func (r ApiWebhooksControllerRevealSecretRequest) Execute() (*WebhooksControllerRevealSecret201Response, *http.Response, error) {
+	return r.ApiService.WebhooksControllerRevealSecretExecute(r)
+}
+
+/*
+WebhooksControllerRevealSecret Reveal a webhook signing secret
+
+Returns the endpoint's current `whsec_` HMAC signing secret, used to verify the `X-Adviverse-Signature` header. List and update never return it. Returns 400 if the endpoint is not found for this account.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param id
+ @return ApiWebhooksControllerRevealSecretRequest
+*/
+func (a *WebhooksAPIService) WebhooksControllerRevealSecret(ctx context.Context, id string) ApiWebhooksControllerRevealSecretRequest {
+	return ApiWebhooksControllerRevealSecretRequest{
+		ApiService: a,
+		ctx: ctx,
+		id: id,
+	}
+}
+
+// Execute executes the request
+//  @return WebhooksControllerRevealSecret201Response
+func (a *WebhooksAPIService) WebhooksControllerRevealSecretExecute(r ApiWebhooksControllerRevealSecretRequest) (*WebhooksControllerRevealSecret201Response, *http.Response, error) {
+	var (
+		localVarHTTPMethod   = http.MethodPost
+		localVarPostBody     interface{}
+		formFiles            []formFile
+		localVarReturnValue  *WebhooksControllerRevealSecret201Response
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "WebhooksAPIService.WebhooksControllerRevealSecret")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v1/webhooks/{id}/secret/reveal"
+	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", url.PathEscape(parameterValueToString(r.id, "id")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -1002,7 +1121,7 @@ func (r ApiWebhooksControllerUpdateRequest) Execute() (*WebhookEndpoint, *http.R
 /*
 WebhooksControllerUpdate Update a webhook endpoint
 
-Changes an endpoint's `url`, `events` and/or `active` flag (set false to pause deliveries); omitted fields are kept. A new URL goes through the SSRF guard and unknown event names are rejected with 400. Returns 400 if the endpoint is not found for this account.
+Changes an endpoint's `url`, `events` and/or `active` flag (set false to pause deliveries); omitted fields are kept. A new URL goes through the SSRF guard and unknown event names are rejected with 400. Returns 400 if the endpoint is not found for this account. The secret is not returned (`has_secret` + `secret_hint` instead).
 
 Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
 

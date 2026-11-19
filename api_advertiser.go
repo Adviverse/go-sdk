@@ -675,7 +675,7 @@ func (r ApiAdvertiserControllerCreateRequest) Execute() (*AdvCampaign, *http.Res
 /*
 AdvertiserControllerCreate Create a campaign (ad set)
 
-Creates a campaign in `draft` status together with its targeting row and, if `conversion` is given, a conversion config. Key body fields: `name`, `format`, `pricingModel`, `bidAmount`, budgets, `pacing`, schedule, `targeting`, `bidStrategy`/`targetCpa`/`targetRoas`, `houseAd`, `priorityTier`, `groupId`. The currency is always taken from the advertiser's account (a client-sent `currency` is ignored), `terminal` format is forced to CPM, and `groupId` is silently dropped unless the advertiser owns that group. A house ad with no placement whitelist is confined to the owner's own active placements. Submit the draft for review to start serving.
+Creates a campaign in `draft` status together with its targeting row and, if `conversion` is given, a conversion config. Key body fields: `name`, `format`, `pricingModel`, `bidAmount`, budgets, `pacing`, schedule, `targeting`, `bidStrategy`/`targetCpa`/`targetRoas`, `houseAd`, `priorityTier`, `groupId`, `autoOwnPlacements` (default true: a house/backfill-tier campaign also runs on every placement the advertiser itself publishes, even if not on its placement whitelist), `networkExpansion` (default true: smart routing weights the campaign's ranking by per-site performance; false = pure targeting). The currency is always taken from the advertiser's account (a client-sent `currency` is ignored), `terminal` format is forced to CPM, and `groupId` is silently dropped unless the advertiser owns that group. A house ad with no placement whitelist is confined to the owner's own active placements. Submit the draft for review to start serving.
 
 Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
@@ -6386,7 +6386,7 @@ func (r ApiAdvertiserControllerUpdateRequest) Execute() (*AdvCampaignDetail, *ht
 /*
 AdvertiserControllerUpdate Update a campaign
 
-Patches the campaign. Updatable: name, bidAmount, budgets, pacing, startAt/endAt, SKAdNetwork ids, houseAd, priorityTier, deliveryGoal/goalType, bidModifiers, portfolioFreqCap, sequenceGroup/sequenceOrder, suppressAfterConversion, holdoutPct (clamped 0-1), bidStrategy/targetCpa/targetRoas and utm (null resets to defaults). Passing `targeting` replaces the whole targeting row (omitted targeting fields are cleared). Format, pricing model and currency cannot change. Republishes the serving index and returns the same shape as GET; 404/403 as for GET.
+Patches the campaign. Updatable: name, bidAmount, budgets, pacing, startAt/endAt, SKAdNetwork ids, houseAd, priorityTier, autoOwnPlacements, networkExpansion, deliveryGoal/goalType, bidModifiers, portfolioFreqCap, sequenceGroup/sequenceOrder, suppressAfterConversion, holdoutPct (clamped 0-1), bidStrategy/targetCpa/targetRoas and utm (null resets to defaults). Passing `targeting` replaces the whole targeting row (omitted targeting fields are cleared). Format, pricing model and currency cannot change. Republishes the serving index and returns the same shape as GET; 404/403 as for GET.
 
 Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
 
