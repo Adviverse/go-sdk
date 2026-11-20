@@ -1,0 +1,21 @@
+name: release
+on:
+  push: { tags: ['v*'] }
+permissions:
+  contents: write       # GitHub release
+  id-token: write       # OIDC: provenance signing
+  attestations: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: stable }
+      - run: go build ./... && go vet ./...
+      # The release artifact is the exact tagged source tree; provenance ties it to this workflow run.
+      - run: git archive --format=tar.gz --prefix="${{ github.event.repository.name }}-${{ github.ref_name }}/" -o "${{ github.event.repository.name }}-${{ github.ref_name }}.tar.gz" "${{ github.ref_name }}"
+      - uses: actions/attest-build-provenance@v2
+        with: { subject-path: '*.tar.gz' }
+      - uses: softprops/action-gh-release@v2
+        with: { files: '*.tar.gz' }
