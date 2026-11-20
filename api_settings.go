@@ -170,7 +170,7 @@ func (r ApiSettingsControllerBrandSafetyRequest) BrandSafetyDto(brandSafetyDto B
 	return r
 }
 
-func (r ApiSettingsControllerBrandSafetyRequest) Execute() (*AdminControllerSetStatus201Response, *http.Response, error) {
+func (r ApiSettingsControllerBrandSafetyRequest) Execute() (*ComplianceControllerComplete201Response, *http.Response, error) {
 	return r.ApiService.SettingsControllerBrandSafetyExecute(r)
 }
 
@@ -194,13 +194,13 @@ func (a *SettingsAPIService) SettingsControllerBrandSafety(ctx context.Context, 
 }
 
 // Execute executes the request
-//  @return AdminControllerSetStatus201Response
-func (a *SettingsAPIService) SettingsControllerBrandSafetyExecute(r ApiSettingsControllerBrandSafetyRequest) (*AdminControllerSetStatus201Response, *http.Response, error) {
+//  @return ComplianceControllerComplete201Response
+func (a *SettingsAPIService) SettingsControllerBrandSafetyExecute(r ApiSettingsControllerBrandSafetyRequest) (*ComplianceControllerComplete201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
-		localVarReturnValue  *AdminControllerSetStatus201Response
+		localVarReturnValue  *ComplianceControllerComplete201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SettingsAPIService.SettingsControllerBrandSafety")

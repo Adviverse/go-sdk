@@ -130,7 +130,7 @@ type ApiComplianceControllerCompleteRequest struct {
 	id string
 }
 
-func (r ApiComplianceControllerCompleteRequest) Execute() (*AdminControllerSetStatus201Response, *http.Response, error) {
+func (r ApiComplianceControllerCompleteRequest) Execute() (*ComplianceControllerComplete201Response, *http.Response, error) {
 	return r.ApiService.ComplianceControllerCompleteExecute(r)
 }
 
@@ -154,13 +154,13 @@ func (a *ComplianceAPIService) ComplianceControllerComplete(ctx context.Context,
 }
 
 // Execute executes the request
-//  @return AdminControllerSetStatus201Response
-func (a *ComplianceAPIService) ComplianceControllerCompleteExecute(r ApiComplianceControllerCompleteRequest) (*AdminControllerSetStatus201Response, *http.Response, error) {
+//  @return ComplianceControllerComplete201Response
+func (a *ComplianceAPIService) ComplianceControllerCompleteExecute(r ApiComplianceControllerCompleteRequest) (*ComplianceControllerComplete201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
-		localVarReturnValue  *AdminControllerSetStatus201Response
+		localVarReturnValue  *ComplianceControllerComplete201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ComplianceAPIService.ComplianceControllerComplete")

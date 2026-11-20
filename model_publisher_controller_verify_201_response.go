@@ -24,6 +24,9 @@ type PublisherControllerVerify201Response struct {
 	Verified bool `json:"verified"`
 	Token string `json:"token"`
 	Method NullableString `json:"method"`
+	Error NullableString `json:"error"`
+	Message NullableString `json:"message"`
+	Check PublisherControllerVerify201ResponseCheck `json:"check"`
 }
 
 type _PublisherControllerVerify201Response PublisherControllerVerify201Response
@@ -32,11 +35,14 @@ type _PublisherControllerVerify201Response PublisherControllerVerify201Response
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewPublisherControllerVerify201Response(verified bool, token string, method NullableString) *PublisherControllerVerify201Response {
+func NewPublisherControllerVerify201Response(verified bool, token string, method NullableString, error_ NullableString, message NullableString, check PublisherControllerVerify201ResponseCheck) *PublisherControllerVerify201Response {
 	this := PublisherControllerVerify201Response{}
 	this.Verified = verified
 	this.Token = token
 	this.Method = method
+	this.Error = error_
+	this.Message = message
+	this.Check = check
 	return &this
 }
 
@@ -122,6 +128,82 @@ func (o *PublisherControllerVerify201Response) SetMethod(v string) {
 	o.Method.Set(&v)
 }
 
+// GetError returns the Error field value
+// If the value is explicit nil, the zero value for string will be returned
+func (o *PublisherControllerVerify201Response) GetError() string {
+	if o == nil || o.Error.Get() == nil {
+		var ret string
+		return ret
+	}
+
+	return *o.Error.Get()
+}
+
+// GetErrorOk returns a tuple with the Error field value
+// and a boolean to check if the value has been set.
+// NOTE: If the value is an explicit nil, `nil, true` will be returned
+func (o *PublisherControllerVerify201Response) GetErrorOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return o.Error.Get(), o.Error.IsSet()
+}
+
+// SetError sets field value
+func (o *PublisherControllerVerify201Response) SetError(v string) {
+	o.Error.Set(&v)
+}
+
+// GetMessage returns the Message field value
+// If the value is explicit nil, the zero value for string will be returned
+func (o *PublisherControllerVerify201Response) GetMessage() string {
+	if o == nil || o.Message.Get() == nil {
+		var ret string
+		return ret
+	}
+
+	return *o.Message.Get()
+}
+
+// GetMessageOk returns a tuple with the Message field value
+// and a boolean to check if the value has been set.
+// NOTE: If the value is an explicit nil, `nil, true` will be returned
+func (o *PublisherControllerVerify201Response) GetMessageOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return o.Message.Get(), o.Message.IsSet()
+}
+
+// SetMessage sets field value
+func (o *PublisherControllerVerify201Response) SetMessage(v string) {
+	o.Message.Set(&v)
+}
+
+// GetCheck returns the Check field value
+func (o *PublisherControllerVerify201Response) GetCheck() PublisherControllerVerify201ResponseCheck {
+	if o == nil {
+		var ret PublisherControllerVerify201ResponseCheck
+		return ret
+	}
+
+	return o.Check
+}
+
+// GetCheckOk returns a tuple with the Check field value
+// and a boolean to check if the value has been set.
+func (o *PublisherControllerVerify201Response) GetCheckOk() (*PublisherControllerVerify201ResponseCheck, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Check, true
+}
+
+// SetCheck sets field value
+func (o *PublisherControllerVerify201Response) SetCheck(v PublisherControllerVerify201ResponseCheck) {
+	o.Check = v
+}
+
 func (o PublisherControllerVerify201Response) MarshalJSON() ([]byte, error) {
 	toSerialize,err := o.ToMap()
 	if err != nil {
@@ -135,6 +217,9 @@ func (o PublisherControllerVerify201Response) ToMap() (map[string]interface{}, e
 	toSerialize["verified"] = o.Verified
 	toSerialize["token"] = o.Token
 	toSerialize["method"] = o.Method.Get()
+	toSerialize["error"] = o.Error.Get()
+	toSerialize["message"] = o.Message.Get()
+	toSerialize["check"] = o.Check
 	return toSerialize, nil
 }
 
@@ -146,6 +231,9 @@ func (o *PublisherControllerVerify201Response) UnmarshalJSON(data []byte) (err e
 		"verified",
 		"token",
 		"method",
+		"error",
+		"message",
+		"check",
 	}
 
 	allProperties := make(map[string]interface{})

@@ -877,6 +877,125 @@ func (a *PublisherAPIService) PublisherControllerGetAppExecute(r ApiPublisherCon
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
+type ApiPublisherControllerGetPropertyRequest struct {
+	ctx context.Context
+	ApiService *PublisherAPIService
+	id string
+}
+
+func (r ApiPublisherControllerGetPropertyRequest) Execute() (*PubProperty, *http.Response, error) {
+	return r.ApiService.PublisherControllerGetPropertyExecute(r)
+}
+
+/*
+PublisherControllerGetProperty Get one property
+
+Returns one property (same shape as an item of the list, including `trust_progress` and the resolved consent switches `contextual_without_consent` / `enhanced_capping`). 404 if not found, 403 if another publisher owns it.
+
+Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param id
+ @return ApiPublisherControllerGetPropertyRequest
+*/
+func (a *PublisherAPIService) PublisherControllerGetProperty(ctx context.Context, id string) ApiPublisherControllerGetPropertyRequest {
+	return ApiPublisherControllerGetPropertyRequest{
+		ApiService: a,
+		ctx: ctx,
+		id: id,
+	}
+}
+
+// Execute executes the request
+//  @return PubProperty
+func (a *PublisherAPIService) PublisherControllerGetPropertyExecute(r ApiPublisherControllerGetPropertyRequest) (*PubProperty, *http.Response, error) {
+	var (
+		localVarHTTPMethod   = http.MethodGet
+		localVarPostBody     interface{}
+		formFiles            []formFile
+		localVarReturnValue  *PubProperty
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherAPIService.PublisherControllerGetProperty")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v1/publisher/properties/{id}"
+	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", url.PathEscape(parameterValueToString(r.id, "id")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
 type ApiPublisherControllerListAppsRequest struct {
 	ctx context.Context
 	ApiService *PublisherAPIService
@@ -2096,7 +2215,7 @@ func (r ApiPublisherControllerUpdatePlacementRequest) Execute() (*PubPlacement, 
 /*
 PublisherControllerUpdatePlacement Update a placement
 
-Patches `name`, `floorCpm`, `revShare`, `auctionType`, `passbackUrl`, `status` (`active`/`paused`), house/yield flags, and the dynamic-floor settings `floorAuto` (let the yield optimizer manage the floor) and `floorSoft` (soft reserve). Returns the updated row and republishes the serving index. 404 if the placement is not found among your properties.
+Patches `name`, `floorCpm`, `revShare`, `auctionType`, `passbackUrl`, `status` (`active`/`paused`), house/yield flags, and the dynamic-floor settings `floorAuto` (let the yield optimizer manage the floor) and `floorSoft` (soft reserve), and `frequencyCap` (`{ impressions, windowSeconds }`; `{}` or `null` removes it). Returns the updated row and republishes the serving index. 404 if the placement is not found among your properties.
 
 Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 
@@ -2226,7 +2345,7 @@ func (r ApiPublisherControllerUpdatePropertyRequest) Execute() (*PubProperty, *h
 /*
 PublisherControllerUpdateProperty Update a property
 
-Patches `name`, `domain`, `category`, `verificationMethod` and `crossFill` (opt in to filling this property with other-network demand). `category` is a site-niche id from GET /v1/site-niches and marks the niche as set by hand (`category_source: manual`, never overwritten by auto-detection); send 0 to hand it back to auto-detection. 400 for an unknown id. Changing `domain` also drops a trusted property back to `unverified` (unless an admin locked its trust). Changing `domain` resets `verification_status` to `unverified`, so the property must be re-verified. Returns the updated row (unchanged row if no fields were sent) and republishes the serving index. 404 if the property does not exist, 403 if another publisher owns it.
+Patches `name`, `domain`, `category`, `verificationMethod` and `crossFill` (opt in to filling this property with other-network demand). `contextualWithoutConsent` (Ads before consent: unanswered/rejected visitors get contextual ads, no identifier) and `enhancedCapping` (Enhanced frequency capping: outside the EEA/UK/CH, no GPC/opt-out, contextual caps add browser signals and an SDK canvas hash) are written to this property's consent config — the same settings as POST /v1/publisher/consent-config with this propertyId; the rest of that config is kept. `category` is a site-niche id from GET /v1/site-niches and marks the niche as set by hand (`category_source: manual`, never overwritten by auto-detection); send 0 to hand it back to auto-detection. 400 for an unknown id. Changing `domain` also drops a trusted property back to `unverified` (unless an admin locked its trust). Changing `domain` resets `verification_status` to `unverified`, so the property must be re-verified. Returns the updated row (unchanged row if no fields were sent) and republishes the serving index. 404 if the property does not exist, 403 if another publisher owns it.
 
 Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 
@@ -2350,7 +2469,7 @@ func (r ApiPublisherControllerVerifyRequest) Execute() (*PublisherControllerVeri
 /*
 PublisherControllerVerify Verify property ownership
 
-Checks the property for its verification token using its method: `dns` looks up a TXT record at `adviverse-verify.<domain>`, `file` fetches `http://<domain>/.well-known/adviverse-verify.txt`, `meta` fetches the homepage and looks for the token. On success the property becomes `verified`, a `pending` property is auto-approved, and the serving index is republished so its placements start serving. A failed check is not an error: it returns `verified: false` with the token and method to show the publisher.
+Checks the property for its verification token using its method: `dns` looks up a TXT record at `adviverse-verify.<domain>`, `file` fetches `http://<domain>/.well-known/adviverse-verify.txt`, `meta` fetches the homepage and looks for the token. On success the property becomes `verified`, a `pending` property is auto-approved, and the serving index is republished so its placements start serving. File and meta checks add a cache-busting `?adviverse_verify=<ms>` query so a CDN-cached page cannot fail them. A failed check is not an error: it returns `verified: false` with `error` (dns_lookup_failed | token_not_found | http_error | fetch_failed), a human `message`, and `check` (what was fetched or queried and what it answered, including `age` and `cf-cache-status`).
 
 Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 

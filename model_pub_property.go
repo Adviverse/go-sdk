@@ -45,6 +45,10 @@ type PubProperty struct {
 	// Postgres NUMERIC, serialized as a decimal string
 	QualityScore *string `json:"quality_score,omitempty"`
 	CrossFill *bool `json:"cross_fill,omitempty"`
+	// Ads before consent (resolved: property consent config, else account default)
+	ContextualWithoutConsent *bool `json:"contextual_without_consent,omitempty"`
+	// Enhanced frequency capping (resolved like contextual_without_consent)
+	EnhancedCapping *bool `json:"enhanced_capping,omitempty"`
 	ServingDomain NullableString `json:"serving_domain,omitempty"`
 	ServingDomainVerified *bool `json:"serving_domain_verified,omitempty"`
 	ServingDomainCheckedAt NullableTime `json:"serving_domain_checked_at,omitempty"`
@@ -790,6 +794,70 @@ func (o *PubProperty) SetCrossFill(v bool) {
 	o.CrossFill = &v
 }
 
+// GetContextualWithoutConsent returns the ContextualWithoutConsent field value if set, zero value otherwise.
+func (o *PubProperty) GetContextualWithoutConsent() bool {
+	if o == nil || IsNil(o.ContextualWithoutConsent) {
+		var ret bool
+		return ret
+	}
+	return *o.ContextualWithoutConsent
+}
+
+// GetContextualWithoutConsentOk returns a tuple with the ContextualWithoutConsent field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *PubProperty) GetContextualWithoutConsentOk() (*bool, bool) {
+	if o == nil || IsNil(o.ContextualWithoutConsent) {
+		return nil, false
+	}
+	return o.ContextualWithoutConsent, true
+}
+
+// HasContextualWithoutConsent returns a boolean if a field has been set.
+func (o *PubProperty) HasContextualWithoutConsent() bool {
+	if o != nil && !IsNil(o.ContextualWithoutConsent) {
+		return true
+	}
+
+	return false
+}
+
+// SetContextualWithoutConsent gets a reference to the given bool and assigns it to the ContextualWithoutConsent field.
+func (o *PubProperty) SetContextualWithoutConsent(v bool) {
+	o.ContextualWithoutConsent = &v
+}
+
+// GetEnhancedCapping returns the EnhancedCapping field value if set, zero value otherwise.
+func (o *PubProperty) GetEnhancedCapping() bool {
+	if o == nil || IsNil(o.EnhancedCapping) {
+		var ret bool
+		return ret
+	}
+	return *o.EnhancedCapping
+}
+
+// GetEnhancedCappingOk returns a tuple with the EnhancedCapping field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *PubProperty) GetEnhancedCappingOk() (*bool, bool) {
+	if o == nil || IsNil(o.EnhancedCapping) {
+		return nil, false
+	}
+	return o.EnhancedCapping, true
+}
+
+// HasEnhancedCapping returns a boolean if a field has been set.
+func (o *PubProperty) HasEnhancedCapping() bool {
+	if o != nil && !IsNil(o.EnhancedCapping) {
+		return true
+	}
+
+	return false
+}
+
+// SetEnhancedCapping gets a reference to the given bool and assigns it to the EnhancedCapping field.
+func (o *PubProperty) SetEnhancedCapping(v bool) {
+	o.EnhancedCapping = &v
+}
+
 // GetServingDomain returns the ServingDomain field value if set, zero value otherwise (both if not set or set to explicit null).
 func (o *PubProperty) GetServingDomain() string {
 	if o == nil || IsNil(o.ServingDomain.Get()) {
@@ -1346,6 +1414,12 @@ func (o PubProperty) ToMap() (map[string]interface{}, error) {
 	if !IsNil(o.CrossFill) {
 		toSerialize["cross_fill"] = o.CrossFill
 	}
+	if !IsNil(o.ContextualWithoutConsent) {
+		toSerialize["contextual_without_consent"] = o.ContextualWithoutConsent
+	}
+	if !IsNil(o.EnhancedCapping) {
+		toSerialize["enhanced_capping"] = o.EnhancedCapping
+	}
 	if o.ServingDomain.IsSet() {
 		toSerialize["serving_domain"] = o.ServingDomain.Get()
 	}
@@ -1427,6 +1501,8 @@ func (o *PubProperty) UnmarshalJSON(data []byte) (err error) {
 		delete(additionalProperties, "status")
 		delete(additionalProperties, "quality_score")
 		delete(additionalProperties, "cross_fill")
+		delete(additionalProperties, "contextual_without_consent")
+		delete(additionalProperties, "enhanced_capping")
 		delete(additionalProperties, "serving_domain")
 		delete(additionalProperties, "serving_domain_verified")
 		delete(additionalProperties, "serving_domain_checked_at")

@@ -34,6 +34,8 @@ type ConsentConfigDto struct {
 	ConsentGrantValue *string `json:"consentGrantValue,omitempty"`
 	TcfPurpose *float32 `json:"tcfPurpose,omitempty"`
 	TcfVendorId *float32 `json:"tcfVendorId,omitempty"`
+	ContextualWithoutConsent *bool `json:"contextualWithoutConsent,omitempty"`
+	EnhancedCapping *bool `json:"enhancedCapping,omitempty"`
 }
 
 type _ConsentConfigDto ConsentConfigDto
@@ -457,6 +459,70 @@ func (o *ConsentConfigDto) SetTcfVendorId(v float32) {
 	o.TcfVendorId = &v
 }
 
+// GetContextualWithoutConsent returns the ContextualWithoutConsent field value if set, zero value otherwise.
+func (o *ConsentConfigDto) GetContextualWithoutConsent() bool {
+	if o == nil || IsNil(o.ContextualWithoutConsent) {
+		var ret bool
+		return ret
+	}
+	return *o.ContextualWithoutConsent
+}
+
+// GetContextualWithoutConsentOk returns a tuple with the ContextualWithoutConsent field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *ConsentConfigDto) GetContextualWithoutConsentOk() (*bool, bool) {
+	if o == nil || IsNil(o.ContextualWithoutConsent) {
+		return nil, false
+	}
+	return o.ContextualWithoutConsent, true
+}
+
+// HasContextualWithoutConsent returns a boolean if a field has been set.
+func (o *ConsentConfigDto) HasContextualWithoutConsent() bool {
+	if o != nil && !IsNil(o.ContextualWithoutConsent) {
+		return true
+	}
+
+	return false
+}
+
+// SetContextualWithoutConsent gets a reference to the given bool and assigns it to the ContextualWithoutConsent field.
+func (o *ConsentConfigDto) SetContextualWithoutConsent(v bool) {
+	o.ContextualWithoutConsent = &v
+}
+
+// GetEnhancedCapping returns the EnhancedCapping field value if set, zero value otherwise.
+func (o *ConsentConfigDto) GetEnhancedCapping() bool {
+	if o == nil || IsNil(o.EnhancedCapping) {
+		var ret bool
+		return ret
+	}
+	return *o.EnhancedCapping
+}
+
+// GetEnhancedCappingOk returns a tuple with the EnhancedCapping field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *ConsentConfigDto) GetEnhancedCappingOk() (*bool, bool) {
+	if o == nil || IsNil(o.EnhancedCapping) {
+		return nil, false
+	}
+	return o.EnhancedCapping, true
+}
+
+// HasEnhancedCapping returns a boolean if a field has been set.
+func (o *ConsentConfigDto) HasEnhancedCapping() bool {
+	if o != nil && !IsNil(o.EnhancedCapping) {
+		return true
+	}
+
+	return false
+}
+
+// SetEnhancedCapping gets a reference to the given bool and assigns it to the EnhancedCapping field.
+func (o *ConsentConfigDto) SetEnhancedCapping(v bool) {
+	o.EnhancedCapping = &v
+}
+
 func (o ConsentConfigDto) MarshalJSON() ([]byte, error) {
 	toSerialize,err := o.ToMap()
 	if err != nil {
@@ -501,6 +567,12 @@ func (o ConsentConfigDto) ToMap() (map[string]interface{}, error) {
 	}
 	if !IsNil(o.TcfVendorId) {
 		toSerialize["tcfVendorId"] = o.TcfVendorId
+	}
+	if !IsNil(o.ContextualWithoutConsent) {
+		toSerialize["contextualWithoutConsent"] = o.ContextualWithoutConsent
+	}
+	if !IsNil(o.EnhancedCapping) {
+		toSerialize["enhancedCapping"] = o.EnhancedCapping
 	}
 	return toSerialize, nil
 }

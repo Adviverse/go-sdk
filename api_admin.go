@@ -159,7 +159,7 @@ func (r ApiAdminControllerAddBlockRequest) AddBlockDto(addBlockDto AddBlockDto) 
 	return r
 }
 
-func (r ApiAdminControllerAddBlockRequest) Execute() (*AdminControllerSetStatus201Response, *http.Response, error) {
+func (r ApiAdminControllerAddBlockRequest) Execute() (*ComplianceControllerComplete201Response, *http.Response, error) {
 	return r.ApiService.AdminControllerAddBlockExecute(r)
 }
 
@@ -181,13 +181,13 @@ func (a *AdminAPIService) AdminControllerAddBlock(ctx context.Context) ApiAdminC
 }
 
 // Execute executes the request
-//  @return AdminControllerSetStatus201Response
-func (a *AdminAPIService) AdminControllerAddBlockExecute(r ApiAdminControllerAddBlockRequest) (*AdminControllerSetStatus201Response, *http.Response, error) {
+//  @return ComplianceControllerComplete201Response
+func (a *AdminAPIService) AdminControllerAddBlockExecute(r ApiAdminControllerAddBlockRequest) (*ComplianceControllerComplete201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
-		localVarReturnValue  *AdminControllerSetStatus201Response
+		localVarReturnValue  *ComplianceControllerComplete201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdminAPIService.AdminControllerAddBlock")
@@ -603,7 +603,7 @@ type ApiAdminControllerConfirmDepositRequest struct {
 	id string
 }
 
-func (r ApiAdminControllerConfirmDepositRequest) Execute() (*AdminControllerSetStatus201Response, *http.Response, error) {
+func (r ApiAdminControllerConfirmDepositRequest) Execute() (*ComplianceControllerComplete201Response, *http.Response, error) {
 	return r.ApiService.AdminControllerConfirmDepositExecute(r)
 }
 
@@ -627,13 +627,13 @@ func (a *AdminAPIService) AdminControllerConfirmDeposit(ctx context.Context, id 
 }
 
 // Execute executes the request
-//  @return AdminControllerSetStatus201Response
-func (a *AdminAPIService) AdminControllerConfirmDepositExecute(r ApiAdminControllerConfirmDepositRequest) (*AdminControllerSetStatus201Response, *http.Response, error) {
+//  @return ComplianceControllerComplete201Response
+func (a *AdminAPIService) AdminControllerConfirmDepositExecute(r ApiAdminControllerConfirmDepositRequest) (*ComplianceControllerComplete201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
-		localVarReturnValue  *AdminControllerSetStatus201Response
+		localVarReturnValue  *ComplianceControllerComplete201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdminAPIService.AdminControllerConfirmDeposit")
@@ -722,7 +722,7 @@ type ApiAdminControllerConfirmPayoutRequest struct {
 	id string
 }
 
-func (r ApiAdminControllerConfirmPayoutRequest) Execute() (*AdminControllerSetStatus201Response, *http.Response, error) {
+func (r ApiAdminControllerConfirmPayoutRequest) Execute() (*ComplianceControllerComplete201Response, *http.Response, error) {
 	return r.ApiService.AdminControllerConfirmPayoutExecute(r)
 }
 
@@ -746,13 +746,13 @@ func (a *AdminAPIService) AdminControllerConfirmPayout(ctx context.Context, id s
 }
 
 // Execute executes the request
-//  @return AdminControllerSetStatus201Response
-func (a *AdminAPIService) AdminControllerConfirmPayoutExecute(r ApiAdminControllerConfirmPayoutRequest) (*AdminControllerSetStatus201Response, *http.Response, error) {
+//  @return ComplianceControllerComplete201Response
+func (a *AdminAPIService) AdminControllerConfirmPayoutExecute(r ApiAdminControllerConfirmPayoutRequest) (*ComplianceControllerComplete201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
-		localVarReturnValue  *AdminControllerSetStatus201Response
+		localVarReturnValue  *ComplianceControllerComplete201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdminAPIService.AdminControllerConfirmPayout")
@@ -847,7 +847,7 @@ func (r ApiAdminControllerDecideRequest) ModerationDecisionDto(moderationDecisio
 	return r
 }
 
-func (r ApiAdminControllerDecideRequest) Execute() (*AdminControllerSetStatus201Response, *http.Response, error) {
+func (r ApiAdminControllerDecideRequest) Execute() (*ComplianceControllerComplete201Response, *http.Response, error) {
 	return r.ApiService.AdminControllerDecideExecute(r)
 }
 
@@ -871,13 +871,13 @@ func (a *AdminAPIService) AdminControllerDecide(ctx context.Context, id string) 
 }
 
 // Execute executes the request
-//  @return AdminControllerSetStatus201Response
-func (a *AdminAPIService) AdminControllerDecideExecute(r ApiAdminControllerDecideRequest) (*AdminControllerSetStatus201Response, *http.Response, error) {
+//  @return ComplianceControllerComplete201Response
+func (a *AdminAPIService) AdminControllerDecideExecute(r ApiAdminControllerDecideRequest) (*ComplianceControllerComplete201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
-		localVarReturnValue  *AdminControllerSetStatus201Response
+		localVarReturnValue  *ComplianceControllerComplete201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdminAPIService.AdminControllerDecide")
@@ -1651,7 +1651,7 @@ func (r ApiAdminControllerSetConfigRequest) SetConfigDto(setConfigDto SetConfigD
 	return r
 }
 
-func (r ApiAdminControllerSetConfigRequest) Execute() (*AdminControllerSetStatus201Response, *http.Response, error) {
+func (r ApiAdminControllerSetConfigRequest) Execute() (*ComplianceControllerComplete201Response, *http.Response, error) {
 	return r.ApiService.AdminControllerSetConfigExecute(r)
 }
 
@@ -1673,13 +1673,13 @@ func (a *AdminAPIService) AdminControllerSetConfig(ctx context.Context) ApiAdmin
 }
 
 // Execute executes the request
-//  @return AdminControllerSetStatus201Response
-func (a *AdminAPIService) AdminControllerSetConfigExecute(r ApiAdminControllerSetConfigRequest) (*AdminControllerSetStatus201Response, *http.Response, error) {
+//  @return ComplianceControllerComplete201Response
+func (a *AdminAPIService) AdminControllerSetConfigExecute(r ApiAdminControllerSetConfigRequest) (*ComplianceControllerComplete201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
-		localVarReturnValue  *AdminControllerSetStatus201Response
+		localVarReturnValue  *ComplianceControllerComplete201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdminAPIService.AdminControllerSetConfig")
@@ -1778,7 +1778,7 @@ func (r ApiAdminControllerSetStatusRequest) SetAccountStatusDto(setAccountStatus
 	return r
 }
 
-func (r ApiAdminControllerSetStatusRequest) Execute() (*AdminControllerSetStatus201Response, *http.Response, error) {
+func (r ApiAdminControllerSetStatusRequest) Execute() (*ComplianceControllerComplete201Response, *http.Response, error) {
 	return r.ApiService.AdminControllerSetStatusExecute(r)
 }
 
@@ -1802,13 +1802,13 @@ func (a *AdminAPIService) AdminControllerSetStatus(ctx context.Context, id strin
 }
 
 // Execute executes the request
-//  @return AdminControllerSetStatus201Response
-func (a *AdminAPIService) AdminControllerSetStatusExecute(r ApiAdminControllerSetStatusRequest) (*AdminControllerSetStatus201Response, *http.Response, error) {
+//  @return ComplianceControllerComplete201Response
+func (a *AdminAPIService) AdminControllerSetStatusExecute(r ApiAdminControllerSetStatusRequest) (*ComplianceControllerComplete201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
-		localVarReturnValue  *AdminControllerSetStatus201Response
+		localVarReturnValue  *ComplianceControllerComplete201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AdminAPIService.AdminControllerSetStatus")

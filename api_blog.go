@@ -722,7 +722,7 @@ type ApiBlogControllerRemoveRequest struct {
 	id string
 }
 
-func (r ApiBlogControllerRemoveRequest) Execute() (*AdminControllerSetStatus201Response, *http.Response, error) {
+func (r ApiBlogControllerRemoveRequest) Execute() (*ComplianceControllerComplete201Response, *http.Response, error) {
 	return r.ApiService.BlogControllerRemoveExecute(r)
 }
 
@@ -746,13 +746,13 @@ func (a *BlogAPIService) BlogControllerRemove(ctx context.Context, id string) Ap
 }
 
 // Execute executes the request
-//  @return AdminControllerSetStatus201Response
-func (a *BlogAPIService) BlogControllerRemoveExecute(r ApiBlogControllerRemoveRequest) (*AdminControllerSetStatus201Response, *http.Response, error) {
+//  @return ComplianceControllerComplete201Response
+func (a *BlogAPIService) BlogControllerRemoveExecute(r ApiBlogControllerRemoveRequest) (*ComplianceControllerComplete201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
-		localVarReturnValue  *AdminControllerSetStatus201Response
+		localVarReturnValue  *ComplianceControllerComplete201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "BlogAPIService.BlogControllerRemove")

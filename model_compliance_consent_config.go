@@ -34,6 +34,10 @@ type ComplianceConsentConfig struct {
 	ConsentGrantValue NullableString `json:"consentGrantValue,omitempty"`
 	TcfPurpose *int32 `json:"tcfPurpose,omitempty"`
 	TcfVendorId NullableInt32 `json:"tcfVendorId,omitempty"`
+	// Ads always load: visitors who have not answered (or rejected) the CMP get contextual ads with no identifier; personalized still waits for consent. Same as the page flag window.ADVIVERSE_MIN_AC = 0.
+	ContextualWithoutConsent *bool `json:"contextualWithoutConsent,omitempty"`
+	// Enhanced frequency capping: outside the EEA/UK, for visitors with no opt-out signal (GPC, US-privacy opt-out), contextual frequency caps also use browser signals and an SDK canvas hash (daily-rotating, per-site, never stored on the device). Off: caps use IP + user agent only and unusual contextual traffic is not served. Declare it in your privacy policy if you turn it on.
+	EnhancedCapping *bool `json:"enhancedCapping,omitempty"`
 }
 
 // NewComplianceConsentConfig instantiates a new ComplianceConsentConfig object
@@ -541,6 +545,70 @@ func (o *ComplianceConsentConfig) UnsetTcfVendorId() {
 	o.TcfVendorId.Unset()
 }
 
+// GetContextualWithoutConsent returns the ContextualWithoutConsent field value if set, zero value otherwise.
+func (o *ComplianceConsentConfig) GetContextualWithoutConsent() bool {
+	if o == nil || IsNil(o.ContextualWithoutConsent) {
+		var ret bool
+		return ret
+	}
+	return *o.ContextualWithoutConsent
+}
+
+// GetContextualWithoutConsentOk returns a tuple with the ContextualWithoutConsent field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *ComplianceConsentConfig) GetContextualWithoutConsentOk() (*bool, bool) {
+	if o == nil || IsNil(o.ContextualWithoutConsent) {
+		return nil, false
+	}
+	return o.ContextualWithoutConsent, true
+}
+
+// HasContextualWithoutConsent returns a boolean if a field has been set.
+func (o *ComplianceConsentConfig) HasContextualWithoutConsent() bool {
+	if o != nil && !IsNil(o.ContextualWithoutConsent) {
+		return true
+	}
+
+	return false
+}
+
+// SetContextualWithoutConsent gets a reference to the given bool and assigns it to the ContextualWithoutConsent field.
+func (o *ComplianceConsentConfig) SetContextualWithoutConsent(v bool) {
+	o.ContextualWithoutConsent = &v
+}
+
+// GetEnhancedCapping returns the EnhancedCapping field value if set, zero value otherwise.
+func (o *ComplianceConsentConfig) GetEnhancedCapping() bool {
+	if o == nil || IsNil(o.EnhancedCapping) {
+		var ret bool
+		return ret
+	}
+	return *o.EnhancedCapping
+}
+
+// GetEnhancedCappingOk returns a tuple with the EnhancedCapping field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *ComplianceConsentConfig) GetEnhancedCappingOk() (*bool, bool) {
+	if o == nil || IsNil(o.EnhancedCapping) {
+		return nil, false
+	}
+	return o.EnhancedCapping, true
+}
+
+// HasEnhancedCapping returns a boolean if a field has been set.
+func (o *ComplianceConsentConfig) HasEnhancedCapping() bool {
+	if o != nil && !IsNil(o.EnhancedCapping) {
+		return true
+	}
+
+	return false
+}
+
+// SetEnhancedCapping gets a reference to the given bool and assigns it to the EnhancedCapping field.
+func (o *ComplianceConsentConfig) SetEnhancedCapping(v bool) {
+	o.EnhancedCapping = &v
+}
+
 func (o ComplianceConsentConfig) MarshalJSON() ([]byte, error) {
 	toSerialize,err := o.ToMap()
 	if err != nil {
@@ -592,6 +660,12 @@ func (o ComplianceConsentConfig) ToMap() (map[string]interface{}, error) {
 	}
 	if o.TcfVendorId.IsSet() {
 		toSerialize["tcfVendorId"] = o.TcfVendorId.Get()
+	}
+	if !IsNil(o.ContextualWithoutConsent) {
+		toSerialize["contextualWithoutConsent"] = o.ContextualWithoutConsent
+	}
+	if !IsNil(o.EnhancedCapping) {
+		toSerialize["enhancedCapping"] = o.EnhancedCapping
 	}
 	return toSerialize, nil
 }

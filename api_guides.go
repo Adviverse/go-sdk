@@ -722,7 +722,7 @@ type ApiGuidesControllerRemoveRequest struct {
 	id string
 }
 
-func (r ApiGuidesControllerRemoveRequest) Execute() (*AdminControllerSetStatus201Response, *http.Response, error) {
+func (r ApiGuidesControllerRemoveRequest) Execute() (*ComplianceControllerComplete201Response, *http.Response, error) {
 	return r.ApiService.GuidesControllerRemoveExecute(r)
 }
 
@@ -746,13 +746,13 @@ func (a *GuidesAPIService) GuidesControllerRemove(ctx context.Context, id string
 }
 
 // Execute executes the request
-//  @return AdminControllerSetStatus201Response
-func (a *GuidesAPIService) GuidesControllerRemoveExecute(r ApiGuidesControllerRemoveRequest) (*AdminControllerSetStatus201Response, *http.Response, error) {
+//  @return ComplianceControllerComplete201Response
+func (a *GuidesAPIService) GuidesControllerRemoveExecute(r ApiGuidesControllerRemoveRequest) (*ComplianceControllerComplete201Response, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
-		localVarReturnValue  *AdminControllerSetStatus201Response
+		localVarReturnValue  *ComplianceControllerComplete201Response
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "GuidesAPIService.GuidesControllerRemove")

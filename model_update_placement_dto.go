@@ -32,6 +32,7 @@ type UpdatePlacementDto struct {
 	FloorAuto *bool `json:"floorAuto,omitempty"`
 	FloorSoft *float32 `json:"floorSoft,omitempty"`
 	AutoAds map[string]interface{} `json:"autoAds,omitempty"`
+	FrequencyCap map[string]interface{} `json:"frequencyCap,omitempty"`
 }
 
 // NewUpdatePlacementDto instantiates a new UpdatePlacementDto object
@@ -468,6 +469,39 @@ func (o *UpdatePlacementDto) SetAutoAds(v map[string]interface{}) {
 	o.AutoAds = v
 }
 
+// GetFrequencyCap returns the FrequencyCap field value if set, zero value otherwise (both if not set or set to explicit null).
+func (o *UpdatePlacementDto) GetFrequencyCap() map[string]interface{} {
+	if o == nil {
+		var ret map[string]interface{}
+		return ret
+	}
+	return o.FrequencyCap
+}
+
+// GetFrequencyCapOk returns a tuple with the FrequencyCap field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+// NOTE: If the value is an explicit nil, `nil, true` will be returned
+func (o *UpdatePlacementDto) GetFrequencyCapOk() (map[string]interface{}, bool) {
+	if o == nil || IsNil(o.FrequencyCap) {
+		return map[string]interface{}{}, false
+	}
+	return o.FrequencyCap, true
+}
+
+// HasFrequencyCap returns a boolean if a field has been set.
+func (o *UpdatePlacementDto) HasFrequencyCap() bool {
+	if o != nil && !IsNil(o.FrequencyCap) {
+		return true
+	}
+
+	return false
+}
+
+// SetFrequencyCap gets a reference to the given map[string]interface{} and assigns it to the FrequencyCap field.
+func (o *UpdatePlacementDto) SetFrequencyCap(v map[string]interface{}) {
+	o.FrequencyCap = v
+}
+
 func (o UpdatePlacementDto) MarshalJSON() ([]byte, error) {
 	toSerialize,err := o.ToMap()
 	if err != nil {
@@ -516,6 +550,9 @@ func (o UpdatePlacementDto) ToMap() (map[string]interface{}, error) {
 	}
 	if o.AutoAds != nil {
 		toSerialize["autoAds"] = o.AutoAds
+	}
+	if o.FrequencyCap != nil {
+		toSerialize["frequencyCap"] = o.FrequencyCap
 	}
 	return toSerialize, nil
 }
