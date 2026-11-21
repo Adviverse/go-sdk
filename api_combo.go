@@ -42,7 +42,7 @@ func (r ApiComboControllerCreateComboRequest) Execute() (*ComboControllerCreateC
 /*
 ComboControllerCreateCombo Provision a combo of placements on a property
 
-Creates several placements at once under one generated `comboId` and returns a single combined embed snippet to paste before `</body>`. Send either `presetKey` or a custom `units` array (formats banner, native, popunder, social_bar, interstitial, in_page_push, direct_link), plus optional `namePrefix` and shared floor/rev-share/auction/house settings applied to every unit. Adds a warning if the property already has a popunder. 400 for an unknown preset or a non-combinable format; 404/403 if the property is missing or not yours.
+Creates several placements at once under one generated `comboId` and returns a single combined embed snippet to paste before `</body>`. Send either `presetKey` or a custom `units` array (formats banner, native, popunder, social_bar, interstitial, in_page_push, direct_link), plus optional `namePrefix` and shared floor/rev-share/auction/house settings applied to every unit. The property may be an app id; on an app, presets or units with web-only formats (popunder, social_bar, in_page_push) are refused with 400 before anything is created (use `in_app`). Adds a warning if the property already has a popunder. 400 for an unknown preset or a non-combinable format; 404/403 if the property is missing or not yours.
 
 Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 
@@ -284,7 +284,7 @@ func (r ApiComboControllerListPresetsRequest) Execute() (*ComboControllerListPre
 /*
 ComboControllerListPresets List combo layout presets
 
-Returns the static catalog of combo presets (`standard_combo`, `leaderboard_pop`, `social_push`, `sticky_interstitial`, `full_monetization`), each with the placement units it provisions. Preset keys are stable.
+Returns the static catalog of combo presets (`standard_combo`, `leaderboard_pop`, `social_push`, `sticky_interstitial`, `full_monetization`, `in_app`), each with the placement units it provisions. Preset keys are stable. `in_app` (bottom 320x50 banner + interstitial) is the preset for mobile/CTV apps.
 
 Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
 

@@ -24,6 +24,7 @@ type UpdateAppDto struct {
 	CtvMeta map[string]interface{} `json:"ctvMeta,omitempty"`
 	StoreUrl *string `json:"storeUrl,omitempty"`
 	Platform *string `json:"platform,omitempty"`
+	DeveloperPropertyId NullableString `json:"developerPropertyId,omitempty"`
 }
 
 // NewUpdateAppDto instantiates a new UpdateAppDto object
@@ -203,6 +204,48 @@ func (o *UpdateAppDto) SetPlatform(v string) {
 	o.Platform = &v
 }
 
+// GetDeveloperPropertyId returns the DeveloperPropertyId field value if set, zero value otherwise (both if not set or set to explicit null).
+func (o *UpdateAppDto) GetDeveloperPropertyId() string {
+	if o == nil || IsNil(o.DeveloperPropertyId.Get()) {
+		var ret string
+		return ret
+	}
+	return *o.DeveloperPropertyId.Get()
+}
+
+// GetDeveloperPropertyIdOk returns a tuple with the DeveloperPropertyId field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+// NOTE: If the value is an explicit nil, `nil, true` will be returned
+func (o *UpdateAppDto) GetDeveloperPropertyIdOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return o.DeveloperPropertyId.Get(), o.DeveloperPropertyId.IsSet()
+}
+
+// HasDeveloperPropertyId returns a boolean if a field has been set.
+func (o *UpdateAppDto) HasDeveloperPropertyId() bool {
+	if o != nil && o.DeveloperPropertyId.IsSet() {
+		return true
+	}
+
+	return false
+}
+
+// SetDeveloperPropertyId gets a reference to the given NullableString and assigns it to the DeveloperPropertyId field.
+func (o *UpdateAppDto) SetDeveloperPropertyId(v string) {
+	o.DeveloperPropertyId.Set(&v)
+}
+// SetDeveloperPropertyIdNil sets the value for DeveloperPropertyId to be an explicit nil
+func (o *UpdateAppDto) SetDeveloperPropertyIdNil() {
+	o.DeveloperPropertyId.Set(nil)
+}
+
+// UnsetDeveloperPropertyId ensures that no value is present for DeveloperPropertyId, not even an explicit nil
+func (o *UpdateAppDto) UnsetDeveloperPropertyId() {
+	o.DeveloperPropertyId.Unset()
+}
+
 func (o UpdateAppDto) MarshalJSON() ([]byte, error) {
 	toSerialize,err := o.ToMap()
 	if err != nil {
@@ -227,6 +270,9 @@ func (o UpdateAppDto) ToMap() (map[string]interface{}, error) {
 	}
 	if !IsNil(o.Platform) {
 		toSerialize["platform"] = o.Platform
+	}
+	if o.DeveloperPropertyId.IsSet() {
+		toSerialize["developerPropertyId"] = o.DeveloperPropertyId.Get()
 	}
 	return toSerialize, nil
 }

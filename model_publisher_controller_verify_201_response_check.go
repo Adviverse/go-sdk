@@ -22,7 +22,7 @@ var _ MappedNullable = &PublisherControllerVerify201ResponseCheck{}
 // PublisherControllerVerify201ResponseCheck struct for PublisherControllerVerify201ResponseCheck
 type PublisherControllerVerify201ResponseCheck struct {
 	Method NullableString `json:"method"`
-	// URL fetched (file/meta) or DNS name queried (dns)
+	// URL fetched (file/meta/app-ads.txt/store listing) or DNS name queried (dns)
 	Target string `json:"target"`
 	Status *int32 `json:"status,omitempty"`
 	FinalUrl *string `json:"finalUrl,omitempty"`

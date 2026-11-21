@@ -59,6 +59,8 @@ type PubProperty struct {
 	AppAdsTxt []map[string]interface{} `json:"app_ads_txt,omitempty"`
 	SkadnetworkIds []string `json:"skadnetwork_ids,omitempty"`
 	CtvMeta map[string]interface{} `json:"ctv_meta,omitempty"`
+	// Apps: the website property whose /app-ads.txt verifies the app
+	DeveloperPropertyId NullableString `json:"developer_property_id,omitempty"`
 	CreatedAt *time.Time `json:"created_at,omitempty"`
 	UpdatedAt *time.Time `json:"updated_at,omitempty"`
 	DeletedAt NullableTime `json:"deleted_at,omitempty"`
@@ -1238,6 +1240,48 @@ func (o *PubProperty) SetCtvMeta(v map[string]interface{}) {
 	o.CtvMeta = v
 }
 
+// GetDeveloperPropertyId returns the DeveloperPropertyId field value if set, zero value otherwise (both if not set or set to explicit null).
+func (o *PubProperty) GetDeveloperPropertyId() string {
+	if o == nil || IsNil(o.DeveloperPropertyId.Get()) {
+		var ret string
+		return ret
+	}
+	return *o.DeveloperPropertyId.Get()
+}
+
+// GetDeveloperPropertyIdOk returns a tuple with the DeveloperPropertyId field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+// NOTE: If the value is an explicit nil, `nil, true` will be returned
+func (o *PubProperty) GetDeveloperPropertyIdOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return o.DeveloperPropertyId.Get(), o.DeveloperPropertyId.IsSet()
+}
+
+// HasDeveloperPropertyId returns a boolean if a field has been set.
+func (o *PubProperty) HasDeveloperPropertyId() bool {
+	if o != nil && o.DeveloperPropertyId.IsSet() {
+		return true
+	}
+
+	return false
+}
+
+// SetDeveloperPropertyId gets a reference to the given NullableString and assigns it to the DeveloperPropertyId field.
+func (o *PubProperty) SetDeveloperPropertyId(v string) {
+	o.DeveloperPropertyId.Set(&v)
+}
+// SetDeveloperPropertyIdNil sets the value for DeveloperPropertyId to be an explicit nil
+func (o *PubProperty) SetDeveloperPropertyIdNil() {
+	o.DeveloperPropertyId.Set(nil)
+}
+
+// UnsetDeveloperPropertyId ensures that no value is present for DeveloperPropertyId, not even an explicit nil
+func (o *PubProperty) UnsetDeveloperPropertyId() {
+	o.DeveloperPropertyId.Unset()
+}
+
 // GetCreatedAt returns the CreatedAt field value if set, zero value otherwise.
 func (o *PubProperty) GetCreatedAt() time.Time {
 	if o == nil || IsNil(o.CreatedAt) {
@@ -1450,6 +1494,9 @@ func (o PubProperty) ToMap() (map[string]interface{}, error) {
 	if !IsNil(o.CtvMeta) {
 		toSerialize["ctv_meta"] = o.CtvMeta
 	}
+	if o.DeveloperPropertyId.IsSet() {
+		toSerialize["developer_property_id"] = o.DeveloperPropertyId.Get()
+	}
 	if !IsNil(o.CreatedAt) {
 		toSerialize["created_at"] = o.CreatedAt
 	}
@@ -1513,6 +1560,7 @@ func (o *PubProperty) UnmarshalJSON(data []byte) (err error) {
 		delete(additionalProperties, "app_ads_txt")
 		delete(additionalProperties, "skadnetwork_ids")
 		delete(additionalProperties, "ctv_meta")
+		delete(additionalProperties, "developer_property_id")
 		delete(additionalProperties, "created_at")
 		delete(additionalProperties, "updated_at")
 		delete(additionalProperties, "deleted_at")

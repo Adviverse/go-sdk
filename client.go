@@ -75,6 +75,8 @@ type APIClient struct {
 
 	DealsAPI *DealsAPIService
 
+	DeviceAuthAPI *DeviceAuthAPIService
+
 	DoohAPI *DoohAPIService
 
 	EdgeAPI *EdgeAPIService
@@ -159,6 +161,7 @@ func NewAPIClient(cfg *Configuration) *APIClient {
 	c.ComplianceAPI = (*ComplianceAPIService)(&c.common)
 	c.ConversionsAPI = (*ConversionsAPIService)(&c.common)
 	c.DealsAPI = (*DealsAPIService)(&c.common)
+	c.DeviceAuthAPI = (*DeviceAuthAPIService)(&c.common)
 	c.DoohAPI = (*DoohAPIService)(&c.common)
 	c.EdgeAPI = (*EdgeAPIService)(&c.common)
 	c.ExportsAPI = (*ExportsAPIService)(&c.common)

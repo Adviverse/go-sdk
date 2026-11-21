@@ -22,6 +22,8 @@ var _ MappedNullable = &ApiKeyCreated{}
 
 // ApiKeyCreated struct for ApiKeyCreated
 type ApiKeyCreated struct {
+	// The key id (for DELETE /v1/keys/{id}).
+	Id *string `json:"id,omitempty"`
 	// Full key, shown only once.
 	Key string `json:"key"`
 	Prefix string `json:"prefix"`
@@ -50,6 +52,38 @@ func NewApiKeyCreated(key string, prefix string, scopes []string, expiresAt Null
 func NewApiKeyCreatedWithDefaults() *ApiKeyCreated {
 	this := ApiKeyCreated{}
 	return &this
+}
+
+// GetId returns the Id field value if set, zero value otherwise.
+func (o *ApiKeyCreated) GetId() string {
+	if o == nil || IsNil(o.Id) {
+		var ret string
+		return ret
+	}
+	return *o.Id
+}
+
+// GetIdOk returns a tuple with the Id field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *ApiKeyCreated) GetIdOk() (*string, bool) {
+	if o == nil || IsNil(o.Id) {
+		return nil, false
+	}
+	return o.Id, true
+}
+
+// HasId returns a boolean if a field has been set.
+func (o *ApiKeyCreated) HasId() bool {
+	if o != nil && !IsNil(o.Id) {
+		return true
+	}
+
+	return false
+}
+
+// SetId gets a reference to the given string and assigns it to the Id field.
+func (o *ApiKeyCreated) SetId(v string) {
+	o.Id = &v
 }
 
 // GetKey returns the Key field value
@@ -160,6 +194,9 @@ func (o ApiKeyCreated) MarshalJSON() ([]byte, error) {
 
 func (o ApiKeyCreated) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
+	if !IsNil(o.Id) {
+		toSerialize["id"] = o.Id
+	}
 	toSerialize["key"] = o.Key
 	toSerialize["prefix"] = o.Prefix
 	toSerialize["scopes"] = o.Scopes

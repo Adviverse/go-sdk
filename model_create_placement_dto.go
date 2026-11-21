@@ -21,7 +21,8 @@ var _ MappedNullable = &CreatePlacementDto{}
 
 // CreatePlacementDto struct for CreatePlacementDto
 type CreatePlacementDto struct {
-	PropertyId string `json:"propertyId"`
+	PropertyId *string `json:"propertyId,omitempty"`
+	AppId *string `json:"appId,omitempty"`
 	Name string `json:"name"`
 	Format string `json:"format"`
 	Width *float32 `json:"width,omitempty"`
@@ -45,9 +46,8 @@ type _CreatePlacementDto CreatePlacementDto
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewCreatePlacementDto(propertyId string, name string, format string) *CreatePlacementDto {
+func NewCreatePlacementDto(name string, format string) *CreatePlacementDto {
 	this := CreatePlacementDto{}
-	this.PropertyId = propertyId
 	this.Name = name
 	this.Format = format
 	return &this
@@ -61,28 +61,68 @@ func NewCreatePlacementDtoWithDefaults() *CreatePlacementDto {
 	return &this
 }
 
-// GetPropertyId returns the PropertyId field value
+// GetPropertyId returns the PropertyId field value if set, zero value otherwise.
 func (o *CreatePlacementDto) GetPropertyId() string {
-	if o == nil {
+	if o == nil || IsNil(o.PropertyId) {
 		var ret string
 		return ret
 	}
-
-	return o.PropertyId
+	return *o.PropertyId
 }
 
-// GetPropertyIdOk returns a tuple with the PropertyId field value
+// GetPropertyIdOk returns a tuple with the PropertyId field value if set, nil otherwise
 // and a boolean to check if the value has been set.
 func (o *CreatePlacementDto) GetPropertyIdOk() (*string, bool) {
-	if o == nil {
+	if o == nil || IsNil(o.PropertyId) {
 		return nil, false
 	}
-	return &o.PropertyId, true
+	return o.PropertyId, true
 }
 
-// SetPropertyId sets field value
+// HasPropertyId returns a boolean if a field has been set.
+func (o *CreatePlacementDto) HasPropertyId() bool {
+	if o != nil && !IsNil(o.PropertyId) {
+		return true
+	}
+
+	return false
+}
+
+// SetPropertyId gets a reference to the given string and assigns it to the PropertyId field.
 func (o *CreatePlacementDto) SetPropertyId(v string) {
-	o.PropertyId = v
+	o.PropertyId = &v
+}
+
+// GetAppId returns the AppId field value if set, zero value otherwise.
+func (o *CreatePlacementDto) GetAppId() string {
+	if o == nil || IsNil(o.AppId) {
+		var ret string
+		return ret
+	}
+	return *o.AppId
+}
+
+// GetAppIdOk returns a tuple with the AppId field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *CreatePlacementDto) GetAppIdOk() (*string, bool) {
+	if o == nil || IsNil(o.AppId) {
+		return nil, false
+	}
+	return o.AppId, true
+}
+
+// HasAppId returns a boolean if a field has been set.
+func (o *CreatePlacementDto) HasAppId() bool {
+	if o != nil && !IsNil(o.AppId) {
+		return true
+	}
+
+	return false
+}
+
+// SetAppId gets a reference to the given string and assigns it to the AppId field.
+func (o *CreatePlacementDto) SetAppId(v string) {
+	o.AppId = &v
 }
 
 // GetName returns the Name field value
@@ -559,7 +599,12 @@ func (o CreatePlacementDto) MarshalJSON() ([]byte, error) {
 
 func (o CreatePlacementDto) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	toSerialize["propertyId"] = o.PropertyId
+	if !IsNil(o.PropertyId) {
+		toSerialize["propertyId"] = o.PropertyId
+	}
+	if !IsNil(o.AppId) {
+		toSerialize["appId"] = o.AppId
+	}
 	toSerialize["name"] = o.Name
 	toSerialize["format"] = o.Format
 	if !IsNil(o.Width) {
@@ -609,7 +654,6 @@ func (o *CreatePlacementDto) UnmarshalJSON(data []byte) (err error) {
 	// by unmarshalling the object into a generic map with string keys and checking
 	// that every required field exists as a key in the generic map.
 	requiredProperties := []string{
-		"propertyId",
 		"name",
 		"format",
 	}

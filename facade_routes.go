@@ -79,6 +79,8 @@ var routes = map[string]map[string]route{
 		"create_app":            {"POST", "/v1/publisher/apps", []routeParam{{"body", "body"}}},
 		"get_app":               {"GET", "/v1/publisher/apps/{id}", []routeParam{{"id", "path"}}},
 		"update_app":            {"PATCH", "/v1/publisher/apps/{id}", []routeParam{{"id", "path"}, {"body", "body"}}},
+		"remove_app":            {"DELETE", "/v1/publisher/apps/{id}", []routeParam{{"id", "path"}}},
+		"verify_app":            {"POST", "/v1/publisher/apps/{id}/verify", []routeParam{{"id", "path"}, {"body", "body"}}},
 		"app_ads_txt":           {"GET", "/v1/publisher/apps/{id}/app-ads.txt", []routeParam{{"id", "path"}}},
 	},
 	"combo": {
@@ -351,6 +353,7 @@ var routes = map[string]map[string]route{
 	"settings": {
 		"list_keys":                 {"GET", "/v1/keys", []routeParam{}},
 		"create_key":                {"POST", "/v1/keys", []routeParam{{"body", "body"}}},
+		"revoke_current_key":        {"DELETE", "/v1/keys/current", []routeParam{}},
 		"revoke_key":                {"DELETE", "/v1/keys/{id}", []routeParam{{"id", "path"}}},
 		"list_terminal_tokens":      {"GET", "/v1/advertiser/terminal-tokens", []routeParam{}},
 		"create_terminal_token":     {"POST", "/v1/advertiser/terminal-tokens", []routeParam{{"body", "body"}}},
@@ -360,6 +363,12 @@ var routes = map[string]map[string]route{
 		"bid_rec":                   {"GET", "/v1/advertiser/insights/bid-recommendation", []routeParam{{"format", "query"}, {"geo", "query"}}},
 		"update_network":            {"PATCH", "/v1/account/network", []routeParam{{"body", "body"}}},
 		"brand_safety":              {"POST", "/v1/advertiser/campaigns/{id}/brand-safety", []routeParam{{"id", "path"}, {"body", "body"}}},
+	},
+	"device_auth": {
+		"code":     {"POST", "/v1/auth/device/code", []routeParam{{"body", "body"}}},
+		"token":    {"POST", "/v1/auth/device/token", []routeParam{{"body", "body"}}},
+		"describe": {"GET", "/v1/auth/device", []routeParam{{"user_code", "query"}}},
+		"approve":  {"POST", "/v1/auth/device/approve", []routeParam{{"body", "body"}}},
 	},
 	"optimization": {
 		"optimizer_log":    {"GET", "/v1/optimizer/log", []routeParam{{"limit", "query"}}},

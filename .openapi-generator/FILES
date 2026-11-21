@@ -12,6 +12,7 @@ api_combo.go
 api_compliance.go
 api_conversions.go
 api_deals.go
+api_device_auth.go
 api_dooh.go
 api_edge.go
 api_exports.go
@@ -41,8 +42,6 @@ api_verification.go
 api_webhooks.go
 client.go
 configuration.go
-go.mod
-go.sum
 model_account_controller_didit_webhook_201_response.go
 model_account_controller_kyc_status_200_response.go
 model_account_controller_start_didit_201_response.go
@@ -212,6 +211,13 @@ model_deals_controller_lookup_advertiser_200_response.go
 model_deals_controller_preview_claim_200_response.go
 model_deals_controller_status_201_response.go
 model_deposit_dto.go
+model_device_approve_dto.go
+model_device_auth_controller_approve_201_response.go
+model_device_auth_controller_code_200_response.go
+model_device_auth_controller_describe_200_response.go
+model_device_auth_controller_token_200_response.go
+model_device_code_dto.go
+model_device_token_dto.go
 model_dooh_controller_list_200_response_inner.go
 model_dooh_controller_save_setup_201_response.go
 model_dooh_setup_dto.go
@@ -463,7 +469,7 @@ model_settings_controller_bid_rec_200_response.go
 model_settings_controller_create_terminal_token_201_response.go
 model_settings_controller_create_terminal_token_201_response_switch.go
 model_settings_controller_list_terminal_tokens_200_response_inner.go
-model_settings_controller_revoke_key_200_response.go
+model_settings_controller_revoke_current_key_200_response.go
 model_settings_controller_rotate_terminal_token_201_response.go
 model_settings_controller_set_terminal_token_policy_200_response.go
 model_settings_controller_update_network_200_response.go
@@ -503,6 +509,7 @@ model_update_screen_dto.go
 model_update_surface_dto.go
 model_update_webhook_dto.go
 model_verification_controller_categories_200_response_inner.go
+model_verify_app_dto.go
 model_webhook_delivery.go
 model_webhook_delivery_result.go
 model_webhook_endpoint.go

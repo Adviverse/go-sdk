@@ -29,6 +29,7 @@ type CreateAppDto struct {
 	AppStoreId *string `json:"appStoreId,omitempty"`
 	Category *float32 `json:"category,omitempty"`
 	CtvMeta map[string]interface{} `json:"ctvMeta,omitempty"`
+	DeveloperPropertyId *string `json:"developerPropertyId,omitempty"`
 }
 
 type _CreateAppDto CreateAppDto
@@ -278,6 +279,38 @@ func (o *CreateAppDto) SetCtvMeta(v map[string]interface{}) {
 	o.CtvMeta = v
 }
 
+// GetDeveloperPropertyId returns the DeveloperPropertyId field value if set, zero value otherwise.
+func (o *CreateAppDto) GetDeveloperPropertyId() string {
+	if o == nil || IsNil(o.DeveloperPropertyId) {
+		var ret string
+		return ret
+	}
+	return *o.DeveloperPropertyId
+}
+
+// GetDeveloperPropertyIdOk returns a tuple with the DeveloperPropertyId field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *CreateAppDto) GetDeveloperPropertyIdOk() (*string, bool) {
+	if o == nil || IsNil(o.DeveloperPropertyId) {
+		return nil, false
+	}
+	return o.DeveloperPropertyId, true
+}
+
+// HasDeveloperPropertyId returns a boolean if a field has been set.
+func (o *CreateAppDto) HasDeveloperPropertyId() bool {
+	if o != nil && !IsNil(o.DeveloperPropertyId) {
+		return true
+	}
+
+	return false
+}
+
+// SetDeveloperPropertyId gets a reference to the given string and assigns it to the DeveloperPropertyId field.
+func (o *CreateAppDto) SetDeveloperPropertyId(v string) {
+	o.DeveloperPropertyId = &v
+}
+
 func (o CreateAppDto) MarshalJSON() ([]byte, error) {
 	toSerialize,err := o.ToMap()
 	if err != nil {
@@ -303,6 +336,9 @@ func (o CreateAppDto) ToMap() (map[string]interface{}, error) {
 	}
 	if !IsNil(o.CtvMeta) {
 		toSerialize["ctvMeta"] = o.CtvMeta
+	}
+	if !IsNil(o.DeveloperPropertyId) {
+		toSerialize["developerPropertyId"] = o.DeveloperPropertyId
 	}
 	return toSerialize, nil
 }

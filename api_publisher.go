@@ -160,7 +160,7 @@ func (r ApiPublisherControllerCreateAppRequest) Execute() (*PubProperty, *http.R
 /*
 PublisherControllerCreateApp Register a mobile or CTV app
 
-Creates a `mobile_app` or `ctv` property from `kind`, `name`, `bundleId` and `platform` (ios, android, roku, firetv, appletv, androidtv, web), with optional `storeUrl`, `appStoreId`, `category` and `ctvMeta`. The bundle id is stored in both `bundle_id` and `domain`; the app enters the normal `pending` approval flow with file verification.
+Creates a `mobile_app` or `ctv` property from `kind`, `name`, `bundleId` and `platform` (ios, android, roku, firetv, appletv, androidtv, web), with optional `storeUrl`, `appStoreId`, `category` and `ctvMeta`. The bundle id is stored in both `bundle_id` and `domain`. Optional `developerPropertyId` links one of your website properties as the developer site. The app starts `pending` / `unverified`; prove it with POST /v1/publisher/apps/{id}/verify (IAB app-ads.txt on the verified developer site, optionally plus the store listing), which approves it. For QA before verification, request ads with the test tag `tk_test`, which always fills. 400 if `developerPropertyId` is not one of your website properties.
 
 Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 
@@ -286,7 +286,7 @@ func (r ApiPublisherControllerCreatePlacementRequest) Execute() (*PubPlacement, 
 /*
 PublisherControllerCreatePlacement Create a placement
 
-Creates an ad unit on one of your properties (`propertyId`, `name`, `format` required) with a generated `tag_key`. Optional fields cover size (`width`/`height` or `responsive`), `floorCpm`, `revShare` (defaults to the network rev-share), `auctionType` (default `first_price`), `passbackUrl`, `frequencyCap`, format `settings`, and yield fill (`houseOnly`, `houseShare` clamped to 0-1, `houseBackfill`, `floorFallback`). Popunders default to a 1-per-visitor-per-24h frequency cap unless `frequencyCap` is given (`{}` opts out). The serving index is republished. 404 if the property is missing, 403 if not yours.
+Creates an ad unit on one of your properties (`name`, `format` and exactly one of `propertyId` / `appId` required; an app id from /v1/publisher/apps is a valid property id) with a generated `tag_key`. On a mobile_app or ctv property only app formats are accepted (banner, native, interstitial, rewarded, app_open, video, audio, carousel, pod, direct_link); web-only formats such as popunder, social_bar and in_page_push return 400. Optional fields cover size (`width`/`height` or `responsive`), `floorCpm`, `revShare` (defaults to the network rev-share), `auctionType` (default `first_price`), `passbackUrl`, `frequencyCap`, format `settings`, and yield fill (`houseOnly`, `houseShare` clamped to 0-1, `houseBackfill`, `floorFallback`). Popunders default to a 1-per-visitor-per-24h frequency cap unless `frequencyCap` is given (`{}` opts out). The serving index is republished. 404 if the property is missing, 403 if not yours.
 
 Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 
@@ -1460,6 +1460,125 @@ func (a *PublisherAPIService) PublisherControllerPropertyAdsTxtExecute(r ApiPubl
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
+type ApiPublisherControllerRemoveAppRequest struct {
+	ctx context.Context
+	ApiService *PublisherAPIService
+	id string
+}
+
+func (r ApiPublisherControllerRemoveAppRequest) Execute() (*AuthControllerResendVerification201Response, *http.Response, error) {
+	return r.ApiService.PublisherControllerRemoveAppExecute(r)
+}
+
+/*
+PublisherControllerRemoveApp Delete a mobile or CTV app
+
+Soft-deletes the app and all of its placements, then republishes the serving index so ads stop promptly (same as deleting a property). 404 if not found or not an app, 403 if not yours.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param id
+ @return ApiPublisherControllerRemoveAppRequest
+*/
+func (a *PublisherAPIService) PublisherControllerRemoveApp(ctx context.Context, id string) ApiPublisherControllerRemoveAppRequest {
+	return ApiPublisherControllerRemoveAppRequest{
+		ApiService: a,
+		ctx: ctx,
+		id: id,
+	}
+}
+
+// Execute executes the request
+//  @return AuthControllerResendVerification201Response
+func (a *PublisherAPIService) PublisherControllerRemoveAppExecute(r ApiPublisherControllerRemoveAppRequest) (*AuthControllerResendVerification201Response, *http.Response, error) {
+	var (
+		localVarHTTPMethod   = http.MethodDelete
+		localVarPostBody     interface{}
+		formFiles            []formFile
+		localVarReturnValue  *AuthControllerResendVerification201Response
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherAPIService.PublisherControllerRemoveApp")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v1/publisher/apps/{id}"
+	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", url.PathEscape(parameterValueToString(r.id, "id")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
 type ApiPublisherControllerRemovePropertyRequest struct {
 	ctx context.Context
 	ApiService *PublisherAPIService
@@ -2085,7 +2204,7 @@ func (r ApiPublisherControllerUpdateAppRequest) Execute() (*PubProperty, *http.R
 /*
 PublisherControllerUpdateApp Update app-ads.txt, SKAdNetwork and CTV metadata
 
-Patches only the fields sent: `appAdsTxt` (authorized-seller entries `{domain, sellerId, relationship?, certId?}`, normalized and invalid ones dropped), `skadnetworkIds`, `ctvMeta`, `storeUrl`, `platform`. Republishes the serving index. 404/403 as for get.
+Patches only the fields sent: `appAdsTxt` (authorized-seller entries `{domain, sellerId, relationship?, certId?}`, normalized and invalid ones dropped), `skadnetworkIds`, `ctvMeta`, `storeUrl`, `platform`, `developerPropertyId` (one of your website properties; `null` unlinks; 400 otherwise). Republishes the serving index. 404/403 as for get.
 
 Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 
@@ -2524,6 +2643,136 @@ func (a *PublisherAPIService) PublisherControllerVerifyExecute(r ApiPublisherCon
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.ctx != nil {
+		// API Key Authentication
+		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
+			if apiKey, ok := auth["apiKey"]; ok {
+				var key string
+				if apiKey.Prefix != "" {
+					key = apiKey.Prefix + " " + apiKey.Key
+				} else {
+					key = apiKey.Key
+				}
+				localVarHeaderParams["x-api-key"] = key
+			}
+		}
+	}
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiPublisherControllerVerifyAppRequest struct {
+	ctx context.Context
+	ApiService *PublisherAPIService
+	id string
+	verifyAppDto *VerifyAppDto
+}
+
+func (r ApiPublisherControllerVerifyAppRequest) VerifyAppDto(verifyAppDto VerifyAppDto) ApiPublisherControllerVerifyAppRequest {
+	r.verifyAppDto = &verifyAppDto
+	return r
+}
+
+func (r ApiPublisherControllerVerifyAppRequest) Execute() (*PublisherControllerVerify201Response, *http.Response, error) {
+	return r.ApiService.PublisherControllerVerifyAppExecute(r)
+}
+
+/*
+PublisherControllerVerifyApp Verify a mobile or CTV app
+
+Body `{method?: "developer_site" | "store_listing"}` (default `developer_site`). `developer_site`: the app's `developerPropertyId` must be one of your website properties and already verified; its `https://<domain>/app-ads.txt` (cache-busted, http fallback) must contain `adviverse.com, <publisherAccountId>, DIRECT` (case/space-insensitive; see GET /v1/publisher/apps/{id}/app-ads.txt). `store_listing`: `storeUrl` must be on apps.apple.com or play.google.com, answer 200 and show the Play package id (`id=`) or the App Store id; then the developer_site check also runs. On success the app becomes `verified`, a `pending` app is approved and the serving index is republished. A failed check returns `verified: false` with `error` (no_developer_property | developer_property_unverified | app_ads_txt_missing_line | http_error | fetch_failed | store_listing_not_found), a `message` saying what to put where, and `check`. Same shape as property verify.
+
+Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param id
+ @return ApiPublisherControllerVerifyAppRequest
+*/
+func (a *PublisherAPIService) PublisherControllerVerifyApp(ctx context.Context, id string) ApiPublisherControllerVerifyAppRequest {
+	return ApiPublisherControllerVerifyAppRequest{
+		ApiService: a,
+		ctx: ctx,
+		id: id,
+	}
+}
+
+// Execute executes the request
+//  @return PublisherControllerVerify201Response
+func (a *PublisherAPIService) PublisherControllerVerifyAppExecute(r ApiPublisherControllerVerifyAppRequest) (*PublisherControllerVerify201Response, *http.Response, error) {
+	var (
+		localVarHTTPMethod   = http.MethodPost
+		localVarPostBody     interface{}
+		formFiles            []formFile
+		localVarReturnValue  *PublisherControllerVerify201Response
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PublisherAPIService.PublisherControllerVerifyApp")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v1/publisher/apps/{id}/verify"
+	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", url.PathEscape(parameterValueToString(r.id, "id")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.verifyAppDto == nil {
+		return localVarReturnValue, nil, reportError("verifyAppDto is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	// body params
+	localVarPostBody = r.verifyAppDto
 	if r.ctx != nil {
 		// API Key Authentication
 		if auth, ok := r.ctx.Value(ContextAPIKeys).(map[string]APIKey); ok {
